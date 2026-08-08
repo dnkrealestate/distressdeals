@@ -1,0 +1,231 @@
+export type UserRole = 'buyer' | 'seller' | 'agent' | 'admin' | 'super_admin'
+export type PropertyType = 'apartment' | 'villa' | 'townhouse' | 'penthouse' | 'studio' | 'office' | 'retail' | 'warehouse' | 'plot' | 'commercial_villa' | 'other'
+export type PropertyCategory = 'residential' | 'commercial'
+export type ListingType = 'sale' | 'rent'
+export type RentFrequency = 'yearly' | 'monthly'
+export type SellerUrgency = 'this_month' | 'within_2_months' | 'flexible'
+export type PropertyStatus = 'pending' | 'under_review' | 'approved' | 'rejected' | 'published' | 'sold' | 'withdrawn' | 'draft'
+export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'touring' | 'negotiating' | 'deal_closed' | 'deal_lost' | 'cancelled'
+export type AgentPermission = 'approve_listings' | 'manage_leads' | 'schedule_meetings' | 'view_analytics' | 'manage_content' | 'manage_agents' | 'export_data'
+
+export interface User {
+  _id: string; name: string; email: string; phone?: string; avatar?: string
+  role: UserRole; status: string; isEmailVerified: boolean; isPhoneVerified: boolean
+  favorites: string[]; createdAt: string
+  permissions?: AgentPermission[]; agentRole?: string
+  notifications?: {
+    email: boolean; push: boolean; sms: boolean
+    newProperties: boolean; leadUpdates: boolean
+    messages: boolean; meetingReminders: boolean
+  }
+}
+
+export interface PropertyImage { url: string; publicId: string; isPrimary: boolean; order: number; caption?: string }
+
+export interface Property {
+  _id: string; title: string; description: string; slug: string
+  category?: PropertyCategory
+  type: PropertyType; listingType: ListingType; rentFrequency?: RentFrequency; status: PropertyStatus
+  price: number; pricePerSqft?: number
+  // How soon the seller wants to sell/rent — internal-only, never sent to
+  // buyers/anonymous viewers (see backend sanitizeForPublic).
+  urgency?: SellerUrgency
+  location: {
+    // address/additionalAddress/district are agent+admin-only — the API never
+    // sends them to buyers/anonymous viewers, so treat them as absent in any
+    // buyer-facing view.
+    address?: string; additionalAddress?: string; district?: string
+    area?: string; community?: string; city: string; emirate: string
+    coordinates?: { lat: number; lng: number }
+  }
+  amenities: { bedrooms: number; bathrooms: number; parkingSpaces: number; floorArea: number; balconies: number; floor?: number }
+  features: Record<string, boolean>
+  furnishing: 'furnished' | 'semi_furnished' | 'unfurnished'
+  completion: 'ready' | 'off_plan'
+  developer?: string; projectName?: string; permitNumber?: string; permitQrImage?: string
+  images: PropertyImage[]; videos?: string[]; floorPlan?: string; brochure?: string; virtualTour?: string
+  seller: User; agent?: User
+  // Set once the assigned agent has filled in title/description/area/photos —
+  // required before the listing can be approved and published.
+  detailsCompleted: boolean
+  rejectionReason?: string
+  deleteRequest?: { requestedBy: Partial<User>; reason?: string; requestedAt: string }
+  stats: { views: number; favorites: number; leads: number; interestedCount: number }
+  isFeatured: boolean; isPremium: boolean; tags: string[]
+  createdAt: string; updatedAt: string
+}
+
+export interface Lead {
+  _id: string; property?: Property; project?: Project; leadType: 'property' | 'project'
+  buyer?: User; assignedAgent?: User
+  status: LeadStatus; source: string; budget?: { min: number; max: number }
+  name?: string; email?: string; phone?: string
+  requirements?: string; priority: 'low' | 'medium' | 'high'
+  notes: { content: string; createdBy: User; createdAt: string }[]
+  meetings: Meeting[]; timeline: { action: string; description: string; createdAt: string }[]
+  deleteRequest?: { requestedBy: Partial<User>; reason?: string; requestedAt: string }
+  createdAt: string; updatedAt: string
+}
+
+export interface Meeting {
+  _id: string; lead: string; property: Property; buyer: User; agent: User
+  type: 'property_tour' | 'office_meeting' | 'virtual' | 'phone_call'
+  status: 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no_show'
+  scheduledAt: string; duration: number; location?: string; notes?: string
+  createdAt: string
+}
+
+export interface Agent {
+  _id: string; user: User; agentId: string
+  agentRole: 'agent' | 'senior_agent' | 'team_leader' | 'manager'
+  permissions: AgentPermission[]; isAvailable: boolean; isOnline?: boolean
+  activeLeadsCount: number; closedDealsCount: number; languages: string[]
+  specializations: PropertyType[]
+}
+
+export interface ChatMessage {
+  _id: string; room: string; sender: User; content: string
+  type: 'text' | 'image' | 'document' | 'system'
+  isRead: boolean; createdAt: string
+}
+
+export interface ChatRoom {
+  _id: string; type: 'buyer_agent' | 'seller_agent' | 'agent_admin'
+  participants: User[]; property?: Partial<Property>
+  lastMessage?: ChatMessage; unreadCount: number
+  isActive: boolean; createdAt: string; updatedAt: string
+}
+
+export interface Notification {
+  _id: string; type: string; title: string; body: string; isRead: boolean; createdAt: string
+}
+
+export interface BlogPost {
+  _id: string; title: string; slug: string; excerpt: string; content: string
+  coverImage: string; author: User; category: string; tags: string[]
+  status: string; publishedAt?: string; views: number; readTime: number; createdAt: string
+  editorialStage?: 'idea' | 'writing' | 'review' | 'scheduled' | 'published'; scheduledFor?: string
+}
+
+export interface NewsItem {
+  _id: string; title: string; slug: string; summary: string; content: string
+  coverImage: string; category: string
+  status: string; publishedAt?: string; createdAt: string
+  editorialStage?: 'idea' | 'writing' | 'review' | 'scheduled' | 'published'; scheduledFor?: string
+}
+
+export interface WhyCard { icon: string; title: string; description: string }
+export interface StatItem { icon: string; value: string; label: string }
+export interface MiniStat { value: string; label: string }
+
+export interface HomepageContent {
+  _id: string
+  heroHeadlines: string[]
+  heroSubtitle: string
+  heroMiniStats: MiniStat[]
+  whyCards: WhyCard[]
+  statsStrip: StatItem[]
+  heroBannerDesktopDay?: string
+  heroBannerDesktopNight?: string
+  heroBannerMobileDay?: string
+  heroBannerMobileNight?: string
+}
+
+export interface Project {
+  _id: string; title: string; slug: string; developer: string; description: string
+  coverImage?: string; images: { url: string }[]
+  area: string; community?: string; city: string; emirate: string
+  priceFrom: number; priceTo?: number; bedrooms: string
+  handoverQuarter?: string; handoverYear?: number; paymentPlan?: string; permitNumber?: string; permitQrImage?: string
+  status: 'upcoming' | 'under_construction' | 'ready' | 'sold_out'
+  isFeatured: boolean; views: number; createdAt: string
+  developerLogo?: string
+}
+
+export interface Developer {
+  _id: string; name: string; slug: string; logo?: string; description?: string
+  website?: string; establishedYear?: number; headquarters?: string; isFeatured: boolean
+  createdAt: string
+}
+
+export interface DeveloperWithStats extends Developer {
+  projectCount: number; minPriceFrom: number; areas: string[]
+}
+
+export interface MortgageInquiry {
+  _id: string; name: string; email: string; phone: string
+  propertyPrice: number; downPayment: number; interestRate: number; tenureYears: number
+  monthlyPayment: number; status: 'new' | 'contacted' | 'closed'; createdAt: string
+}
+
+export interface SavedSearch {
+  _id: string; name: string; filters: PropertyFilters
+  alertsEnabled: boolean; lastNotifiedAt?: string; createdAt: string
+}
+
+export interface Task {
+  _id: string; lead: string | Lead; assignedTo: User; title: string
+  dueAt: string; completed: boolean; completedAt?: string; createdBy: string; createdAt: string
+}
+
+export interface AgentPerformance {
+  agentId: string; user: User; agentRole: string; isAvailable: boolean
+  totalLeads: number; closedDeals: number; lostDeals: number; revenue: number
+  conversionRate: number; avgResponseMinutes: number | null
+}
+
+export interface LeadSourceReport {
+  source: string; utmSource: string | null; utmMedium: string | null; utmCampaign: string | null
+  total: number; closed: number; lost: number; conversionRate: number
+}
+
+export interface DeveloperStats {
+  developer: string; slug: string; count: number
+  minPriceFrom: number; areas: string[]; sampleImage?: string
+}
+
+export interface AreaStats {
+  area: string; slug: string; count: number
+  avgPrice: number; minPrice: number; maxPrice: number; avgPricePerSqft?: number
+  saleCount: number; rentCount: number; sampleImage?: string
+}
+
+export interface AreaContent {
+  _id: string; area: string; slug: string; heroImage?: string; overview?: string
+  highlights: { label: string }[]; amenities: { icon: string; label: string }[]
+  isFeatured: boolean; createdAt: string
+}
+
+export interface AreaContentWithStats extends AreaContent {
+  count: number; avgPrice: number; avgPricePerSqft: number
+  saleCount: number; rentCount: number; communities: string[]
+}
+
+export interface CommunityContent {
+  _id: string; name: string; slug: string; area?: string; heroImage?: string; overview?: string
+  highlights: { label: string }[]; amenities: { icon: string; label: string }[]
+  isFeatured: boolean; createdAt: string
+}
+
+export interface CommunityContentWithStats extends CommunityContent {
+  count: number; avgPrice: number
+}
+
+export interface BuildingContent {
+  _id: string; name: string; slug: string; area?: string; community?: string; developer?: string
+  heroImage?: string; overview?: string; yearBuilt?: number; totalFloors?: number
+  amenities: { icon: string; label: string }[]
+  isFeatured: boolean; createdAt: string
+}
+
+export interface PropertyFilters {
+  q?: string; type?: string; listingType?: string; priceMin?: number; priceMax?: number
+  bedrooms?: string; area?: string; community?: string; furnishing?: string; completion?: string
+  sortBy?: string; page?: number; limit?: number
+}
+
+export interface PaginatedResponse<T> {
+  data: T[]; total: number; page: number; limit: number; totalPages: number
+}
+
+export interface ApiResponse<T> { success: boolean; data: T; message?: string; error?: string }

@@ -1,0 +1,153 @@
+'use client'
+
+import { useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
+import Image from 'next/image'
+import { motion } from 'framer-motion'
+import { ArrowLeft, Calendar, Share2, Facebook, Twitter, Linkedin, Link2, List } from 'lucide-react'
+import Navbar from '@/components/layouts/Navbar'
+import Footer from '@/components/layouts/Footer'
+import { newsAPI } from '@/lib/api'
+import { formatDate } from '@/lib/utils'
+import type { NewsItem } from '@/types'
+import toast from 'react-hot-toast'
+
+interface TocItem { id: string; text: string; level: number }
+
+export default function NewsDetailClient({ item }: { item: NewsItem }) {
+  const [related, setRelated] = useState<NewsItem[]>([])
+  const [toc, setToc] = useState<TocItem[]>([])
+  const contentRef = useRef<HTMLDivElement>(null)
+  const shareUrl = typeof window !== 'undefined' ? window.location.href : `https://distressdeals.ae/news/${item.slug}`
+
+  useEffect(() => {
+    newsAPI.getAll({ category: item.category, limit: 4 })
+      .then(r => { if (r.data.success) setRelated((r.data.data.data || []).filter((n: NewsItem) => n._id !== item._id).slice(0, 3)) })
+      .catch(() => {})
+  }, [item.category, item._id])
+
+  useEffect(() => {
+    const headings = contentRef.current?.querySelectorAll('h2, h3, h4')
+    if (!headings || headings.length === 0) { setToc([]); return }
+    const items: TocItem[] = Array.from(headings).map((h, i) => {
+      const text = h.textContent || ''
+      const id = `heading-${i}-${text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60)}`
+      h.id = id
+      return { id, text, level: Number(h.tagName[1]) }
+    })
+    setToc(items)
+  }, [item.content])
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(shareUrl)
+    toast.success('Link copied')
+  }
+
+  return (
+    <div className="page overflow-x-hidden">
+      <Navbar />
+
+      <div className="wrap py-4">
+        <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+          <Link href="/" className="hover:opacity-80 transition-opacity">Home</Link>
+          <span>/</span>
+          <Link href="/news" className="hover:opacity-80 transition-opacity">News</Link>
+          <span>/</span>
+          <span style={{ color: 'var(--teal)' }} className="truncate max-w-xs">{item.title}</span>
+        </div>
+      </div>
+
+      <div className="wrap pb-20 grid grid-cols-1 lg:grid-cols-[minmax(0,3fr)_240px] gap-12">
+        <article className="min-w-0">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <span className="badge badge-teal text-xs mb-4">{item.category}</span>
+            <h1 className="heading-lg mb-5 leading-tight">{item.title}</h1>
+            <div className="flex items-center gap-1.5 text-sm mb-8" style={{ color: 'var(--text-muted)' }}>
+              <Calendar size={13} style={{ color: 'var(--teal)' }} />{formatDate(item.publishedAt || item.createdAt)}
+            </div>
+          </motion.div>
+
+          {item.coverImage && (
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+              className="relative w-full h-64 md:h-96 rounded-3xl overflow-hidden mb-10" style={{ background: 'var(--bg-alt)' }}>
+              <Image src={item.coverImage} alt={item.title} fill priority className="object-cover" sizes="(max-width:1024px)100vw,768px" />
+            </motion.div>
+          )}
+
+          {toc.length > 0 && (
+            <div className="lg:hidden mb-8 p-4 rounded-2xl" style={{ background: 'var(--bg-alt)', border: '1px solid var(--border)' }}>
+              <p className="text-xs font-bold flex items-center gap-2 mb-2.5" style={{ color: 'var(--text)' }}><List size={13} /> In this article</p>
+              <div className="space-y-1.5">
+                {toc.map(t => (
+                  <a key={t.id} href={`#${t.id}`} className="block text-xs hover:opacity-80 transition-opacity"
+                    style={{ color: 'var(--text-muted)', paddingLeft: (t.level - 2) * 12 }}>
+                    {t.text}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <motion.div ref={contentRef} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+            className="rich-content text-base leading-relaxed" style={{ color: 'var(--text-mid)' }}
+            dangerouslySetInnerHTML={{ __html: item.content }} />
+
+          <div className="flex items-center gap-3 mt-10 pt-8" style={{ borderTop: '1px solid var(--border)' }}>
+            <span className="text-sm font-medium flex items-center gap-2" style={{ color: 'var(--text)' }}>
+              <Share2 size={14} /> Share
+            </span>
+            <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`} target="_blank" rel="noopener noreferrer" className="btn-ghost p-2.5">
+              <Facebook size={15} />
+            </a>
+            <a href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(item.title)}`} target="_blank" rel="noopener noreferrer" className="btn-ghost p-2.5">
+              <Twitter size={15} />
+            </a>
+            <a href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`} target="_blank" rel="noopener noreferrer" className="btn-ghost p-2.5">
+              <Linkedin size={15} />
+            </a>
+            <button onClick={copyLink} className="btn-ghost p-2.5"><Link2 size={15} /></button>
+          </div>
+
+          <Link href="/news" className="btn-ghost btn-sm gap-2 mt-10">
+            <ArrowLeft size={14} /> Back to News
+          </Link>
+        </article>
+
+        <aside className="hidden lg:block">
+          <div className="sticky space-y-6" style={{ top: 96 }}>
+            {toc.length > 0 && (
+              <div className="p-4 rounded-2xl" style={{ background: 'var(--bg-alt)', border: '1px solid var(--border)' }}>
+                <p className="text-xs font-bold flex items-center gap-2 mb-2.5" style={{ color: 'var(--text)' }}><List size={13} /> In this article</p>
+                <div className="space-y-1.5">
+                  {toc.map(t => (
+                    <a key={t.id} href={`#${t.id}`} className="block text-xs hover:opacity-80 transition-opacity"
+                      style={{ color: 'var(--text-muted)', paddingLeft: (t.level - 2) * 12 }}>
+                      {t.text}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+            {related.length > 0 && (
+              <div className="p-4 rounded-2xl" style={{ background: 'var(--bg-alt)', border: '1px solid var(--border)' }}>
+                <p className="text-xs font-bold mb-3" style={{ color: 'var(--text)' }}>Recent News</p>
+                <div className="space-y-3">
+                  {related.map(r => (
+                    <Link key={r._id} href={`/news/${r.slug}`} className="flex items-center gap-2.5 group">
+                      <div className="w-12 h-12 rounded-lg flex-shrink-0 overflow-hidden relative" style={{ background: 'var(--surface)' }}>
+                        {r.coverImage && <Image src={r.coverImage} alt={r.title} fill className="object-cover" sizes="48px" />}
+                      </div>
+                      <p className="text-xs leading-snug line-clamp-2 transition-colors group-hover:text-[var(--teal)]" style={{ color: 'var(--text-mid)' }}>{r.title}</p>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </aside>
+      </div>
+
+      <Footer />
+    </div>
+  )
+}
