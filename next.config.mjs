@@ -17,7 +17,7 @@ const nextConfig = {
   },
   experimental: {
     serverActions: {
-      allowedOrigins: ['localhost:3000'],
+      allowedOrigins: ['localhost:3000', 'distressdealsuae.com', 'www.distressdealsuae.com'],
     },
   },
   async rewrites() {

@@ -24,12 +24,12 @@ const FOOTER_LINKS = {
     { label: 'Blog',           href: '/blog'           },
     { label: 'News',           href: '/news'           },
   ],
-  Company: [
-    { label: 'About Us',       href: '/about'         },
-    { label: 'Careers',        href: '/careers'        },
-    { label: 'Contact',        href: '/contact'        },
-    { label: 'Privacy Policy', href: '/privacy-policy' },
-  ],
+  // Company: [
+  //   // { label: 'About Us',       href: '/about'         },
+  //   // { label: 'Careers',        href: '/careers'        },
+  //   // { label: 'Contact',        href: '/contact'        },
+  //   // { label: 'Privacy Policy', href: '/privacy-policy' },
+  // ],
 }
 
 const SOCIALS = [

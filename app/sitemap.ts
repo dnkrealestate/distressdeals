@@ -1,14 +1,14 @@
 import type { MetadataRoute } from 'next'
-import { propertyAPI, blogAPI, newsAPI, projectAPI } from '@/lib/api'
+import { propertyAPI, blogAPI, newsAPI, projectAPI, communityContentAPI, buildingContentAPI } from '@/lib/api'
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://distressdeals.ae'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.distressdealsuae.com'
 
 // Static, always-present routes — everything else below is generated from
 // live data so new listings/posts/projects show up without a manual edit.
 const STATIC_ROUTES = [
-  '', '/buyer/properties', '/projects', '/blog', '/news',
-  '/about', '/areas', '/mortgage', '/developers', '/auth/login', '/auth/register',
-  '/seller/register',
+  '', '/for-sale', '/for-rent', '/projects', '/insights', '/blog', '/news',
+  '/about', '/areas', '/communities', '/buildings', '/mortgage', '/developers',
+  '/auth/login', '/auth/register', '/seller/register',
 ]
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -30,6 +30,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const areas = await propertyAPI.getAreaStats(200).then(r => r.data.data || []).catch(() => [])
   const developers = await projectAPI.getAllDevelopers().then(r => r.data.data || []).catch(() => [])
+  const communities = await communityContentAPI.getAll().then(r => r.data.data || []).catch(() => [])
+  const buildings = await buildingContentAPI.getAll().then(r => r.data.data || []).catch(() => [])
 
   for (const p of properties) {
     entries.push({
@@ -78,6 +80,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
       changeFrequency: 'weekly',
       priority: 0.6,
+    })
+  }
+  for (const c of communities as { slug: string }[]) {
+    entries.push({
+      url: `${SITE_URL}/communities/${c.slug}`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.6,
+    })
+  }
+  for (const b of buildings as { slug: string }[]) {
+    entries.push({
+      url: `${SITE_URL}/buildings/${b.slug}`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.5,
     })
   }
 

@@ -5,7 +5,7 @@ import { Toaster } from 'react-hot-toast'
 import EmailVerificationBanner from '@/components/EmailVerificationBanner'
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://distressdeals.ae'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://distressdealsuae.com'),
   title: { default: 'Distress Deals Dubai — Verified Properties, Managed End-to-End', template: '%s | Distress Deals Dubai' },
   description: "Dubai's centralized real estate platform. Every listing verified, one dedicated agent from first message to keys-in-hand — buy, sell, or rent with confidence.",
   keywords: ['Dubai real estate', 'property for sale Dubai', 'apartments for rent Dubai', 'villas Dubai', 'off-plan Dubai'],
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 }
 export const viewport: Viewport = { themeColor: '#31B2DE' }
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://distressdeals.ae'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://distressdealsuae.com'
 
 // Sitewide identity signal for search engines — one Organization/LocalBusiness
 // entity, not a per-agent profile, matching the centralized (no marketplace) model.
