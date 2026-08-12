@@ -31,8 +31,10 @@ async function getHomepageContent(): Promise<HomepageContent> {
     return res.data.success ? res.data.data : FALLBACK_CONTENT
   } catch {
     return FALLBACK_CONTENT
+    
   }
 }
+
 
 export default async function HomePage() {
   const content = await getHomepageContent()
