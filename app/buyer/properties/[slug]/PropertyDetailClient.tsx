@@ -213,6 +213,7 @@ export default function PropertyDetailClient({ property }: { property: Property 
   const shareUrl = typeof window !== 'undefined' ? window.location.href : `https://distressdeals.ae/buyer/properties/${property.slug}`
 
   const share = async () => {
+    propertyAPI.trackShare(property._id).catch(() => {})
     if (typeof navigator !== 'undefined' && navigator.share) {
       try { await navigator.share({ title: property.title, url: shareUrl }) } catch { /* user cancelled — not an error */ }
       return
@@ -329,9 +330,16 @@ export default function PropertyDetailClient({ property }: { property: Property 
                   <span className="badge badge-gray capitalize">{property.type?.replace('_', ' ')}</span>
                 </div>
                 <h1 className="text-2xl md:text-3xl font-semibold mb-3 leading-tight" style={{ color: 'var(--text)' }}>{property.title}</h1>
-                <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-muted)' }}>
-                  <MapPin size={14} style={{ color: 'var(--teal)' }} />
-                  <span>{property.location.area}, {property.location.city}</span>
+                <div className="flex items-center gap-3 flex-wrap text-sm" style={{ color: 'var(--text-muted)' }}>
+                  <span className="flex items-center gap-2">
+                    <MapPin size={14} style={{ color: 'var(--teal)' }} />
+                    {property.location.area}, {property.location.city}
+                  </span>
+                  {property.referenceId && (
+                    <span className="text-xs font-mono px-2 py-0.5 rounded-md" style={{ background: 'var(--bg-alt)', color: 'var(--text-muted)' }}>
+                      Ref. {property.referenceId}
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">

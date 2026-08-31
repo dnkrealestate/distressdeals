@@ -10,6 +10,7 @@ import {
 import { useAuthStore } from '@/store/authStore'
 import { useThemeStore } from '@/store/themeStore'
 import NotificationBell from '@/components/NotificationBell'
+import { Logo } from '@/components/shared/Logo'
 import { chatAPI } from '@/lib/api'
 import { getSocket } from '@/lib/socket'
 import { cn } from '@/lib/utils'
@@ -110,14 +111,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Logo */}
         <div className="p-5" style={{ borderBottom: '1px solid var(--border)' }}>
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm text-white" style={{ background: 'var(--grad)' }}>D</div>
-            <div className="min-w-0">
-              <p className="font-bold text-sm grad-text leading-none">Distress Deals</p>
-              <p className="text-[10px] mt-1 flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
-                <ShieldCheck size={10} /> Centralized Control
-              </p>
-            </div>
+          <Link href="/" className="flex flex-col items-start gap-1.5">
+            <Logo height={26} />
+            <p className="text-[10px] flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
+              <ShieldCheck size={10} /> Centralized Control
+            </p>
           </Link>
         </div>
 
@@ -164,8 +162,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* ── Mobile top bar (below lg) ─────────────────────────── */}
       <header className="lg:hidden flex items-center justify-between px-4 flex-shrink-0" style={{ height: 56, background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
         <Link href="/admin/dashboard" className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs text-white" style={{ background: 'var(--grad)' }}>D</div>
-          <span className="font-bold text-sm grad-text">Distress Deals</span>
+          <Logo href={null} height={24} />
         </Link>
         <div className="flex items-center gap-1">
           <NotificationBell variant="navbar" />

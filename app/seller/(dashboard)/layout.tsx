@@ -9,6 +9,7 @@ import {
 import { useAuthStore } from '@/store/authStore'
 import { useThemeStore } from '@/store/themeStore'
 import NotificationBell from '@/components/NotificationBell'
+import { Logo } from '@/components/shared/Logo'
 import { cn } from '@/lib/utils'
 
 // Just the three things a seller actually needs day to day — no dashboard,
@@ -56,10 +57,7 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
       {/* ── Desktop sidebar (lg and up) ──────────────────────── */}
       <aside className="hidden lg:flex w-56 flex-shrink-0 flex-col" style={{ background: 'var(--surface)', borderRight: '1px solid var(--border)' }}>
         <div className="p-5" style={{ borderBottom: '1px solid var(--border)' }}>
-          <Link href="/seller/listings" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm text-white" style={{ background: 'var(--grad)' }}>D</div>
-            <span className="font-bold text-sm grad-text">Distress Deals</span>
-          </Link>
+          <Logo href="/seller/listings" height={28} />
         </div>
 
         <div className="p-3">
@@ -100,10 +98,7 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
 
       {/* ── Mobile top bar (below lg) ─────────────────────────── */}
       <header className="lg:hidden flex items-center justify-between px-4 flex-shrink-0" style={{ height: 56, background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
-        <Link href="/seller/listings" className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs text-white" style={{ background: 'var(--grad)' }}>D</div>
-          <span className="font-bold text-sm grad-text">Distress Deals</span>
-        </Link>
+        <Logo href="/seller/listings" height={24} />
         <div className="flex items-center gap-1">
           <NotificationBell variant="navbar" />
           <button

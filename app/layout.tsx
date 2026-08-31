@@ -3,6 +3,7 @@ import './globals.css'
 import { Providers } from '@/components/Providers'
 import { Toaster } from 'react-hot-toast'
 import EmailVerificationBanner from '@/components/EmailVerificationBanner'
+import MobileBottomNav from '@/components/layouts/MobileBottomNav'
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://distressdealsuae.com'),
@@ -41,6 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <EmailVerificationBanner />
           {children}
+          <MobileBottomNav />
           <Toaster
             position="top-right"
             toastOptions={{

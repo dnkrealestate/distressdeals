@@ -6,6 +6,7 @@ import {
   Instagram, Twitter, Linkedin, Youtube,
   Building2, Shield, CheckCircle,
 } from 'lucide-react'
+import { Logo } from '@/components/shared/Logo'
 
 const FOOTER_LINKS = {
   Properties: [
@@ -52,17 +53,9 @@ export default function Footer() {
           {/* Brand column */}
           <div>
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-2.5 mb-5 no-underline">
-              <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-base"
-                style={{ background: 'linear-gradient(135deg,#31B2DE,#61BB4D)' }}
-              >
-                D
-              </div>
-              <span className="font-bold text-lg grad-text" style={{ fontFamily: 'var(--font-inter)' }}>
-                Distress Deals
-              </span>
-            </Link>
+            <div className="mb-5">
+              <Logo height={34} />
+            </div>
 
             <p className="text-sm leading-relaxed mb-6" style={{ color: 'var(--text-muted)' }}>
               Dubai's premier real estate platform — connecting buyers, sellers, and investors with

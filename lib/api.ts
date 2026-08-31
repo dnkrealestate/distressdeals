@@ -1,6 +1,12 @@
 import axios from 'axios'
 
-const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'
+// NEXT_PUBLIC_API_URL always wins when set (e.g. to point a build at a
+// staging backend). When it's not set, fall back by build environment
+// instead of always defaulting to localhost — otherwise a production build
+// that forgot to set the Vercel env var silently calls localhost:5000 from
+// every visitor's browser instead of the real VPS backend.
+const BASE = process.env.NEXT_PUBLIC_API_URL
+  || (process.env.NODE_ENV === 'production' ? 'https://data.distressdealsuae.com/api/v1' : 'http://localhost:5000/api/v1')
 
 const api = axios.create({
   baseURL: BASE,
@@ -67,11 +73,13 @@ export const propertyAPI = {
   manageAll:    (params?: any) => api.get('/properties/manage/all', { params }),
   getFeatured:  () => api.get('/properties?featured=true&limit=6'),
   getAreaStats: (limit?: number) => api.get('/properties/area-stats', { params: { limit } }),
+  getTypeStats: (params?: any) => api.get('/properties/type-stats', { params }),
   getAllAreas:  () => api.get('/properties/areas'),
   getAreaBySlug: (slug: string) => api.get(`/properties/areas/${slug}`),
   suggest: (q: string) => api.get('/properties/suggest', { params: { q } }),
   getSimilar:   (id: string) => api.get(`/properties/${id}/similar`),
   trackView:    (id: string) => api.post(`/properties/${id}/view`),
+  trackShare:   (id: string) => api.post(`/properties/${id}/share`),
   getAnalytics: (id: string) => api.get(`/properties/${id}/analytics`),
   uploadImages: (id: string, data: FormData) => api.post(`/properties/${id}/images`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   aiDescription: (data: any) => api.post('/properties/ai-description', data),
@@ -202,6 +210,10 @@ export const projectAPI = {
   delete:  (id: string) => api.delete(`/projects/${id}`),
   getAllDevelopers: () => api.get('/projects/developers'),
   getDeveloperBySlug: (slug: string) => api.get(`/projects/developers/${slug}`),
+  getAreas: () => api.get('/projects/areas'),
+  getStatusStats: (params?: any) => api.get('/projects/status-stats', { params }),
+  trackShare: (id: string) => api.post(`/projects/${id}/share`),
+  getAnalytics: (id: string) => api.get(`/projects/${id}/analytics`),
 }
 
 // ── Developers (real, admin-managed records) ──────────

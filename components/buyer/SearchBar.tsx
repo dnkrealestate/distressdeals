@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   Search, MapPin, Home, SlidersHorizontal,
-  ChevronDown, X, Check, Sparkles, Loader2,
+  ChevronDown, X, Check, Sparkles, Loader2, Map as MapIcon,
 } from 'lucide-react'
 import { propertyAPI } from '@/lib/api'
 import type { PropertyFilters } from '@/types'
@@ -211,7 +211,7 @@ function PriceChips({ value, onChange }: { value: typeof PRICE_RANGES[number]; o
    into this full bottom-sheet with every filter, plus AI search. ── */
 function MobileFilterModal({
   open, onClose,
-  tab, setTab,
+  tab, setTab, forcedListingType,
   area, setArea,
   propType, setPropType,
   bedrooms, setBedrooms,
@@ -220,6 +220,7 @@ function MobileFilterModal({
 }: {
   open: boolean; onClose: () => void
   tab: 'sale' | 'rent'; setTab: (v: 'sale' | 'rent') => void
+  forcedListingType?: 'sale' | 'rent'
   area: string; setArea: (v: string) => void
   propType: string; setPropType: (v: string) => void
   bedrooms: string; setBedrooms: (v: string) => void
@@ -277,22 +278,25 @@ function MobileFilterModal({
             </div>
 
             <div className="overflow-y-auto flex-1 px-5 py-5 space-y-6">
-              {/* Buy / Rent */}
-              <div className="flex gap-2">
-                {([{ id: 'sale', label: 'Buy' }, { id: 'rent', label: 'Rent' }] as const).map(t => (
-                  <button
-                    key={t.id}
-                    onClick={() => setTab(t.id)}
-                    className="flex-1 py-2.5 text-xs font-semibold uppercase tracking-wider rounded-xl border-none transition-all duration-200"
-                    style={{
-                      background: tab === t.id ? 'var(--grad)' : 'var(--bg-alt)',
-                      color:      tab === t.id ? '#fff' : 'var(--text-muted)',
-                    }}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
+              {/* Buy / Rent — only shown when this page hasn't already
+                  committed to a purpose (e.g. the homepage) */}
+              {!forcedListingType && (
+                <div className="flex gap-2">
+                  {([{ id: 'sale', label: 'Buy' }, { id: 'rent', label: 'Rent' }] as const).map(t => (
+                    <button
+                      key={t.id}
+                      onClick={() => setTab(t.id)}
+                      className="flex-1 py-2.5 text-xs font-semibold uppercase tracking-wider rounded-xl border-none transition-all duration-200"
+                      style={{
+                        background: tab === t.id ? 'var(--grad)' : 'var(--bg-alt)',
+                        color:      tab === t.id ? '#fff' : 'var(--text-muted)',
+                      }}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {/* AI search */}
               <div>
@@ -399,10 +403,28 @@ function MobileFilterModal({
 }
 
 /* ── Main SearchBar ──────────────────────────────────────── */
-export default function SearchBar() {
+// forcedListingType pins this instance to Buy or Rent — used on /for-sale
+// and /for-rent, which are already purpose-specific pages, so showing a
+// Buy/Rent tab inside the search box on top of that would just be a second,
+// redundant way to pick the same thing. The homepage (purpose not yet
+// decided) omits this prop and keeps the tab toggle.
+export default function SearchBar({
+  forcedListingType, onMapClick, basePath, initialListingType,
+}: {
+  forcedListingType?: 'sale' | 'rent'
+  onMapClick?: () => void
+  // Overrides where Search navigates to — used by the /map-search page,
+  // which is a single route rather than separate /for-sale /for-rent pages,
+  // so listingType has to travel as a query param instead of being implied
+  // by the destination path.
+  basePath?: string
+  // Seeds the Buy/Rent tab without pinning it the way forcedListingType
+  // does — e.g. the map page arriving with ?listingType=rent already set.
+  initialListingType?: 'sale' | 'rent'
+} = {}) {
   const router = useRouter()
 
-  const [tab,         setTab]         = useState<'sale' | 'rent'>('sale')
+  const [tab,         setTab]         = useState<'sale' | 'rent'>(forcedListingType || initialListingType || 'sale')
   const [query,       setQuery]       = useState('')
   const [area,        setArea]        = useState('')
   const [propType,    setPropType]    = useState('')
@@ -425,7 +447,15 @@ export default function SearchBar() {
     if (bedrooms)        p.set('bedrooms',  bedrooms === 'Studio' ? '0' : bedrooms.replace('+', ''))
     if (priceRange.min)  p.set('priceMin',  String(priceRange.min))
     if (priceRange.max)  p.set('priceMax',  String(priceRange.max))
-    const base = tab === 'rent' ? '/for-rent' : '/for-sale'
+
+    if (basePath) {
+      p.set('listingType', forcedListingType || tab)
+      const qs = p.toString()
+      router.push(qs ? `${basePath}?${qs}` : basePath)
+      return
+    }
+
+    const base = (forcedListingType || tab) === 'rent' ? '/for-rent' : '/for-sale'
     const qs = p.toString()
     router.push(qs ? `${base}?${qs}` : base)
   }
@@ -434,7 +464,7 @@ export default function SearchBar() {
   // modal) onto this bar's own discrete state, so the normal Search button
   // and URL-building logic can stay the single source of truth.
   const applyAIFilters = (filters: PropertyFilters) => {
-    if (filters.listingType === 'sale' || filters.listingType === 'rent') setTab(filters.listingType)
+    if (!forcedListingType && (filters.listingType === 'sale' || filters.listingType === 'rent')) setTab(filters.listingType)
     if (filters.q)    setQuery(filters.q)
     if (filters.area) setArea(filters.area)
     if (filters.type) setPropType(filters.type)
@@ -451,34 +481,36 @@ export default function SearchBar() {
   return (
     <div className="search-card">
 
-      {/* ── Tab row ────────────────────────────────────── */}
-      <div
-        className="flex items-center justify-between px-5 pt-4"
-        style={{ borderBottom: '1px solid var(--border-soft)' }}
-      >
-        <div className="flex gap-1">
-          {([{ id: 'sale', label: 'Buy' }, { id: 'rent', label: 'Rent' }] as const).map(t => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className="px-5 py-2.5 text-xs font-semibold uppercase tracking-wider rounded-t-xl border-none transition-all duration-200"
-              style={{
-                background:  tab === t.id ? 'var(--grad)' : 'transparent',
-                color:       tab === t.id ? '#fff'        : 'var(--text-muted)',
-                boxShadow:   tab === t.id ? '0 2px 10px rgba(49,178,222,0.28)' : 'none',
-                cursor: 'pointer',
-                position: 'relative', top: 1,
-              }}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+      {/* ── Tab row — omitted when the page already has a fixed purpose ── */}
+      {!forcedListingType && (
+        <div
+          className="flex items-center justify-between px-5 pt-4"
+          style={{ borderBottom: '1px solid var(--border-soft)' }}
+        >
+          <div className="flex gap-1">
+            {([{ id: 'sale', label: 'Buy' }, { id: 'rent', label: 'Rent' }] as const).map(t => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className="px-5 py-2.5 text-xs font-semibold uppercase tracking-wider rounded-t-xl border-none transition-all duration-200"
+                style={{
+                  background:  tab === t.id ? 'var(--grad)' : 'transparent',
+                  color:       tab === t.id ? '#fff'        : 'var(--text-muted)',
+                  boxShadow:   tab === t.id ? '0 2px 10px rgba(49,178,222,0.28)' : 'none',
+                  cursor: 'pointer',
+                  position: 'relative', top: 1,
+                }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
 
-        <p className="text-[10px] tracking-wider pb-3" style={{ color: 'var(--text-muted)' }}>
-          {tab === 'sale' ? '2,400+ properties for sale' : '1,800+ properties for rent'}
-        </p>
-      </div>
+          <p className="text-[10px] tracking-wider pb-3" style={{ color: 'var(--text-muted)' }}>
+            {tab === 'sale' ? '2,400+ properties for sale' : '1,800+ properties for rent'}
+          </p>
+        </div>
+      )}
 
       {/* ── Main row — mobile: keyword field + single filter icon ─── */}
       <div className="flex md:hidden gap-2 p-3">
@@ -530,6 +562,17 @@ export default function SearchBar() {
         >
           <Search size={15} />
         </button>
+
+        {onMapClick && (
+          <button
+            onClick={onMapClick}
+            className="flex-shrink-0 flex items-center justify-center h-11 w-11 rounded-xl border"
+            style={{ borderColor: 'var(--border)', color: 'var(--text-mid)' }}
+            aria-label="Search on map"
+          >
+            <MapIcon size={16} />
+          </button>
+        )}
       </div>
 
       {/* ── Main row — desktop ─────────────────────────── */}
@@ -618,6 +661,18 @@ export default function SearchBar() {
           <Search size={13} />
           Search
         </button>
+
+        {/* Map search */}
+        {onMapClick && (
+          <button
+            onClick={onMapClick}
+            className="flex-shrink-0 flex items-center gap-1.5 h-11 px-4 rounded-xl border text-xs font-medium transition-all duration-200"
+            style={{ borderColor: 'var(--border)', color: 'var(--text-mid)', cursor: 'pointer' }}
+          >
+            <MapIcon size={13} />
+            Map
+          </button>
+        )}
       </div>
 
       {/* ── Advanced filters ───────────────────────────── */}
@@ -701,7 +756,7 @@ export default function SearchBar() {
       <MobileFilterModal
         open={showMobileModal}
         onClose={() => setShowMobileModal(false)}
-        tab={tab} setTab={setTab}
+        tab={tab} setTab={setTab} forcedListingType={forcedListingType}
         area={area} setArea={setArea}
         propType={propType} setPropType={setPropType}
         bedrooms={bedrooms} setBedrooms={setBedrooms}

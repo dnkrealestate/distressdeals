@@ -249,17 +249,21 @@ body {
 
   /* ── Nav ─────────────────────────────────────────── */
   .nav-link {
-    @apply relative text-sm font-medium transition-colors duration-200 cursor-pointer;
+    @apply relative text-sm font-medium transition-all duration-200 cursor-pointer rounded-full;
     color: var(--text-muted);
+    padding: 8px 14px;
+    background: transparent;
   }
-  .nav-link:hover  { color: var(--teal); }
-  .nav-link.active { color: var(--teal); }
-  .nav-link::after {
-    content: '';
-    @apply absolute -bottom-0.5 left-0 w-0 h-px transition-all duration-300;
-    background: var(--teal);
+  .nav-link:hover {
+    color: var(--teal);
+    background: rgba(49,178,222,0.08);
   }
-  .nav-link:hover::after, .nav-link.active::after { @apply w-full; }
+  .nav-link.active {
+    color: var(--teal);
+    font-weight: 600;
+    background: rgba(49,178,222,0.12);
+    box-shadow: inset 0 0 0 1px rgba(49,178,222,0.25);
+  }
 
   /* ── Sidebar ─────────────────────────────────────── */
   .sidebar-link {
@@ -334,6 +338,11 @@ body {
 
   /* ── Layout ──────────────────────────────────────── */
   .page    { @apply min-h-screen; background: var(--bg); }
+  /* Clears the fixed mobile bottom nav (MobileBottomNav.tsx) / the sticky
+     "Interested" contact bar on detail pages — both sit ~56-64px tall. */
+  @media (max-width: 767px) {
+    .page { padding-bottom: 64px; }
+  }
   .wrap    { @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8; }
   .section { @apply py-20 lg:py-24; }
   .section-alt { background: var(--bg-alt); }

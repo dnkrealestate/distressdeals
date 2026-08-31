@@ -5,10 +5,12 @@ import Link from 'next/link'
 import {
   ArrowLeft, Pencil, CheckCircle2, XCircle, Handshake, RotateCcw, Trash2,
   MessageSquare, Send, Loader2, ExternalLink, Building2, MapPin,
+  Eye, MessageCircleHeart, TrendingUp, Heart, CalendarClock, Share2,
 } from 'lucide-react'
 import { propertyAPI, agentAPI, chatAPI } from '@/lib/api'
 import { formatPrice, formatDate, propertyStatusColor, cn, rentSuffix } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
+import { PerformanceStats } from '@/components/admin/PerformanceStats'
 import type { Property, Agent } from '@/types'
 import toast from 'react-hot-toast'
 
@@ -70,6 +72,8 @@ export default function AdminPropertyDetailPage() {
   const [property, setProperty] = useState<Property | null>(null)
   const [agents, setAgents] = useState<Agent[]>([])
   const [loading, setLoading] = useState(true)
+  const [analytics, setAnalytics] = useState<any>(null)
+  const [analyticsLoading, setAnalyticsLoading] = useState(true)
   const [rejecting, setRejecting] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
   const [messaging, setMessaging] = useState(false)
@@ -86,6 +90,15 @@ export default function AdminPropertyDetailPage() {
 
   useEffect(() => { load() }, [load])
   useEffect(() => { agentAPI.getAll().then(r => { if (r.data.success) setAgents(r.data.data) }).catch(() => {}) }, [])
+
+  useEffect(() => {
+    if (!id) return
+    setAnalyticsLoading(true)
+    propertyAPI.getAnalytics(id)
+      .then(r => { if (r.data.success) setAnalytics(r.data.data) })
+      .catch(() => {})
+      .finally(() => setAnalyticsLoading(false))
+  }, [id])
 
   const assignAgent = async (agentUserId: string) => {
     if (!agentUserId || !property) return
@@ -213,6 +226,11 @@ export default function AdminPropertyDetailPage() {
               <div>
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <h1 className="text-xl font-bold" style={{ color: 'var(--text)' }}>{property.title}</h1>
+                  {property.referenceId && (
+                    <span className="text-xs font-mono px-2 py-0.5 rounded-md" style={{ background: 'var(--bg-alt)', color: 'var(--text-muted)' }}>
+                      {property.referenceId}
+                    </span>
+                  )}
                   <span className={cn('badge', propertyStatusColor(property.status))}>{property.status.replace('_', ' ')}</span>
                   {['pending', 'under_review'].includes(property.status) && (
                     <span className={cn('badge text-[10px]', property.detailsCompleted ? 'badge-green' : 'badge-gray')}>
@@ -228,6 +246,23 @@ export default function AdminPropertyDetailPage() {
             </div>
             <div className="text-sm leading-relaxed rich-content" style={{ color: 'var(--text-mid)' }}
               dangerouslySetInnerHTML={{ __html: property.description }} />
+          </Section>
+
+          <Section title="Performance">
+            <PerformanceStats
+              loading={analyticsLoading}
+              stats={[
+                { label: 'Views',         value: analytics?.stats?.views || 0,           icon: Eye },
+                { label: 'Interested',    value: analytics?.stats?.interestedCount || 0, icon: MessageCircleHeart },
+                { label: 'Leads',         value: analytics?.stats?.leads || 0,           icon: TrendingUp },
+                { label: 'Favorites',     value: analytics?.stats?.favorites || 0,       icon: Heart },
+                { label: 'Tour Requests', value: analytics?.stats?.tourRequests || 0,    icon: CalendarClock },
+                { label: 'Shares',        value: analytics?.stats?.shares || 0,          icon: Share2 },
+                { label: 'Reopened',      value: analytics?.stats?.reopenCount || 0,     icon: RotateCcw },
+              ]}
+              conversionRate={analytics?.conversionRate}
+              topCountries={analytics?.topCountries}
+            />
           </Section>
 
           <Section title="Basic Details">

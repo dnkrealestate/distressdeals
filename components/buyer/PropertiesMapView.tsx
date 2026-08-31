@@ -15,11 +15,14 @@ export interface MapBounds { swLat: number; swLng: number; neLat: number; neLng:
 // import time, which crashes during Next's server render of a 'use client'
 // component, so this must never execute on the server.
 export default function PropertiesMapView({
-  properties, onSearchThisArea, searching,
+  properties, onSearchThisArea, searching, fullHeight,
 }: {
   properties: Property[]
   onSearchThisArea: (bounds: MapBounds) => void
   searching?: boolean
+  // Used by the dedicated /map-search page, which fills the whole viewport
+  // below the navbar instead of sitting embedded inside a results column.
+  fullHeight?: boolean
 }) {
   const router = useRouter()
   const containerRef = useRef<HTMLDivElement>(null)
@@ -81,7 +84,10 @@ export default function PropertiesMapView({
   }
 
   return (
-    <div className="relative w-full rounded-2xl overflow-hidden" style={{ height: 600, border: '1px solid var(--border)' }}>
+    <div
+      className={fullHeight ? 'relative w-full h-full overflow-hidden' : 'relative w-full rounded-2xl overflow-hidden'}
+      style={fullHeight ? {} : { height: 600, border: '1px solid var(--border)' }}
+    >
       <div ref={containerRef} className="w-full h-full" />
       {showSearchHere && (
         <button

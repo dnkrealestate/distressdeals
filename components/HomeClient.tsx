@@ -346,7 +346,7 @@ export default function HomeClient({ content }: { content: HomepageContent }) {
             <Link href="/buyer/properties" className="btn-primary btn-lg" onClick={() => trackCta('hero_explore_properties')}>
               Explore Properties <ArrowRight size={16} />
             </Link>
-            <Link href="/seller/register" className="btn-outline btn-lg backdrop-blur-sm" onClick={() => trackCta('hero_list_property')}>
+            <Link href="/seller/register" className="btn-outline btn-lg backdrop-blur-sm " onClick={() => trackCta('hero_list_property')}>
               List Your Property
             </Link>
           </motion.div>

@@ -1,10 +1,12 @@
 'use client'
 
+import { useState }     from 'react'
 import Link            from 'next/link'
-import { motion }      from 'framer-motion'
+import { useRouter }   from 'next/navigation'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Heart, MapPin, Bed, Bath, Maximize2,
-  Eye, TrendingUp, GitCompare,
+  Heart, MapPin, Bed, Bath, Maximize2, Home,
+  GitCompare, MessageCircleHeart,
 } from 'lucide-react'
 
 import { useAuthStore }      from '@/store/authStore'
@@ -12,7 +14,14 @@ import { useFavoritesStore } from '@/store/favoritesStore'
 import { useCompareStore }   from '@/store/compareStore'
 import { formatPrice, formatArea, cn, rentSuffix } from '@/lib/utils'
 import ImageSlider            from '@/components/buyer/ImageSlider'
+import { SpecPill }           from '@/components/buyer/SpecPill'
+import LeadModal              from '@/app/buyer/LeadModal'
 import type { Property }     from '@/types'
+
+function formatType(type?: string): string {
+  if (!type) return ''
+  return type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
 
 /* ── Badge helper ────────────────────────────────────────── */
 function ListingBadge({ type }: { type: string }) {
@@ -31,7 +40,7 @@ function CardSkeleton({ compact, layout }: { compact?: boolean; layout?: 'grid' 
   if (layout === 'row') {
     return (
       <div className="card overflow-hidden animate-pulse flex flex-col sm:flex-row">
-        <div className="shimmer h-56 sm:h-52 sm:w-[340px] flex-shrink-0" />
+        <div className="shimmer h-56 sm:h-auto sm:w-[340px] sm:self-stretch flex-shrink-0" />
         <div className="p-5 space-y-3 flex-1">
           <div className="shimmer h-6 w-40 rounded-lg" />
           <div className="shimmer h-4 w-3/4 rounded-lg" />
@@ -74,10 +83,12 @@ export default function PropertyCard({
   compact?:  boolean
   layout?:   'grid' | 'row'
 }) {
+  const router = useRouter()
   const { isAuthenticated }                         = useAuthStore()
   const { toggleFavorite, isFavorite }              = useFavoritesStore()
   const { addToCompare, removeFromCompare,
           isInCompare, compareList }                 = useCompareStore()
+  const [leadOpen, setLeadOpen] = useState(false)
 
   if (loading) return <CardSkeleton compact={compact} layout={layout} />
 
@@ -97,13 +108,34 @@ export default function PropertyCard({
     inCmp ? removeFromCompare(p._id) : addToCompare(p)
   }
 
+  // The card is already one big link to the detail page — this button is
+  // an explicit affordance for buyers who don't realise that, so it needs
+  // its own handler (nesting a second <Link> inside the outer one is
+  // invalid HTML) rather than relying on click-bubbling.
+  const openDetails = (e: React.MouseEvent) => {
+    e.preventDefault(); e.stopPropagation()
+    router.push(`/buyer/properties/${p.slug || p._id}`)
+  }
+
+  const openLead = (e: React.MouseEvent) => {
+    e.preventDefault(); e.stopPropagation()
+    setLeadOpen(true)
+  }
+
+  const leadModal = (
+    <AnimatePresence>
+      {leadOpen && <LeadModal property={p} onClose={() => setLeadOpen(false)} />}
+    </AnimatePresence>
+  )
+
   if (layout === 'row') {
     return (
+      <>
       <Link href={`/buyer/properties/${p.slug || p._id}`}>
         <div className="prop-card group flex flex-col sm:flex-row">
 
-          {/* ── Image ──────────────────────────────────── */}
-          <div className="relative overflow-hidden flex-shrink-0 h-56 sm:h-52 sm:w-[340px]">
+          {/* ── Image — full height, stretches to match the body ──── */}
+          <div className="relative overflow-hidden flex-shrink-0 h-56 sm:h-auto sm:w-[340px] sm:self-stretch">
             <ImageSlider images={p.images} alt={p.title} sizes="(max-width:768px)100vw,340px" />
 
             <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 45%)' }} />
@@ -116,10 +148,6 @@ export default function PropertyCard({
                   ✦ Featured
                 </span>
               )}
-            </div>
-
-            <div className="absolute bottom-3 left-3 flex items-center gap-3 text-xs" style={{ color: 'rgba(255,255,255,0.70)' }}>
-              <span className="flex items-center gap-1"><Eye size={11} />{p.stats?.views || 0}</span>
             </div>
           </div>
 
@@ -152,41 +180,45 @@ export default function PropertyCard({
               </div>
             </div>
 
-            <h3 className="font-semibold text-base line-clamp-1 mb-1.5 leading-snug transition-colors group-hover:text-[var(--teal)]" style={{ color: 'var(--text)' }}>
+            <h3 className="font-semibold text-[1.3rem] line-clamp-1 mb-1.5 leading-snug transition-colors group-hover:text-[var(--teal)]" style={{ color: 'var(--text)' }}>
               {p.title}
             </h3>
 
-            <div className="flex items-center gap-1.5 text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
-              <MapPin size={11} style={{ color: 'var(--teal)', opacity: 0.7, flexShrink: 0 }} />
-              <span className="truncate">{p.location?.area}, {p.location?.city}</span>
+            <div className="flex items-center gap-1.5 text-[0.9rem] mb-4">
+              <MapPin size={12} style={{ color: 'var(--teal)', opacity: 0.8, flexShrink: 0 }} />
+              <span className="truncate font-semibold" style={{ color: 'var(--text-mid)' }}>{p.location?.area}, {p.location?.city}</span>
             </div>
 
-            <div className="flex items-center gap-5 text-xs mt-auto pt-3 flex-wrap" style={{ borderTop: '1px solid var(--border-soft)', color: 'var(--text-muted)' }}>
-              {(p.amenities?.bedrooms ?? 0) > 0 && (
-                <span className="flex items-center gap-1.5"><Bed size={13} style={{ color: 'var(--teal)', opacity: 0.6 }} />{p.amenities!.bedrooms} Bed</span>
-              )}
-              {(p.amenities?.bathrooms ?? 0) > 0 && (
-                <span className="flex items-center gap-1.5"><Bath size={13} style={{ color: 'var(--teal)', opacity: 0.6 }} />{p.amenities!.bathrooms} Bath</span>
-              )}
-              {(p.amenities?.floorArea ?? 0) > 0 && (
-                <span className="flex items-center gap-1.5"><Maximize2 size={13} style={{ color: 'var(--teal)', opacity: 0.6 }} />{formatArea(p.amenities!.floorArea)} sqft</span>
-              )}
+            <div className="flex items-center gap-2 flex-wrap mb-4">
+              {p.type && <SpecPill icon={Home} bold>{formatType(p.type)}</SpecPill>}
+              {(p.amenities?.bedrooms ?? 0) > 0 && <SpecPill icon={Bed} bold>{p.amenities!.bedrooms} Bed</SpecPill>}
+              {(p.amenities?.bathrooms ?? 0) > 0 && <SpecPill icon={Bath} bold>{p.amenities!.bathrooms} Bath</SpecPill>}
+              {(p.amenities?.floorArea ?? 0) > 0 && <SpecPill icon={Maximize2} bold>{formatArea(p.amenities!.floorArea)} sqft</SpecPill>}
               {p.pricePerSqft && (
-                <span className="font-medium" style={{ color: 'var(--text-mid)' }}>
+                <span className="text-xs font-medium flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
                   AED {Math.round(p.pricePerSqft).toLocaleString()}/sqft
                 </span>
               )}
-              <span className="btn-primary btn-sm ml-auto flex-shrink-0" style={{ pointerEvents: 'none' }}>
-                View Details
-              </span>
+            </div>
+
+            <div className="flex items-center gap-2 mt-auto pt-3.5" style={{ borderTop: '1px solid var(--border-soft)' }}>
+              <button onClick={openLead} className="btn-primary btn-sm gap-1.5">
+                <MessageCircleHeart size={13} /> Interested
+              </button>
+              <button onClick={openDetails} className="btn-outline btn-sm gap-1.5">
+                More Details
+              </button>
             </div>
           </div>
         </div>
       </Link>
+      {leadModal}
+      </>
     )
   }
 
   return (
+    <>
     <Link href={`/buyer/properties/${p.slug || p._id}`}>
       <div className="prop-card group h-full">
 
@@ -264,20 +296,6 @@ export default function PropertyCard({
               <GitCompare size={13} className="text-white" />
             </motion.button>
           </div>
-
-          {/* Bottom stats */}
-          {!compact && (
-            <div className="absolute bottom-3 left-3 flex items-center gap-3 text-xs" style={{ color: 'rgba(255,255,255,0.55)' }}>
-              <span className="flex items-center gap-1">
-                <Eye size={11} />
-                {p.stats?.views || 0}
-              </span>
-              <span className="flex items-center gap-1">
-                <TrendingUp size={11} />
-                {p.stats?.leads || 0} leads
-              </span>
-            </div>
-          )}
         </div>
 
         {/* ── Body ───────────────────────────────────── */}
@@ -320,30 +338,23 @@ export default function PropertyCard({
 
           {/* Specs */}
           <div
-            className="flex items-center gap-4 text-xs mt-auto pt-3"
-            style={{ borderTop: '1px solid var(--border-soft)', color: 'var(--text-muted)' }}
+            className="flex items-center gap-1.5 text-xs mt-auto pt-3 flex-wrap"
+            style={{ borderTop: '1px solid var(--border-soft)' }}
           >
-            {(p.amenities?.bedrooms ?? 0) > 0 && (
-              <span className="flex items-center gap-1.5">
-                <Bed size={12} style={{ color: 'var(--teal)', opacity: 0.6 }} />
-                {p.amenities!.bedrooms} Bed
-              </span>
-            )}
-            {(p.amenities?.bathrooms ?? 0) > 0 && (
-              <span className="flex items-center gap-1.5">
-                <Bath size={12} style={{ color: 'var(--teal)', opacity: 0.6 }} />
-                {p.amenities!.bathrooms} Bath
-              </span>
-            )}
-            {(p.amenities?.floorArea ?? 0) > 0 && (
-              <span className="flex items-center gap-1.5">
-                <Maximize2 size={12} style={{ color: 'var(--teal)', opacity: 0.6 }} />
-                {formatArea(p.amenities!.floorArea)} sqft
-              </span>
-            )}
+            {p.type && <SpecPill icon={Home}>{formatType(p.type)}</SpecPill>}
+            {(p.amenities?.bedrooms ?? 0) > 0 && <SpecPill icon={Bed}>{p.amenities!.bedrooms} Bed</SpecPill>}
+            {(p.amenities?.bathrooms ?? 0) > 0 && <SpecPill icon={Bath}>{p.amenities!.bathrooms} Bath</SpecPill>}
+            {(p.amenities?.floorArea ?? 0) > 0 && <SpecPill icon={Maximize2}>{formatArea(p.amenities!.floorArea)} sqft</SpecPill>}
           </div>
+
+          {/* Interested CTA */}
+          <button onClick={openLead} className="btn-primary btn-sm w-full justify-center gap-1.5 mt-3">
+            <MessageCircleHeart size={13} /> Interested
+          </button>
         </div>
       </div>
     </Link>
+    {leadModal}
+    </>
   )
 }

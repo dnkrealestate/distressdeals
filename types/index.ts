@@ -24,6 +24,7 @@ export interface PropertyImage { url: string; publicId: string; isPrimary: boole
 
 export interface Property {
   _id: string; title: string; description: string; slug: string
+  referenceId?: string
   category?: PropertyCategory
   type: PropertyType; listingType: ListingType; rentFrequency?: RentFrequency; status: PropertyStatus
   price: number; pricePerSqft?: number
@@ -132,14 +133,19 @@ export interface HomepageContent {
 }
 
 export interface Project {
-  _id: string; title: string; slug: string; developer: string; description: string
+  _id: string; title: string; slug: string; referenceId?: string; developer: string; description: string
   coverImage?: string; images: { url: string }[]
   area: string; community?: string; city: string; emirate: string
-  priceFrom: number; priceTo?: number; bedrooms: string
+  priceFrom: number; priceTo?: number; type?: string; bedrooms: string; bathrooms?: string; sizeRange?: string
   handoverQuarter?: string; handoverYear?: number; paymentPlan?: string; permitNumber?: string; permitQrImage?: string
   status: 'upcoming' | 'under_construction' | 'ready' | 'sold_out'
   isFeatured: boolean; views: number; createdAt: string
   developerLogo?: string
+  coordinates?: { lat: number; lng: number }
+  amenities?: Record<string, boolean>
+  floorPlans?: { label: string; image: string; bedrooms?: string; size?: string; price?: number }[]
+  masterPlan?: { image: string; description?: string }
+  landmarks?: { name: string; category: 'metro' | 'school' | 'mall' | 'landmark' | 'airport'; lat: number; lng: number }[]
 }
 
 export interface Developer {

@@ -12,6 +12,7 @@ import { authAPI } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import GoogleSignInButton from '@/components/auth/GoogleSignInButton'
 import FacebookSignInButton from '@/components/auth/FacebookSignInButton'
+import { Logo } from '@/components/shared/Logo'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
@@ -116,7 +117,7 @@ export default function SellerRegisterPage() {
 
         {/* Logo */}
         <div className="flex items-center gap-2.5 relative z-10">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm" style={{ background: 'rgba(255,255,255,0.20)', color: '#fff' }}>D</div>
+          <Logo href={null} variant="icon" boxed height={30} />
           <span className="font-bold text-lg text-white">Distress Deals</span>
         </div>
 

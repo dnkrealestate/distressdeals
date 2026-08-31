@@ -11,6 +11,7 @@ import { useForm } from 'react-hook-form'
 import { useAuthStore } from '@/store/authStore'
 import GoogleSignInButton from '@/components/auth/GoogleSignInButton'
 import FacebookSignInButton from '@/components/auth/FacebookSignInButton'
+import { Logo } from '@/components/shared/Logo'
 import toast from 'react-hot-toast'
 
 /* ─── PAGE ──────────────────────────────────────────────────── */
@@ -61,7 +62,7 @@ export default function RegisterPage() {
         <div className="absolute bottom-0 right-0 w-72 h-72 rounded-full opacity-10 blur-3xl" style={{ background: '#fff' }} />
 
         <div className="flex items-center gap-2.5 relative z-10">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm" style={{ background: 'rgba(255,255,255,0.20)', color: '#fff' }}>D</div>
+          <Logo href={null} variant="icon" boxed height={30} />
           <span className="font-bold text-lg text-white">Distress Deals</span>
         </div>
 
