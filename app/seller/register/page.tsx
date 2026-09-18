@@ -272,7 +272,7 @@ export default function SellerRegisterPage() {
             {/* ── Step 1: Phone + OTP ─────────────────────── */}
             {step === 1 && !otpSent && (
               <motion.div key="step1-phone" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style={{ background: 'rgba(49,178,222,0.10)', border: '1px solid rgba(49,178,222,0.20)' }}>
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style={{ background: 'rgba(203,1,1,0.10)', border: '1px solid rgba(203,1,1,0.20)' }}>
                   <Phone size={24} style={{ color: 'var(--teal)' }} />
                 </div>
                 <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--text)' }}>Add Your WhatsApp Number</h1>
@@ -301,7 +301,7 @@ export default function SellerRegisterPage() {
 
             {step === 1 && otpSent && (
               <motion.div key="step1-otp" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style={{ background: 'rgba(49,178,222,0.10)', border: '1px solid rgba(49,178,222,0.20)' }}>
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style={{ background: 'rgba(203,1,1,0.10)', border: '1px solid rgba(203,1,1,0.20)' }}>
                   <MessageCircle size={24} style={{ color: 'var(--teal)' }} />
                 </div>
                 <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--text)' }}>Verify via WhatsApp</h1>
@@ -316,7 +316,7 @@ export default function SellerRegisterPage() {
                       onKeyDown={e => { if (e.key === 'Backspace' && !digit && i > 0) document.getElementById(`otp-${i-1}`)?.focus() }}
                       className="w-full aspect-square text-center text-lg font-bold rounded-xl border transition-all outline-none"
                       style={{
-                        background: digit ? 'rgba(49,178,222,0.08)' : 'var(--surface-alt)',
+                        background: digit ? 'rgba(203,1,1,0.08)' : 'var(--surface-alt)',
                         borderColor: digit ? 'var(--teal)' : 'var(--border)',
                         color: digit ? 'var(--teal)' : 'var(--text)',
                       }}
@@ -340,7 +340,7 @@ export default function SellerRegisterPage() {
             {/* ── Step 2: Complete ───────────────────────── */}
             {step === 2 && (
               <motion.div key="step2" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-6">
-                <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6" style={{ background: 'rgba(97,187,77,0.10)', border: '1px solid rgba(97,187,77,0.25)' }}>
+                <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6" style={{ background: 'rgba(253,113,71,0.10)', border: '1px solid rgba(253,113,71,0.25)' }}>
                   <CheckCircle2 size={36} style={{ color: 'var(--green)' }} />
                 </div>
                 <h2 className="text-2xl font-bold mb-3" style={{ color: 'var(--text)' }}>Account Created!</h2>

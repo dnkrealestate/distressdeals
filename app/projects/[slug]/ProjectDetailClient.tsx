@@ -58,7 +58,7 @@ function FloorPlanTabs({ floorPlans }: { floorPlans: NonNullable<Project['floorP
               background:  active === i ? 'var(--grad)' : 'transparent',
               color:       active === i ? '#fff' : 'var(--text-mid)',
               border:      active === i ? 'none' : '1px solid var(--border)',
-              boxShadow:   active === i ? '0 6px 16px rgba(49,178,222,0.30)' : 'none',
+              boxShadow:   active === i ? '0 6px 16px rgba(203,1,1,0.30)' : 'none',
             }}
           >
             {f.label}
@@ -153,7 +153,7 @@ function NearbyDistances({ project }: { project: Project }) {
             </button>
           </div>
           {customResult && (
-            <div className="mt-3 flex items-center justify-between gap-3 p-3 rounded-xl" style={{ background: 'rgba(49,178,222,0.08)' }}>
+            <div className="mt-3 flex items-center justify-between gap-3 p-3 rounded-xl" style={{ background: 'rgba(203,1,1,0.08)' }}>
               <p className="text-xs truncate" style={{ color: 'var(--text-mid)' }}>{customResult.place.label}</p>
               <p className="text-sm font-bold flex-shrink-0" style={{ color: 'var(--teal)' }}>{formatDistanceKm(customResult.km)}</p>
             </div>
@@ -261,7 +261,7 @@ function AmenitiesSection({ amenities }: { amenities: Record<string, boolean> })
 function Fact({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(49,178,222,0.10)', border: '1px solid rgba(49,178,222,0.20)' }}>
+      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(203,1,1,0.10)', border: '1px solid rgba(203,1,1,0.20)' }}>
         <Icon size={14} style={{ color: 'var(--teal)' }} />
       </div>
       <div>
@@ -386,7 +386,7 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                 const { icon: Icon, val, label } = stat as { icon: any; val: string; label: string }
                 return (
                   <div key={label} className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(49,178,222,0.10)', border: '1px solid rgba(49,178,222,0.20)' }}>
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(203,1,1,0.10)', border: '1px solid rgba(203,1,1,0.20)' }}>
                       <Icon size={15} style={{ color: 'var(--teal)' }} />
                     </div>
                     <div>
@@ -515,7 +515,7 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
               in the main column, same split as the Property detail page. */}
           <aside>
             <div className="sticky" style={{ top: 96 }}>
-              <div className="card p-6" style={{ borderColor: 'rgba(49,178,222,0.25)', background: 'linear-gradient(180deg, rgba(49,178,222,0.06), var(--surface) 45%)' }}>
+              <div className="card p-6" style={{ borderColor: 'rgba(203,1,1,0.25)', background: 'linear-gradient(180deg, rgba(203,1,1,0.06), var(--surface) 45%)' }}>
                 <div className="text-center mb-6">
                   <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Starting Price</p>
                   <p className="text-3xl font-bold grad-text">{formatPrice(project.priceFrom)}</p>

@@ -50,7 +50,7 @@ function DetailItem({ icon: Icon, children }: { icon: any; children: React.React
 
 function DetailsRow({ project }: { project: Project }) {
   return (
-    <div className="text-[0.9rem] mb-4">
+    <div className="text-[0.78rem] sm:text-[0.9rem] mb-4">
       {/* Row 1 — location, full width */}
       <div className="mb-1.5">
         <DetailItem icon={MapPin}>{project.area}{project.community ? `, ${project.community}` : ''}</DetailItem>
@@ -144,7 +144,7 @@ export default function ProjectCard({
             </div>
 
             <div className="flex flex-col flex-1 p-5 min-w-0">
-              <h3 className="font-semibold text-[1.3rem] line-clamp-1 mb-1.5 leading-snug transition-colors group-hover:text-[var(--teal)]" style={{ color: 'var(--text)' }}>
+              <h3 className="font-semibold text-base sm:text-[1.3rem] line-clamp-1 mb-1.5 leading-snug transition-colors group-hover:text-[var(--teal)]" style={{ color: 'var(--text)' }}>
                 {project.title}
               </h3>
 
@@ -187,7 +187,7 @@ export default function ProjectCard({
           </div>
 
           <div className="flex flex-col flex-1 p-5">
-            <h3 className="font-semibold text-[1.3rem] mb-2 leading-snug line-clamp-2 transition-colors group-hover:text-[var(--teal)]" style={{ color: 'var(--text)' }}>
+            <h3 className="font-semibold text-base sm:text-[1.3rem] mb-2 leading-snug line-clamp-2 transition-colors group-hover:text-[var(--teal)]" style={{ color: 'var(--text)' }}>
               {project.title}
             </h3>
 

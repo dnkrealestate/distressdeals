@@ -24,7 +24,7 @@ function CommunityCard({ community, delay }: { community: CommunityContentWithSt
               <Layers size={32} style={{ color: 'var(--teal)', opacity: 0.35 }} />
             )}
             {community.isFeatured && (
-              <span className="badge absolute top-3 right-3 text-[10px]" style={{ background: 'rgba(49,178,222,0.85)', color: '#fff', border: 'none' }}>
+              <span className="badge absolute top-3 right-3 text-[10px]" style={{ background: 'rgba(203,1,1,0.85)', color: '#fff', border: 'none' }}>
                 Featured
               </span>
             )}
@@ -71,12 +71,12 @@ export default function CommunitiesListClient() {
 
       <section className="relative pt-20 pb-12 overflow-hidden">
         <div className="absolute inset-0" style={{ background: 'linear-gradient(145deg, var(--bg) 0%, var(--bg-alt) 60%, #EFF6FF 100%)' }} />
-        <div className="absolute pointer-events-none" style={{ top: '10%', right: '8%', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(49,178,222,0.10) 0%, transparent 70%)' }} />
+        <div className="absolute pointer-events-none" style={{ top: '10%', right: '8%', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(203,1,1,0.10) 0%, transparent 70%)' }} />
 
         <div className="wrap relative z-10 text-center">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
             className="inline-flex items-center gap-2 mb-6"
-            style={{ background: 'rgba(49,178,222,0.08)', border: '1px solid rgba(49,178,222,0.25)', borderRadius: 24, padding: '6px 16px' }}>
+            style={{ background: 'rgba(203,1,1,0.08)', border: '1px solid rgba(203,1,1,0.25)', borderRadius: 24, padding: '6px 16px' }}>
             <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--teal)', animation: 'pulseRing 2s infinite' }} />
             <span className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--teal)' }}>Communities</span>
           </motion.div>

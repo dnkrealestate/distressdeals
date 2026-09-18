@@ -23,8 +23,8 @@ const TABS = [
 // Same statuses as the tabs (minus "All") — these double as the Kanban columns.
 const STAGES = [
   { value: 'pending',      label: 'Pending',      color: '#60A5FA' },
-  { value: 'under_review', label: 'Under Review', color: '#31B2DE' },
-  { value: 'published',    label: 'Published',    color: '#61BB4D' },
+  { value: 'under_review', label: 'Under Review', color: '#CB0101' },
+  { value: 'published',    label: 'Published',    color: '#FD7147' },
   { value: 'rejected',     label: 'Rejected',     color: '#FB7185' },
   { value: 'sold',         label: 'Deal Closed',  color: '#A855F7' },
 ]
@@ -326,11 +326,11 @@ function PropertiesQueue() {
             />
           </div>
           <button onClick={() => setView('list')} className="btn-ghost btn-sm gap-1.5"
-            style={view === 'list' ? { color: 'var(--teal)', borderColor: 'rgba(49,178,222,0.40)', background: 'rgba(49,178,222,0.06)' } : undefined}>
+            style={view === 'list' ? { color: 'var(--teal)', borderColor: 'rgba(203,1,1,0.40)', background: 'rgba(203,1,1,0.06)' } : undefined}>
             <LayoutList size={13} /> List
           </button>
           <button onClick={() => setView('kanban')} className="btn-ghost btn-sm gap-1.5"
-            style={view === 'kanban' ? { color: 'var(--teal)', borderColor: 'rgba(49,178,222,0.40)', background: 'rgba(49,178,222,0.06)' } : undefined}>
+            style={view === 'kanban' ? { color: 'var(--teal)', borderColor: 'rgba(203,1,1,0.40)', background: 'rgba(203,1,1,0.06)' } : undefined}>
             <KanbanSquare size={13} /> Kanban
           </button>
         </div>
@@ -345,7 +345,7 @@ function PropertiesQueue() {
                 key={t.value}
                 onClick={() => { setStatus(t.value); setPage(1) }}
                 className={cn('btn-ghost btn-sm flex-shrink-0', status === t.value && 'active')}
-                style={status === t.value ? { color: 'var(--teal)', borderColor: 'rgba(49,178,222,0.40)', background: 'rgba(49,178,222,0.06)' } : undefined}
+                style={status === t.value ? { color: 'var(--teal)', borderColor: 'rgba(203,1,1,0.40)', background: 'rgba(203,1,1,0.06)' } : undefined}
               >
                 {t.label}
               </button>

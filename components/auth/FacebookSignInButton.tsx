@@ -64,7 +64,7 @@ export default function FacebookSignInButton({ onAuthenticated, role }: { onAuth
         disabled={busy}
         className="flex items-center justify-center gap-3 h-12 rounded-xl border text-sm font-medium transition-all disabled:opacity-60"
         style={{ borderColor: 'var(--border)', background: 'var(--surface)', color: 'var(--text)' }}
-        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(49,178,222,0.40)' }}
+        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(203,1,1,0.40)' }}
         onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)' }}
       >
         <FacebookIcon /> Continue with Facebook

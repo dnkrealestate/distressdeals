@@ -30,7 +30,7 @@ function CategoryPill({ active, onClick, children }: { active: boolean; onClick:
         color:       active ? '#fff' : 'var(--text-muted)',
         borderColor: active ? 'transparent' : 'var(--border)',
         cursor: 'pointer',
-        boxShadow: active ? '0 4px 14px rgba(49,178,222,0.30)' : 'none',
+        boxShadow: active ? '0 4px 14px rgba(203,1,1,0.30)' : 'none',
       }}
     >
       {children}
@@ -49,7 +49,7 @@ function NewsCard({ item, delay }: { item: NewsItem; delay: number }) {
               <Image src={item.coverImage} alt={item.title} fill className="object-cover transition-transform duration-500 group-hover:scale-105" sizes="(max-width:768px)100vw,400px" />
             ) : (
               <>
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: 'linear-gradient(135deg, rgba(49,178,222,0.10), transparent 60%)' }} />
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: 'linear-gradient(135deg, rgba(203,1,1,0.10), transparent 60%)' }} />
                 <Icon size={32} style={{ color: 'var(--teal)', opacity: 0.35 }} />
               </>
             )}
@@ -99,12 +99,12 @@ export default function NewsListClient() {
 
       <section className="relative pt-20 pb-12 overflow-hidden">
         <div className="absolute inset-0" style={{ background: 'linear-gradient(145deg, var(--bg) 0%, var(--bg-alt) 60%, #EFF6FF 100%)' }} />
-        <div className="absolute pointer-events-none" style={{ top: '10%', right: '8%', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(49,178,222,0.10) 0%, transparent 70%)' }} />
+        <div className="absolute pointer-events-none" style={{ top: '10%', right: '8%', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(203,1,1,0.10) 0%, transparent 70%)' }} />
 
         <div className="wrap relative z-10 text-center">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
             className="inline-flex items-center gap-2 mb-6"
-            style={{ background: 'rgba(49,178,222,0.08)', border: '1px solid rgba(49,178,222,0.25)', borderRadius: 24, padding: '6px 16px' }}>
+            style={{ background: 'rgba(203,1,1,0.08)', border: '1px solid rgba(203,1,1,0.25)', borderRadius: 24, padding: '6px 16px' }}>
             <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--teal)', animation: 'pulseRing 2s infinite' }} />
             <span className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--teal)' }}>News</span>
           </motion.div>
@@ -149,7 +149,7 @@ export default function NewsListClient() {
                           <Image src={featured.coverImage} alt={featured.title} fill className="object-cover" sizes="(max-width:1024px)100vw,600px" />
                         ) : (
                           <>
-                            <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(49,178,222,0.12), rgba(97,187,77,0.08))' }} />
+                            <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(203,1,1,0.12), rgba(253,113,71,0.08))' }} />
                             <Newspaper size={64} style={{ color: 'var(--teal)', opacity: 0.3 }} className="relative z-10" />
                           </>
                         )}

@@ -122,7 +122,7 @@ export default function BuyerProfilePage() {
       <div className="flex items-center gap-1.5">
         {TABS.map(t => (
           <button key={t} onClick={() => setTab(t)} className="btn-ghost btn-sm"
-            style={tab === t ? { color: 'var(--teal)', borderColor: 'rgba(49,178,222,0.40)', background: 'rgba(49,178,222,0.06)' } : undefined}>
+            style={tab === t ? { color: 'var(--teal)', borderColor: 'rgba(203,1,1,0.40)', background: 'rgba(203,1,1,0.06)' } : undefined}>
             {t}
           </button>
         ))}

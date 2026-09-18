@@ -62,7 +62,7 @@ export default function AdminMeetingsPage() {
               key={t.value}
               onClick={() => setStatus(t.value)}
               className="btn-ghost btn-sm"
-              style={status === t.value ? { color: 'var(--teal)', borderColor: 'rgba(49,178,222,0.40)', background: 'rgba(49,178,222,0.06)' } : undefined}
+              style={status === t.value ? { color: 'var(--teal)', borderColor: 'rgba(203,1,1,0.40)', background: 'rgba(203,1,1,0.06)' } : undefined}
             >
               {t.label}
             </button>

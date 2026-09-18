@@ -144,7 +144,7 @@ export default function PropertyCard({
               <ListingBadge type={p.listingType} />
               {p.completion === 'off_plan' && <span className="badge badge-purple text-[10px]">Off-Plan</span>}
               {p.isFeatured && (
-                <span className="badge text-[10px]" style={{ background: 'rgba(49,178,222,0.20)', color: '#31B2DE', border: '1px solid rgba(49,178,222,0.40)' }}>
+                <span className="badge text-[10px]" style={{ background: 'rgba(203,1,1,0.20)', color: '#CB0101', border: '1px solid rgba(203,1,1,0.40)' }}>
                   ✦ Featured
                 </span>
               )}
@@ -173,7 +173,7 @@ export default function PropertyCard({
                   onClick={handleCmp}
                   disabled={compareList.length >= 2 && !inCmp}
                   className="w-8 h-8 rounded-full flex items-center justify-center transition-colors disabled:opacity-40"
-                  style={{ background: inCmp ? 'rgba(49,178,222,0.10)' : 'var(--bg-alt)', border: '1px solid var(--border)' }}
+                  style={{ background: inCmp ? 'rgba(203,1,1,0.10)' : 'var(--bg-alt)', border: '1px solid var(--border)' }}
                 >
                   <GitCompare size={13} style={{ color: inCmp ? 'var(--teal)' : 'var(--text-muted)' }} />
                 </motion.button>
@@ -240,7 +240,7 @@ export default function PropertyCard({
           {/* Hover teal shimmer */}
           <div
             className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-            style={{ background: 'linear-gradient(135deg, rgba(49,178,222,0.12), transparent 60%)' }}
+            style={{ background: 'linear-gradient(135deg, rgba(203,1,1,0.12), transparent 60%)' }}
           />
 
           {/* Top-left badges */}
@@ -255,9 +255,9 @@ export default function PropertyCard({
               <span
                 className="badge text-[10px]"
                 style={{
-                  background:  'rgba(49,178,222,0.20)',
-                  color:       '#31B2DE',
-                  border:      '1px solid rgba(49,178,222,0.40)',
+                  background:  'rgba(203,1,1,0.20)',
+                  color:       '#CB0101',
+                  border:      '1px solid rgba(203,1,1,0.40)',
                 }}
               >
                 ✦ Featured
@@ -289,7 +289,7 @@ export default function PropertyCard({
               disabled={compareList.length >= 2 && !inCmp}
               className="w-8 h-8 rounded-full backdrop-blur-md flex items-center justify-center transition-colors disabled:opacity-40"
               style={{
-                background: inCmp ? 'rgba(49,178,222,0.85)' : 'rgba(0,0,0,0.50)',
+                background: inCmp ? 'rgba(203,1,1,0.85)' : 'rgba(0,0,0,0.50)',
                 border:     '1px solid rgba(255,255,255,0.15)',
               }}
             >

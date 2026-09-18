@@ -102,7 +102,7 @@ function DeveloperForm({ developer, onClose, onSaved }: { developer: Developer |
               </div>
             ) : (
               <div {...logoDropzone.getRootProps()} className="rounded-xl p-5 text-center cursor-pointer transition-colors w-40"
-                style={{ border: `2px dashed ${logoDropzone.isDragActive ? 'var(--teal)' : 'var(--border)'}`, background: logoDropzone.isDragActive ? 'rgba(49,178,222,0.05)' : 'var(--bg-alt)' }}>
+                style={{ border: `2px dashed ${logoDropzone.isDragActive ? 'var(--teal)' : 'var(--border)'}`, background: logoDropzone.isDragActive ? 'rgba(203,1,1,0.05)' : 'var(--bg-alt)' }}>
                 <input {...logoDropzone.getInputProps()} />
                 {uploadingLogo ? <Loader2 size={16} className="animate-spin mx-auto" style={{ color: 'var(--teal)' }} /> : (
                   <>

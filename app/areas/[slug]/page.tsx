@@ -131,7 +131,7 @@ export default async function AreaDetailPage({ params }: { params: { slug: strin
           <div className="grid grid-cols-3 gap-4 max-w-2xl">
             {stats.map(s => (
               <div key={s.label} className="stat-card" style={content?.heroImage ? { background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.15)' } : undefined}>
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3" style={{ background: 'rgba(49,178,222,0.15)', border: '1px solid rgba(49,178,222,0.30)' }}>
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3" style={{ background: 'rgba(203,1,1,0.15)', border: '1px solid rgba(203,1,1,0.30)' }}>
                   <s.icon size={16} style={{ color: 'var(--teal)' }} />
                 </div>
                 <p className="text-lg font-bold" style={{ color: content?.heroImage ? '#fff' : 'var(--text)' }}>{s.value}</p>
@@ -170,7 +170,7 @@ export default async function AreaDetailPage({ params }: { params: { slug: strin
                     const Icon = HOME_ICON_MAP[a.icon]
                     return (
                       <div key={i} className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(49,178,222,0.08)' }}>
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(203,1,1,0.08)' }}>
                           {Icon && <Icon size={15} style={{ color: 'var(--teal)' }} />}
                         </div>
                         <p className="text-xs" style={{ color: 'var(--text-mid)' }}>{a.label}</p>

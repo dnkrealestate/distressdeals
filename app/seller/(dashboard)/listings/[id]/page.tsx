@@ -99,9 +99,9 @@ export default function ListingDetailPage() {
         )}
 
         {(property.status === 'pending' || property.status === 'under_review') && (
-          <div className="mt-4 p-4 rounded-xl flex items-center justify-between gap-4 flex-wrap" style={{ background: 'rgba(20,184,166,0.06)', border: '1px solid rgba(20,184,166,0.18)' }}>
+          <div className="mt-4 p-4 rounded-xl flex items-center justify-between gap-4 flex-wrap" style={{ background: 'rgba(203,1,1,0.06)', border: '1px solid rgba(203,1,1,0.18)' }}>
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(20,184,166,0.12)', color: 'var(--teal)' }}>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(203,1,1,0.12)', color: 'var(--teal)' }}>
                 <Clock size={16} />
               </div>
               <div>

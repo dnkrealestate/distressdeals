@@ -42,7 +42,7 @@ function RoomListItem({ room, active, onClick, currentUserId }: { room: ChatRoom
     <button
       onClick={onClick}
       className="w-full flex items-center gap-3 p-3 rounded-xl text-left transition-colors"
-      style={{ background: active ? 'rgba(49,178,222,0.08)' : 'transparent', border: active ? '1px solid rgba(49,178,222,0.25)' : '1px solid transparent' }}
+      style={{ background: active ? 'rgba(203,1,1,0.08)' : 'transparent', border: active ? '1px solid rgba(203,1,1,0.25)' : '1px solid transparent' }}
     >
       <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white flex-shrink-0 overflow-hidden" style={{ background: 'var(--grad)' }}>
         {room.property?.images?.[0]?.url ? (

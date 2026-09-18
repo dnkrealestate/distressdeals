@@ -53,11 +53,11 @@ export default function AboutPage() {
         />
         <div
           className="absolute pointer-events-none"
-          style={{ top: '5%', right: '5%', width: 420, height: 420, borderRadius: '50%', background: 'radial-gradient(circle, rgba(49,178,222,0.10) 0%, transparent 70%)' }}
+          style={{ top: '5%', right: '5%', width: 420, height: 420, borderRadius: '50%', background: 'radial-gradient(circle, rgba(203,1,1,0.10) 0%, transparent 70%)' }}
         />
         <div
           className="absolute pointer-events-none"
-          style={{ bottom: '0%', left: '0%', width: 320, height: 320, borderRadius: '50%', background: 'radial-gradient(circle, rgba(97,187,77,0.08) 0%, transparent 70%)' }}
+          style={{ bottom: '0%', left: '0%', width: 320, height: 320, borderRadius: '50%', background: 'radial-gradient(circle, rgba(253,113,71,0.08) 0%, transparent 70%)' }}
         />
 
         <div className="wrap relative z-10 text-center">
@@ -66,7 +66,7 @@ export default function AboutPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
             className="inline-flex items-center gap-2 mb-6"
-            style={{ background: 'rgba(49,178,222,0.08)', border: '1px solid rgba(49,178,222,0.25)', borderRadius: 24, padding: '6px 16px' }}
+            style={{ background: 'rgba(203,1,1,0.08)', border: '1px solid rgba(203,1,1,0.25)', borderRadius: 24, padding: '6px 16px' }}
           >
             <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--teal)', animation: 'pulseRing 2s infinite' }} />
             <span className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--teal)' }}>
@@ -136,7 +136,7 @@ export default function AboutPage() {
               >
                 <div
                   className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6"
-                  style={{ background: 'rgba(49,178,222,0.07)', border: '1px solid rgba(49,178,222,0.15)' }}
+                  style={{ background: 'rgba(203,1,1,0.07)', border: '1px solid rgba(203,1,1,0.15)' }}
                 >
                   <item.Icon size={26} style={{ color: 'var(--teal)' }} />
                 </div>
@@ -174,11 +174,11 @@ export default function AboutPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.08 }}
-                className="card p-7 group hover:border-[rgba(49,178,222,0.40)] transition-all duration-300"
+                className="card p-7 group hover:border-[rgba(203,1,1,0.40)] transition-all duration-300"
               >
                 <div
                   className="w-12 h-12 rounded-xl flex items-center justify-center mb-5 transition-transform duration-300 group-hover:scale-110"
-                  style={{ background: 'rgba(49,178,222,0.07)', border: '1px solid rgba(49,178,222,0.15)' }}
+                  style={{ background: 'rgba(203,1,1,0.07)', border: '1px solid rgba(203,1,1,0.15)' }}
                 >
                   <v.Icon size={20} style={{ color: 'var(--teal)' }} />
                 </div>
@@ -265,7 +265,7 @@ export default function AboutPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.08 }}
-                className="card p-6 text-center group hover:border-[rgba(49,178,222,0.40)] transition-all duration-300"
+                className="card p-6 text-center group hover:border-[rgba(203,1,1,0.40)] transition-all duration-300"
               >
                 <div
                   className="w-20 h-20 rounded-2xl mx-auto mb-4 flex items-center justify-center text-xl font-bold text-white transition-transform duration-300 group-hover:scale-105"
@@ -279,7 +279,7 @@ export default function AboutPage() {
                   href="#"
                   className="w-8 h-8 rounded-lg flex items-center justify-center mx-auto transition-all duration-200"
                   style={{ background: 'var(--surface-alt)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}
-                  onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.color = 'var(--teal)'; el.style.borderColor = 'rgba(49,178,222,0.40)' }}
+                  onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.color = 'var(--teal)'; el.style.borderColor = 'rgba(203,1,1,0.40)' }}
                   onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.color = 'var(--text-muted)'; el.style.borderColor = 'var(--border)' }}
                 >
                   <Linkedin size={14} />

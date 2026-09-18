@@ -7,9 +7,10 @@ import {
   Home, TrendingUp, Plus, Eye, Heart,
   Search, MoreVertical, Pencil, Trash2, XCircle,
   AlertCircle, Building2, Clock, MessageSquare, Loader2, Sparkles,
+  Bed, Bath, Maximize2, Tag,
 } from 'lucide-react'
 import { propertyAPI, chatAPI } from '@/lib/api'
-import { formatPrice, formatDate, cn, rentSuffix } from '@/lib/utils'
+import { formatPrice, formatArea, formatDate, cn, rentSuffix } from '@/lib/utils'
 import type { Property } from '@/types'
 import toast from 'react-hot-toast'
 
@@ -60,7 +61,7 @@ function ActionMenu({ property, onCancel, onDelete }: { property: Property; onCa
                 href={`/seller/listings/${property._id}/edit`}
                 className="flex items-center gap-2.5 px-3 py-2.5 text-sm transition-colors"
                 style={{ color: 'var(--text-mid)' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(49,178,222,0.06)'; (e.currentTarget as HTMLElement).style.color = 'var(--teal)' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(203,1,1,0.06)'; (e.currentTarget as HTMLElement).style.color = 'var(--teal)' }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--text-mid)' }}
               >
                 <Pencil size={14} /> Edit Listing
@@ -207,7 +208,7 @@ export default function SellerListingsPage() {
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium whitespace-nowrap border transition-all flex-shrink-0"
                 style={{
                   borderColor: statusTab === t.v ? 'var(--teal)' : 'var(--border)',
-                  background:  statusTab === t.v ? 'rgba(49,178,222,0.10)' : 'transparent',
+                  background:  statusTab === t.v ? 'rgba(203,1,1,0.10)' : 'transparent',
                   color:       statusTab === t.v ? 'var(--teal)' : 'var(--text-muted)',
                 }}
               >
@@ -245,7 +246,7 @@ export default function SellerListingsPage() {
           </div>
         ) : listings.length === 0 ? null : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5" style={{ background: 'rgba(49,178,222,0.08)', border: '1px solid rgba(49,178,222,0.20)' }}>
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5" style={{ background: 'rgba(203,1,1,0.08)', border: '1px solid rgba(203,1,1,0.20)' }}>
               <Building2 size={24} style={{ color: 'var(--teal)' }} />
             </div>
             <h3 className="font-semibold text-lg mb-2" style={{ color: 'var(--text)' }}>No matching listings</h3>
@@ -279,6 +280,23 @@ export default function SellerListingsPage() {
                       {p.location?.area}, {p.location?.city} · {formatPrice(p.price)}
                       {rentSuffix(p)}
                     </p>
+                    <div className="flex items-center gap-3 flex-wrap mt-1.5 text-[11px]" style={{ color: 'var(--text-mid)' }}>
+                      {p.type && (
+                        <span className="flex items-center gap-1 capitalize"><Home size={11} style={{ color: 'var(--teal)' }} />{p.type.replace(/_/g, ' ')}</span>
+                      )}
+                      {p.category === 'residential' && (
+                        <span className="flex items-center gap-1"><Bed size={11} style={{ color: 'var(--teal)' }} />{p.amenities?.bedrooms > 0 ? p.amenities.bedrooms : 'Studio'}</span>
+                      )}
+                      {(p.amenities?.bathrooms ?? 0) > 0 && (
+                        <span className="flex items-center gap-1"><Bath size={11} style={{ color: 'var(--teal)' }} />{p.amenities.bathrooms}</span>
+                      )}
+                      {(p.amenities?.floorArea ?? 0) > 0 && (
+                        <span className="flex items-center gap-1"><Maximize2 size={11} style={{ color: 'var(--teal)' }} />{formatArea(p.amenities.floorArea)} sqft</span>
+                      )}
+                      {p.referenceId && (
+                        <span className="flex items-center gap-1 font-mono"><Tag size={11} style={{ color: 'var(--teal)' }} />{p.referenceId}</span>
+                      )}
+                    </div>
                     <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
                       Listed {formatDate(p.createdAt)}
                     </p>
@@ -319,7 +337,7 @@ export default function SellerListingsPage() {
 
                 {/* Pending review — assigned agent + message */}
                 {(p.status === 'pending' || p.status === 'under_review') && (
-                  <div className="mt-2 flex items-center justify-between gap-2.5 px-4 py-2.5 rounded-xl text-xs flex-wrap" style={{ background: 'rgba(20,184,166,0.06)', border: '1px solid rgba(20,184,166,0.18)', color: 'var(--text-mid)' }}>
+                  <div className="mt-2 flex items-center justify-between gap-2.5 px-4 py-2.5 rounded-xl text-xs flex-wrap" style={{ background: 'rgba(203,1,1,0.06)', border: '1px solid rgba(203,1,1,0.18)', color: 'var(--text-mid)' }}>
                     <span className="flex items-center gap-2">
                       <Clock size={13} style={{ color: 'var(--teal)' }} className="flex-shrink-0" />
                       {p.agent ? <>Assigned to <strong style={{ color: 'var(--text)' }}>{p.agent.name}</strong> — review in progress</> : 'Approval in progress — assigning an agent'}

@@ -56,7 +56,7 @@ export default function MobileBottomNav() {
       <Link href="/seller/register" className="flex-1 flex flex-col items-center justify-end relative pb-1.5">
         <div
           className="absolute -top-5 w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0"
-          style={{ background: 'var(--grad)', boxShadow: '0 6px 16px rgba(49,178,222,0.40)', border: '3px solid var(--surface)' }}
+          style={{ background: 'var(--grad)', boxShadow: '0 6px 16px rgba(203,1,1,0.40)', border: '3px solid var(--surface)' }}
         >
           <Plus size={24} className="text-white" />
         </div>

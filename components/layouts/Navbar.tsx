@@ -152,7 +152,7 @@ function ThemeToggle() {
         style={{ left: dark ? 27 : 3 }}
       >
         {dark
-          ? <Moon size={11} style={{ color: '#31B2DE' }} />
+          ? <Moon size={11} style={{ color: '#CB0101' }} />
           : <Sun  size={11} style={{ color: '#94A3B8' }} />
         }
       </div>
@@ -267,9 +267,9 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
                 key={n.href}
                 href={n.href}
                 className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-full transition-all duration-200 ml-2"
-                style={{ border: '1.5px solid var(--teal)', color: 'var(--teal)', background: 'rgba(49,178,222,0.08)' }}
+                style={{ border: '1.5px solid var(--teal)', color: 'var(--teal)', background: 'rgba(203,1,1,0.08)' }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--teal)'; (e.currentTarget as HTMLElement).style.color = '#fff' }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(49,178,222,0.08)'; (e.currentTarget as HTMLElement).style.color = 'var(--teal)' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(203,1,1,0.08)'; (e.currentTarget as HTMLElement).style.color = 'var(--teal)' }}
               >
                 {n.label}
               </Link>
@@ -328,7 +328,7 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
                 <div className="relative">
                   <button
                     onClick={() => setUserMenu(o => !o)}
-                    className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-xl hover:bg-[rgba(49,178,222,0.06)] transition-colors"
+                    className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-xl hover:bg-[rgba(203,1,1,0.06)] transition-colors"
                   >
                     <div
                       className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white overflow-hidden"
@@ -375,7 +375,7 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
                             onClick={() => setUserMenu(false)}
                             className="flex items-center gap-2.5 px-3 py-2.5 text-sm transition-colors"
                             style={{ color: 'var(--text-muted)' }}
-                            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(49,178,222,0.06)'; (e.currentTarget as HTMLElement).style.color = 'var(--teal)'; }}
+                            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(203,1,1,0.06)'; (e.currentTarget as HTMLElement).style.color = 'var(--teal)'; }}
                             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'; }}
                           >
                             <item.icon size={14} />
@@ -512,7 +512,7 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
                   href={n.href}
                   onClick={() => setMenu(false)}
                   className="flex items-center justify-center gap-1.5 text-sm font-semibold mt-4 py-3 rounded-full transition-colors"
-                  style={{ border: '1.5px solid var(--teal)', color: 'var(--teal)', background: 'rgba(49,178,222,0.08)' }}
+                  style={{ border: '1.5px solid var(--teal)', color: 'var(--teal)', background: 'rgba(203,1,1,0.08)' }}
                 >
                   {n.label}
                 </Link>

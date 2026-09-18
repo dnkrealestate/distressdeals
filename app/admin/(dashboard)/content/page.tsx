@@ -187,7 +187,7 @@ function ContentForm({ type, item, categories, onClose, onSaved }: { type: Conte
                     className="rounded-xl p-5 text-center cursor-pointer transition-colors"
                     style={{
                       border: `2px dashed ${isDragActive ? 'var(--teal)' : 'var(--border)'}`,
-                      background: isDragActive ? 'rgba(49,178,222,0.05)' : 'var(--bg-alt)',
+                      background: isDragActive ? 'rgba(203,1,1,0.05)' : 'var(--bg-alt)',
                     }}
                   >
                     <input {...getInputProps()} />
@@ -426,7 +426,7 @@ export default function AdminContentPage() {
             {(['blog', 'news'] as ContentType[]).map(t => (
               <button
                 key={t} onClick={() => setType(t)} className="btn-ghost btn-sm capitalize"
-                style={type === t ? { color: 'var(--teal)', borderColor: 'rgba(49,178,222,0.40)', background: 'rgba(49,178,222,0.06)' } : undefined}
+                style={type === t ? { color: 'var(--teal)', borderColor: 'rgba(203,1,1,0.40)', background: 'rgba(203,1,1,0.06)' } : undefined}
               >
                 {t}
               </button>
@@ -435,11 +435,11 @@ export default function AdminContentPage() {
 
           <div className="flex items-center gap-1.5">
             <button onClick={() => setView('list')} className="btn-ghost btn-sm gap-1.5"
-              style={view === 'list' ? { color: 'var(--teal)', borderColor: 'rgba(49,178,222,0.40)', background: 'rgba(49,178,222,0.06)' } : undefined}>
+              style={view === 'list' ? { color: 'var(--teal)', borderColor: 'rgba(203,1,1,0.40)', background: 'rgba(203,1,1,0.06)' } : undefined}>
               <LayoutList size={13} /> List
             </button>
             <button onClick={() => setView('calendar')} className="btn-ghost btn-sm gap-1.5"
-              style={view === 'calendar' ? { color: 'var(--teal)', borderColor: 'rgba(49,178,222,0.40)', background: 'rgba(49,178,222,0.06)' } : undefined}>
+              style={view === 'calendar' ? { color: 'var(--teal)', borderColor: 'rgba(203,1,1,0.40)', background: 'rgba(203,1,1,0.06)' } : undefined}>
               <KanbanSquare size={13} /> Calendar
             </button>
           </div>
@@ -449,7 +449,7 @@ export default function AdminContentPage() {
               {STATUS_TABS.map(s => (
                 <button
                   key={s} onClick={() => setStatus(s)} className="btn-ghost btn-sm capitalize"
-                  style={status === s ? { color: 'var(--teal)', borderColor: 'rgba(49,178,222,0.40)', background: 'rgba(49,178,222,0.06)' } : undefined}
+                  style={status === s ? { color: 'var(--teal)', borderColor: 'rgba(203,1,1,0.40)', background: 'rgba(203,1,1,0.06)' } : undefined}
                 >
                   {s}
                 </button>

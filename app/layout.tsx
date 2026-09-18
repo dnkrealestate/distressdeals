@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     siteName: 'Distress Deals Dubai',
   },
 }
-export const viewport: Viewport = { themeColor: '#31B2DE' }
+export const viewport: Viewport = { themeColor: '#CB0101' }
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://distressdealsuae.com'
 

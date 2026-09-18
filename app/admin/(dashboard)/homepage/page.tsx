@@ -97,6 +97,31 @@ function BannerSlot({
   )
 }
 
+function ShadeColorField({
+  label, value, onChange,
+}: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <p className="text-xs font-medium mb-1.5" style={{ color: 'var(--text-mid)' }}>{label}</p>
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          className="w-11 h-11 rounded-lg cursor-pointer flex-shrink-0"
+          style={{ border: '1px solid var(--border)', padding: 2, background: 'var(--bg-alt)' }}
+        />
+        <input
+          className="input flex-1 font-mono text-xs"
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          placeholder="#FD7147"
+        />
+      </div>
+    </div>
+  )
+}
+
 export default function AdminHomepagePage() {
   const [content, setContent] = useState<HomepageContent | null>(null)
   const [analytics, setAnalytics] = useState<HomepageAnalytics | null>(null)
@@ -187,7 +212,7 @@ export default function AdminHomepagePage() {
         {analytics && (
           <Section title="Performance" description="Views and CTA clicks tracked from the live homepage.">
             <div className="flex items-center gap-3 mb-4 p-4 rounded-xl" style={{ background: 'var(--bg-alt)' }}>
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(49,178,222,0.08)' }}>
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(203,1,1,0.08)' }}>
                 <Eye size={18} style={{ color: 'var(--teal)' }} />
               </div>
               <div>
@@ -257,6 +282,21 @@ export default function AdminHomepagePage() {
           </div>
         </Section>
 
+        <Section title="Hero Ambient Shades" description="Colors of the two soft glows drifting behind the hero banner photo.">
+          <div className="grid grid-cols-2 gap-4">
+            <ShadeColorField
+              label="Shade 1"
+              value={content.heroShadeColor1 || '#FD7147'}
+              onChange={v => setContent({ ...content, heroShadeColor1: v })}
+            />
+            <ShadeColorField
+              label="Shade 2"
+              value={content.heroShadeColor2 || '#95E4FF'}
+              onChange={v => setContent({ ...content, heroShadeColor2: v })}
+            />
+          </div>
+        </Section>
+
         <Section title="Hero Mini Stats" description="The three small stats shown under the hero CTAs.">
           <div className="space-y-2">
             {content.heroMiniStats.map((s, i) => (
@@ -276,7 +316,7 @@ export default function AdminHomepagePage() {
               const Icon = HOME_ICON_MAP[s.icon]
               return (
                 <div key={i} className="flex items-center gap-2">
-                  <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(49,178,222,0.08)' }}>
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(203,1,1,0.08)' }}>
                     {Icon && <Icon size={16} style={{ color: 'var(--teal)' }} />}
                   </div>
                   <div className="w-32 flex-shrink-0"><IconPicker value={s.icon} onChange={v => updateStat(i, { icon: v })} /></div>
@@ -297,7 +337,7 @@ export default function AdminHomepagePage() {
               return (
                 <div key={i} className="p-4 rounded-xl space-y-2" style={{ border: '1px solid var(--border)' }}>
                   <div className="flex items-center gap-2">
-                    <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(49,178,222,0.08)' }}>
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(203,1,1,0.08)' }}>
                       {Icon && <Icon size={16} style={{ color: 'var(--teal)' }} />}
                     </div>
                     <div className="w-32 flex-shrink-0"><IconPicker value={w.icon} onChange={v => updateWhyCard(i, { icon: v })} /></div>

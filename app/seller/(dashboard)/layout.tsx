@@ -26,7 +26,7 @@ function ThemeToggle() {
   return (
     <button onClick={toggle} className="theme-toggle" data-dark={String(dark)} aria-label="Toggle theme">
       <div className="theme-toggle__thumb" style={{ left: dark ? 27 : 3 }}>
-        {dark ? <Moon size={11} style={{ color: '#31B2DE' }} /> : <Sun size={11} style={{ color: '#94A3B8' }} />}
+        {dark ? <Moon size={11} style={{ color: '#CB0101' }} /> : <Sun size={11} style={{ color: '#94A3B8' }} />}
       </div>
     </button>
   )

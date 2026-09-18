@@ -2,13 +2,15 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Search, ChevronRight, MapPin, Building2, ChevronDown, X, LayoutList, Grid3X3, TrendingUp, Sparkles } from 'lucide-react'
+import { Search, ChevronRight, MapPin, Building2, Globe2, ChevronDown, X, LayoutList, Grid3X3, TrendingUp, Sparkles } from 'lucide-react'
 
 import Navbar from '@/components/layouts/Navbar'
 import Footer from '@/components/layouts/Footer'
 import ProjectCard from '@/components/buyer/ProjectCard'
 import { projectAPI } from '@/lib/api'
+import { UAE_EMIRATES } from '@/lib/constants'
 import type { Project } from '@/types'
 import { cn } from '@/lib/utils'
 
@@ -35,7 +37,7 @@ function TopDevelopersCard({ developers }: { developers: DeveloperStat[] }) {
       <div className="flex items-center gap-2 mb-4">
         <div
           className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-          style={{ background: 'rgba(49,178,222,0.10)', border: '1px solid rgba(49,178,222,0.20)' }}
+          style={{ background: 'rgba(203,1,1,0.10)', border: '1px solid rgba(203,1,1,0.20)' }}
         >
           <TrendingUp size={15} style={{ color: 'var(--teal)' }} />
         </div>
@@ -51,7 +53,7 @@ function TopDevelopersCard({ developers }: { developers: DeveloperStat[] }) {
             key={d.developer}
             href={`/developers/${d.slug}`}
             className="flex items-center justify-between py-2.5 px-2 rounded-lg transition-colors group"
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(49,178,222,0.05)' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(203,1,1,0.05)' }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
           >
             <div className="flex items-center gap-2.5 min-w-0">
@@ -94,7 +96,7 @@ function SponsoredCard() {
             href="#"
             className="flex gap-3 p-2.5 rounded-xl transition-colors group"
             style={{ border: '1px solid var(--border)' }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(49,178,222,0.40)' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(203,1,1,0.40)' }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)' }}
           >
             <div
@@ -125,7 +127,7 @@ function StatusPill({ active, onClick, children }: { active: boolean; onClick: (
       style={{
         background:  active ? 'var(--grad)' : 'transparent',
         color:       active ? '#fff' : 'var(--text-mid)',
-        boxShadow:   active ? '0 6px 16px rgba(49,178,222,0.30)' : 'none',
+        boxShadow:   active ? '0 6px 16px rgba(203,1,1,0.30)' : 'none',
         cursor: 'pointer',
       }}
     >
@@ -135,7 +137,12 @@ function StatusPill({ active, onClick, children }: { active: boolean; onClick: (
 }
 
 export default function ProjectsListClient() {
-  const [filters, setFilters] = useState({ q: '', area: '', developer: '', status: '' as Project['status'] | '', page: 1 })
+  const searchParams = useSearchParams()
+  const [filters, setFilters] = useState({
+    q: '', area: '', developer: '', status: '' as Project['status'] | '',
+    emirate: searchParams.get('emirate') || '',
+    page: 1,
+  })
   const [query,   setQuery]   = useState('')
   // Bayut-style horizontal list rows by default — grid is the compact
   // alternative, same relationship as the property list pages.
@@ -173,6 +180,7 @@ export default function ProjectsListClient() {
     projectAPI.getAll({
       q: filters.q || undefined, area: filters.area || undefined,
       developer: filters.developer || undefined, status: filters.status || undefined,
+      emirate: filters.emirate || undefined,
       page: filters.page, limit,
     })
       .then(r => { if (r.data.success) { setProjects(r.data.data.data || []); setTotal(r.data.data.total || 0); setTotalPages(r.data.data.totalPages || 1) } })
@@ -186,12 +194,12 @@ export default function ProjectsListClient() {
   // property-type counts row on /for-sale — each pill shows what picking
   // THAT status would return from the current search, not just the active one.
   useEffect(() => {
-    projectAPI.getStatusStats({ q: filters.q || undefined, area: filters.area || undefined, developer: filters.developer || undefined })
+    projectAPI.getStatusStats({ q: filters.q || undefined, area: filters.area || undefined, developer: filters.developer || undefined, emirate: filters.emirate || undefined })
       .then(r => { if (r.data.success) { setStatusStats(r.data.data.stats); setStatusStatsTotal(r.data.data.total) } })
       .catch(() => {})
-  }, [filters.q, filters.area, filters.developer])
+  }, [filters.q, filters.area, filters.developer, filters.emirate])
 
-  const activeFilterCount = [filters.area, filters.developer, filters.status].filter(Boolean).length
+  const activeFilterCount = [filters.area, filters.developer, filters.status, filters.emirate].filter(Boolean).length
 
   return (
     <div className="page overflow-x-hidden">
@@ -260,6 +268,21 @@ export default function ProjectsListClient() {
             </div>
 
             <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Emirate */}
+              <div className="relative">
+                <Globe2 size={13} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--teal)', pointerEvents: 'none' }} />
+                <select
+                  value={filters.emirate}
+                  onChange={e => setFilter('emirate', e.target.value)}
+                  className="select-field h-10 pl-8 pr-8 text-xs rounded-xl"
+                  style={{ color: filters.emirate ? 'var(--text)' : 'var(--text-muted)' }}
+                >
+                  <option value="">Any Emirate</option>
+                  {UAE_EMIRATES.map(e => <option key={e} value={e}>{e}</option>)}
+                </select>
+                <ChevronDown size={11} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+              </div>
+
               {/* Area */}
               <div className="relative">
                 <MapPin size={13} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--teal)', pointerEvents: 'none' }} />
@@ -299,7 +322,7 @@ export default function ProjectsListClient() {
                     className="p-2 transition-colors"
                     title={v === 'list' ? 'List view' : 'Grid view'}
                     style={{
-                      background: view === v ? 'rgba(49,178,222,0.10)' : 'transparent',
+                      background: view === v ? 'rgba(203,1,1,0.10)' : 'transparent',
                       color:      view === v ? 'var(--teal)' : 'var(--text-muted)',
                     }}
                   >
@@ -310,7 +333,7 @@ export default function ProjectsListClient() {
 
               {activeFilterCount > 0 && (
                 <button
-                  onClick={() => setFilters(f => ({ ...f, area: '', developer: '', status: '' }))}
+                  onClick={() => setFilters(f => ({ ...f, area: '', developer: '', status: '', emirate: '' }))}
                   className="text-xs px-1"
                   style={{ color: 'var(--text-muted)' }}
                 >
@@ -349,7 +372,7 @@ export default function ProjectsListClient() {
                         className="w-9 h-9 rounded-lg text-sm font-medium border transition-all"
                         style={{
                           borderColor: filters.page === p ? 'var(--teal)' : 'var(--border)',
-                          background:  filters.page === p ? 'rgba(49,178,222,0.10)' : 'transparent',
+                          background:  filters.page === p ? 'rgba(203,1,1,0.10)' : 'transparent',
                           color:       filters.page === p ? 'var(--teal)' : 'var(--text-muted)',
                         }}
                       >
@@ -364,14 +387,14 @@ export default function ProjectsListClient() {
               <div className="flex flex-col items-center justify-center py-24 text-center">
                 <div
                   className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5"
-                  style={{ background: 'rgba(49,178,222,0.08)', border: '1px solid rgba(49,178,222,0.20)' }}
+                  style={{ background: 'rgba(203,1,1,0.08)', border: '1px solid rgba(203,1,1,0.20)' }}
                 >
                   <Building2 size={24} style={{ color: 'var(--teal)' }} />
                 </div>
                 <h3 className="font-semibold text-lg mb-2" style={{ color: 'var(--text)' }}>No projects found</h3>
                 <p className="muted mb-6 max-w-xs">Try a different area, developer, or status.</p>
                 <button
-                  onClick={() => { setQuery(''); setFilters({ q: '', area: '', developer: '', status: '', page: 1 }) }}
+                  onClick={() => { setQuery(''); setFilters({ q: '', area: '', developer: '', status: '', emirate: '', page: 1 }) }}
                   className="btn-primary btn-sm"
                 >
                   Clear Filters

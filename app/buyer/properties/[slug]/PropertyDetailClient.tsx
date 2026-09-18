@@ -14,6 +14,7 @@ import {
   Flame, PawPrint, Baby, Sailboat, Flag, Wifi, Thermometer,
   Shirt, BedDouble, Sparkles, Link2, TrendingUp as TrendUpIcon,
   Compass, Flag as ReportIcon, Loader2, Landmark, FileText, Map as MapIcon, Link as LinkIcon,
+  Wallet, Hash,
 } from 'lucide-react'
 import Navbar from '@/components/layouts/Navbar'
 import Footer from '@/components/layouts/Footer'
@@ -22,6 +23,7 @@ import RecentlyViewedCard from '@/components/buyer/RecentlyViewedCard'
 import LeadModal from '../../LeadModal'
 import { propertyAPI } from '@/lib/api'
 import { addRecentlyViewed } from '@/lib/recentlyViewed'
+import { AMENITY_META, AMENITY_GROUPS } from '@/lib/amenities'
 import { useFavoritesStore } from '@/store/favoritesStore'
 import { useCompareStore } from '@/store/compareStore'
 import { useAuthStore } from '@/store/authStore'
@@ -31,28 +33,17 @@ import toast from 'react-hot-toast'
 
 const TEAL = 'var(--teal)'
 
-const FEATURE_META: Record<string, { icon: any; label: string }> = {
-  pool:              { icon: Waves,        label: 'Swimming Pool'     },
-  gym:               { icon: Dumbbell,     label: 'Gym'               },
-  concierge:         { icon: ConciergeBell,label: 'Concierge'         },
-  security24h:       { icon: ShieldCheck,  label: '24h Security'      },
-  smartHome:         { icon: Smartphone,   label: 'Smart Home'        },
-  centralAC:         { icon: Snowflake,    label: 'Central A/C'       },
-  builtInWardrobes:  { icon: DoorClosed,   label: 'Built-in Wardrobes'},
-  coveredParking:    { icon: Car,          label: 'Covered Parking'   },
-  maidRoom:          { icon: BedDouble,    label: 'Maid Room'         },
-  studyRoom:         { icon: BookOpen,     label: 'Study Room'        },
-  jacuzzi:           { icon: Bath,         label: 'Jacuzzi'           },
-  bbqArea:           { icon: Flame,        label: 'BBQ Area'          },
-  petsAllowed:       { icon: PawPrint,     label: 'Pets Allowed'      },
-  childrenPlay:      { icon: Baby,         label: "Children's Play"  },
-  viewSea:           { icon: Sailboat,     label: 'Sea View'          },
-  viewGolf:          { icon: Flag,         label: 'Golf View'         },
-  viewBurjKhalifa:   { icon: Building2,    label: 'Burj Khalifa View' },
-  sauna:             { icon: Thermometer,  label: 'Sauna'             },
-  internetReady:     { icon: Wifi,         label: 'Internet Ready'    },
-  laundryRoom:       { icon: Shirt,        label: 'Laundry Room'      },
-}
+const NEARBY_FACT_FIELDS: { key: keyof Property['amenities']; l: string }[] = [
+  { key: 'view',                  l: 'View' },
+  { key: 'petPolicy',             l: 'Pet Policy' },
+  { key: 'otherRooms',            l: 'Other Rooms' },
+  { key: 'otherFacilities',       l: 'Other Facilities' },
+  { key: 'nearbySchools',         l: 'Nearby Schools' },
+  { key: 'nearbyHospitals',       l: 'Nearby Hospitals' },
+  { key: 'nearbyShoppingMalls',   l: 'Nearby Shopping Malls' },
+  { key: 'nearbyPublicTransport', l: 'Nearby Public Transport' },
+  { key: 'otherNearbyPlaces',     l: 'Other Nearby Places' },
+]
 
 const USEFUL_LINKS = [
   { href: '/buyer/properties', label: 'Browse All Properties' },
@@ -92,6 +83,7 @@ export default function PropertyDetailClient({ property }: { property: Property 
   const [reportSubmitting, setReportSubmitting] = useState(false)
   const [tab,      setTab]          = useState<'overview'|'features'>('overview')
   const [descExpanded, setDescExpanded] = useState(false)
+  const [showArabicDesc, setShowArabicDesc] = useState(false)
   const [descOverflows, setDescOverflows] = useState(false)
   const descRef = useRef<HTMLDivElement>(null)
   const DESC_COLLAPSED_HEIGHT = 260
@@ -329,8 +321,11 @@ export default function PropertyDetailClient({ property }: { property: Property 
                   )}
                   <span className="badge badge-gray capitalize">{property.type?.replace('_', ' ')}</span>
                 </div>
-                <h1 className="text-2xl md:text-3xl font-semibold mb-3 leading-tight" style={{ color: 'var(--text)' }}>{property.title}</h1>
-                <div className="flex items-center gap-3 flex-wrap text-sm" style={{ color: 'var(--text-muted)' }}>
+                <h1 className="text-2xl md:text-3xl font-semibold mb-1 leading-tight" style={{ color: 'var(--text)' }}>{property.title}</h1>
+                {property.titleAr && (
+                  <p dir="rtl" className="text-lg font-medium mb-3" style={{ color: 'var(--text-mid)' }}>{property.titleAr}</p>
+                )}
+                <div className="flex items-center gap-3 flex-wrap text-sm mt-2" style={{ color: 'var(--text-muted)' }}>
                   <span className="flex items-center gap-2">
                     <MapPin size={14} style={{ color: 'var(--teal)' }} />
                     {property.location.area}, {property.location.city}
@@ -348,7 +343,7 @@ export default function PropertyDetailClient({ property }: { property: Property 
                   <Heart size={16} fill={fav ? 'currentColor' : 'none'} />
                 </button>
                 <button onClick={() => addToCompare(property)}
-                  className="btn-ghost p-2.5" style={inCmp ? { borderColor: 'rgba(49,178,222,0.40)', color: 'var(--teal)', background: 'rgba(49,178,222,0.06)' } : undefined}>
+                  className="btn-ghost p-2.5" style={inCmp ? { borderColor: 'rgba(203,1,1,0.40)', color: 'var(--teal)', background: 'rgba(203,1,1,0.06)' } : undefined}>
                   <GitCompare size={16} />
                 </button>
                 <button onClick={share} className="btn-ghost p-2.5">
@@ -374,7 +369,7 @@ export default function PropertyDetailClient({ property }: { property: Property 
                 { icon: Car,      val: `${property.amenities.parkingSpaces} Parking`, label: 'Parking' },
               ].map(({ icon: Icon, val, label }) => (
                 <div key={label} className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(49,178,222,0.10)', border: '1px solid rgba(49,178,222,0.20)' }}>
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(203,1,1,0.10)', border: '1px solid rgba(203,1,1,0.20)' }}>
                     <Icon size={15} style={{ color: TEAL }} />
                   </div>
                   <div>
@@ -415,10 +410,22 @@ export default function PropertyDetailClient({ property }: { property: Property 
                           style={{ background: 'linear-gradient(to top, var(--surface), transparent)' }} />
                       )}
                     </div>
-                    {descOverflows && (
-                      <button onClick={() => setDescExpanded(v => !v)} className="btn-ghost btn-sm mt-3 gap-1.5">
-                        {descExpanded ? <>Read Less <ChevronUp size={13} /></> : <>Read More <ChevronDown size={13} /></>}
-                      </button>
+                    <div className="flex items-center gap-2 mt-3 flex-wrap">
+                      {descOverflows && (
+                        <button onClick={() => setDescExpanded(v => !v)} className="btn-ghost btn-sm gap-1.5">
+                          {descExpanded ? <>Read Less <ChevronUp size={13} /></> : <>Read More <ChevronDown size={13} /></>}
+                        </button>
+                      )}
+                      {property.descriptionAr && (
+                        <button onClick={() => setShowArabicDesc(v => !v)} className="btn-ghost btn-sm gap-1.5">
+                          {showArabicDesc ? 'Hide Arabic' : 'اقرأ بالعربية'}
+                        </button>
+                      )}
+                    </div>
+                    {showArabicDesc && property.descriptionAr && (
+                      <p dir="rtl" className="text-sm leading-relaxed mt-3 pt-3" style={{ color: 'var(--text-mid)', borderTop: '1px solid var(--border-soft)' }}>
+                        {property.descriptionAr}
+                      </p>
                     )}
                   </div>
 
@@ -433,11 +440,16 @@ export default function PropertyDetailClient({ property }: { property: Property 
                         { icon: Bath,      l: 'Bathrooms',      v: property.amenities?.bathrooms || undefined },
                         { icon: Sofa,      l: 'Furnishing',     v: property.furnishing?.replace('_',' ') },
                         { icon: Calendar,  l: 'Available from', v: property.completion === 'off_plan' ? 'On Completion' : 'Ready to Move' },
+                        { icon: Hash,      l: 'Unit No.',       v: property.location?.unitNo },
+                        { icon: Landmark,  l: 'Ownership',      v: property.ownershipStatus },
+                        { icon: Tag,       l: 'Off-Plan Sale',  v: property.completion === 'off_plan' ? property.offPlanSaleType : undefined },
+                        { icon: Calendar,  l: 'Completion Date',v: property.completion === 'off_plan' && property.expectedCompletionDate ? new Date(property.expectedCompletionDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : undefined },
+                        { icon: Wallet,    l: 'Financing',      v: property.financingAvailable ? (property.financingInstitutionNames || 'Available') : undefined },
                         { icon: Building,  l: 'Developer',      v: property.developer },
                         { icon: Layers,    l: 'Project',        v: property.projectName },
                       ].filter(({ v }) => v).map(({ icon: Icon, l, v }) => (
                         <div key={l} className="flex items-start gap-3">
-                          <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(49,178,222,0.10)', border: '1px solid rgba(49,178,222,0.20)' }}>
+                          <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(203,1,1,0.10)', border: '1px solid rgba(203,1,1,0.20)' }}>
                             <Icon size={14} style={{ color: TEAL }} />
                           </div>
                           <div>
@@ -465,9 +477,9 @@ export default function PropertyDetailClient({ property }: { property: Property 
                             <FileText size={15} style={{ color: TEAL }} /> Download Brochure
                           </a>
                         )}
-                        {property.videos?.map((url, i) => (
-                          <a key={url} href={url} target="_blank" rel="noopener noreferrer" className="btn-ghost flex-1 min-w-[160px] py-3 gap-2">
-                            <Video size={15} style={{ color: TEAL }} /> Video {property.videos!.length > 1 ? i + 1 : ''}
+                        {property.videos?.map((v, i) => (
+                          <a key={v.url} href={v.url} target="_blank" rel="noopener noreferrer" className="btn-ghost flex-1 min-w-[160px] py-3 gap-2">
+                            <Video size={15} style={{ color: TEAL }} /> {v.title || `Video ${property.videos!.length > 1 ? i + 1 : ''}`.trim()}
                           </a>
                         ))}
                       </div>
@@ -479,6 +491,28 @@ export default function PropertyDetailClient({ property }: { property: Property 
                       </div>
                     )}
                   </div>
+
+                  {/* Additional / nearby details — free-text fields the
+                      agent filled in, only rendered when actually set. */}
+                  {NEARBY_FACT_FIELDS.some(({ key }) => property.amenities?.[key]) && (
+                    <div className="card p-6">
+                      <h3 className="font-semibold mb-5" style={{ color: 'var(--text)' }}>Additional Details</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-5">
+                        {NEARBY_FACT_FIELDS.filter(({ key }) => property.amenities?.[key]).map(({ key, l }) => (
+                          <div key={key}>
+                            <p className="text-xs mb-0.5" style={{ color: 'var(--text-muted)' }}>{l}</p>
+                            <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{property.amenities[key]}</p>
+                          </div>
+                        ))}
+                        {property.amenities?.distanceFromAirport && (
+                          <div>
+                            <p className="text-xs mb-0.5" style={{ color: 'var(--text-muted)' }}>Distance From Airport</p>
+                            <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{property.amenities.distanceFromAirport} km</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Location map — free OpenStreetMap embed, no API key needed */}
                   {coords && (
@@ -517,7 +551,7 @@ export default function PropertyDetailClient({ property }: { property: Property 
                           { icon: ShieldCheck, l: 'Permit No.', v: property.permitNumber },
                         ].filter(({ v }) => v).map(({ icon: Icon, l, v }) => (
                           <div key={l} className="flex items-start gap-3">
-                            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(49,178,222,0.10)', border: '1px solid rgba(49,178,222,0.20)' }}>
+                            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(203,1,1,0.10)', border: '1px solid rgba(203,1,1,0.20)' }}>
                               <Icon size={14} style={{ color: TEAL }} />
                             </div>
                             <div>
@@ -551,30 +585,71 @@ export default function PropertyDetailClient({ property }: { property: Property 
                   </div>
                 </div>
 
-                <div ref={featuresRef} id="section-features" style={{ scrollMarginTop: SCROLL_OFFSET }}>
-                  <div className="card p-6">
-                    <h3 className="font-semibold mb-5" style={{ color: 'var(--text)' }}>Amenities & Features</h3>
-                    {features.length > 0 ? (
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        {features.map(([key]) => {
-                          const meta = FEATURE_META[key]
-                          const Icon = meta?.icon || CheckCircle2
-                          return (
-                            <div key={key} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'var(--bg-alt)' }}>
-                              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(49,178,222,0.10)', border: '1px solid rgba(49,178,222,0.20)' }}>
-                                <Icon size={14} style={{ color: TEAL }} />
-                              </div>
-                              <span className="text-sm capitalize" style={{ color: 'var(--text-mid)' }}>
-                                {meta?.label || key.replace(/([A-Z])/g,' $1').trim()}
-                              </span>
+                <div ref={featuresRef} id="section-features" style={{ scrollMarginTop: SCROLL_OFFSET }} className="space-y-5">
+                  {features.length > 0 ? (
+                    <>
+                      {AMENITY_GROUPS.map(group => {
+                        const activeKeys = group.keys.filter(k => features.some(([fk]) => fk === k))
+                        if (activeKeys.length === 0) return null
+                        return (
+                          <div key={group.title} className="card p-6">
+                            <h3 className="font-semibold mb-5" style={{ color: 'var(--text)' }}>{group.title}</h3>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                              {activeKeys.map(key => {
+                                const meta = AMENITY_META[key]
+                                const Icon = meta?.icon || CheckCircle2
+                                return (
+                                  <div key={key} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'var(--bg-alt)' }}>
+                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(203,1,1,0.10)', border: '1px solid rgba(203,1,1,0.20)' }}>
+                                      <Icon size={14} style={{ color: TEAL }} />
+                                    </div>
+                                    <span className="text-sm" style={{ color: 'var(--text-mid)' }}>
+                                      {meta?.label || key.replace(/([A-Z])/g,' $1').trim()}
+                                    </span>
+                                  </div>
+                                )
+                              })}
                             </div>
-                          )
-                        })}
-                      </div>
-                    ) : (
+                          </div>
+                        )
+                      })}
+
+                      {/* Any active feature key that doesn't belong to one of the
+                          categorized groups above (legacy/unclassified data) still
+                          gets shown, just under a catch-all heading. */}
+                      {(() => {
+                        const grouped = new Set(AMENITY_GROUPS.flatMap(g => g.keys))
+                        const other = features.filter(([key]) => !grouped.has(key))
+                        if (other.length === 0) return null
+                        return (
+                          <div className="card p-6">
+                            <h3 className="font-semibold mb-5" style={{ color: 'var(--text)' }}>Other</h3>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                              {other.map(([key]) => {
+                                const meta = AMENITY_META[key]
+                                const Icon = meta?.icon || CheckCircle2
+                                return (
+                                  <div key={key} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'var(--bg-alt)' }}>
+                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(203,1,1,0.10)', border: '1px solid rgba(203,1,1,0.20)' }}>
+                                      <Icon size={14} style={{ color: TEAL }} />
+                                    </div>
+                                    <span className="text-sm" style={{ color: 'var(--text-mid)' }}>
+                                      {meta?.label || key.replace(/([A-Z])/g,' $1').trim()}
+                                    </span>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )
+                      })()}
+                    </>
+                  ) : (
+                    <div className="card p-6">
+                      <h3 className="font-semibold mb-5" style={{ color: 'var(--text)' }}>Amenities & Features</h3>
                       <p className="muted">No features listed for this property.</p>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
 
               </div>
@@ -584,7 +659,7 @@ export default function PropertyDetailClient({ property }: { property: Property 
           {/* ── Right: CTA Card ──────────── */}
           <div className="space-y-4">
             {/* Lead CTA */}
-            <div className="card p-6 top-20" style={{ borderColor: 'rgba(49,178,222,0.25)', background: 'linear-gradient(180deg, rgba(49,178,222,0.06), var(--surface) 45%)' }}>
+            <div className="card p-6 top-20" style={{ borderColor: 'rgba(203,1,1,0.25)', background: 'linear-gradient(180deg, rgba(203,1,1,0.06), var(--surface) 45%)' }}>
               <div className="text-center mb-6">
                 <p className="text-3xl font-bold grad-text">{formatPrice(property.price)}</p>
                 {property.listingType === 'rent' && <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{rentPeriodLabel(property)}</p>}
@@ -694,7 +769,7 @@ export default function PropertyDetailClient({ property }: { property: Property 
              {/* Mortgage helpline */}
             <div className="card p-5">
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(49,178,222,0.10)', border: '1px solid rgba(49,178,222,0.20)' }}>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(203,1,1,0.10)', border: '1px solid rgba(203,1,1,0.20)' }}>
                   <Landmark size={15} style={{ color: TEAL }} />
                 </div>
                 <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Mortgage Helpline</h3>

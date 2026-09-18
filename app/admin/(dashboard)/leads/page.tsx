@@ -17,11 +17,11 @@ import toast from 'react-hot-toast'
 
 const STAGES = [
   { value: 'new',           label: 'New',         color: '#60A5FA' },
-  { value: 'contacted',     label: 'Contacted',   color: '#31B2DE' },
-  { value: 'qualified',     label: 'Qualified',   color: '#31B2DE' },
+  { value: 'contacted',     label: 'Contacted',   color: '#CB0101' },
+  { value: 'qualified',     label: 'Qualified',   color: '#CB0101' },
   { value: 'touring',       label: 'Touring',     color: '#C084FC' },
   { value: 'negotiating',   label: 'Negotiating', color: '#F59E0B' },
-  { value: 'deal_closed',   label: 'Closed',      color: '#61BB4D' },
+  { value: 'deal_closed',   label: 'Closed',      color: '#FD7147' },
   { value: 'deal_lost',     label: 'Lost',        color: '#FB7185' },
   { value: 'cancelled',     label: 'Cancelled',   color: '#94A3B8' },
 ]
@@ -781,11 +781,11 @@ function AdminLeadsView() {
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => setView('list')} className="btn-ghost btn-sm gap-1.5"
-            style={view === 'list' ? { color: 'var(--teal)', borderColor: 'rgba(49,178,222,0.40)', background: 'rgba(49,178,222,0.06)' } : undefined}>
+            style={view === 'list' ? { color: 'var(--teal)', borderColor: 'rgba(203,1,1,0.40)', background: 'rgba(203,1,1,0.06)' } : undefined}>
             <LayoutList size={13} /> List
           </button>
           <button onClick={() => setView('kanban')} className="btn-ghost btn-sm gap-1.5"
-            style={view === 'kanban' ? { color: 'var(--teal)', borderColor: 'rgba(49,178,222,0.40)', background: 'rgba(49,178,222,0.06)' } : undefined}>
+            style={view === 'kanban' ? { color: 'var(--teal)', borderColor: 'rgba(203,1,1,0.40)', background: 'rgba(203,1,1,0.06)' } : undefined}>
             <KanbanSquare size={13} /> Kanban
           </button>
           <button onClick={shuffleUnassigned} className="btn-outline btn-sm gap-2">
@@ -821,7 +821,7 @@ function AdminLeadsView() {
               key={p || 'all'}
               onClick={() => { setPriority(p); setPage(1) }}
               className="btn-ghost btn-sm capitalize"
-              style={priority === p ? { color: 'var(--teal)', borderColor: 'rgba(49,178,222,0.40)', background: 'rgba(49,178,222,0.06)' } : undefined}
+              style={priority === p ? { color: 'var(--teal)', borderColor: 'rgba(203,1,1,0.40)', background: 'rgba(203,1,1,0.06)' } : undefined}
             >
               {p || 'All priorities'}
             </button>

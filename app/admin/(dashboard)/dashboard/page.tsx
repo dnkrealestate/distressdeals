@@ -216,9 +216,9 @@ export default function AdminDashboard() {
           <motion.div
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
             className="mt-5 card p-5 flex items-start gap-4"
-            style={{ background: 'rgba(49,178,222,0.05)', borderColor: 'rgba(49,178,222,0.20)' }}
+            style={{ background: 'rgba(203,1,1,0.05)', borderColor: 'rgba(203,1,1,0.20)' }}
           >
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(49,178,222,0.10)', border: '1px solid rgba(49,178,222,0.20)' }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(203,1,1,0.10)', border: '1px solid rgba(203,1,1,0.20)' }}>
               <AlertCircle size={18} style={{ color: 'var(--teal)' }} />
             </div>
             <div className="flex-1">

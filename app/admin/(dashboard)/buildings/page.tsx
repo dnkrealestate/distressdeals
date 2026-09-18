@@ -151,7 +151,7 @@ function BuildingContentForm({ building, onClose, onSaved }: { building: Buildin
               </div>
             ) : (
               <div {...heroDropzone.getRootProps()} className="rounded-xl p-5 text-center cursor-pointer transition-colors"
-                style={{ border: `2px dashed ${heroDropzone.isDragActive ? 'var(--teal)' : 'var(--border)'}`, background: heroDropzone.isDragActive ? 'rgba(49,178,222,0.05)' : 'var(--bg-alt)' }}>
+                style={{ border: `2px dashed ${heroDropzone.isDragActive ? 'var(--teal)' : 'var(--border)'}`, background: heroDropzone.isDragActive ? 'rgba(203,1,1,0.05)' : 'var(--bg-alt)' }}>
                 <input {...heroDropzone.getInputProps()} />
                 {uploadingHero ? <Loader2 size={18} className="animate-spin mx-auto" style={{ color: 'var(--teal)' }} /> : (
                   <>
@@ -177,7 +177,7 @@ function BuildingContentForm({ building, onClose, onSaved }: { building: Buildin
                 const Icon = HOME_ICON_MAP[a.icon]
                 return (
                   <div key={i} className="flex items-center gap-2">
-                    <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(49,178,222,0.08)' }}>
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(203,1,1,0.08)' }}>
                       {Icon && <Icon size={16} style={{ color: 'var(--teal)' }} />}
                     </div>
                     <div className="w-36 flex-shrink-0"><IconPicker value={a.icon} onChange={v => updateAmenity(i, { icon: v })} /></div>

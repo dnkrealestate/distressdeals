@@ -65,7 +65,7 @@ export default function ProjectInterestModal({
 
             {sent ? (
               <div className="p-8 text-center">
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(97,187,77,0.10)', border: '1px solid rgba(97,187,77,0.25)' }}>
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(253,113,71,0.10)', border: '1px solid rgba(253,113,71,0.25)' }}>
                   <CheckCircle2 size={26} style={{ color: 'var(--green)' }} />
                 </div>
                 <h4 className="font-semibold text-sm mb-1.5" style={{ color: 'var(--text)' }}>Thanks — we've got it!</h4>

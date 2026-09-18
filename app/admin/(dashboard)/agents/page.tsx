@@ -184,7 +184,7 @@ export default function AdminAgentsPage() {
                 className="p-2 transition-colors"
                 title={v === 'roster' ? 'Roster' : 'Performance'}
                 style={{
-                  background: view === v ? 'rgba(49,178,222,0.10)' : 'transparent',
+                  background: view === v ? 'rgba(203,1,1,0.10)' : 'transparent',
                   color:      view === v ? 'var(--teal)' : 'var(--text-muted)',
                 }}
               >

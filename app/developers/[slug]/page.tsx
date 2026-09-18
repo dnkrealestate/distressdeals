@@ -111,14 +111,14 @@ export default async function DeveloperDetailPage({ params }: { params: { slug: 
 
           <div className="grid grid-cols-2 gap-4 max-w-lg">
             <div className="stat-card">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3" style={{ background: 'rgba(49,178,222,0.10)', border: '1px solid rgba(49,178,222,0.20)' }}>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3" style={{ background: 'rgba(203,1,1,0.10)', border: '1px solid rgba(203,1,1,0.20)' }}>
                 <Layers size={16} style={{ color: 'var(--teal)' }} />
               </div>
               <p className="text-lg font-bold" style={{ color: 'var(--text)' }}>{dev.projectCount}</p>
               <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Active Projects</p>
             </div>
             <div className="stat-card">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3" style={{ background: 'rgba(49,178,222,0.10)', border: '1px solid rgba(49,178,222,0.20)' }}>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3" style={{ background: 'rgba(203,1,1,0.10)', border: '1px solid rgba(203,1,1,0.20)' }}>
                 <MapPin size={16} style={{ color: 'var(--teal)' }} />
               </div>
               <p className="text-lg font-bold" style={{ color: 'var(--text)' }}>{dev.minPriceFrom > 0 ? formatPrice(dev.minPriceFrom) : '—'}</p>

@@ -62,7 +62,7 @@ export default function SavedSearchesPage() {
         <div className="space-y-3">{Array(3).fill(null).map((_, i) => <div key={i} className="shimmer h-24 rounded-2xl" />)}</div>
       ) : searches.length === 0 ? (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center justify-center py-20 text-center card">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5" style={{ background: 'rgba(49,178,222,0.08)', border: '1px solid rgba(49,178,222,0.20)' }}>
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5" style={{ background: 'rgba(203,1,1,0.08)', border: '1px solid rgba(203,1,1,0.20)' }}>
             <Bell size={28} style={{ color: 'var(--teal)' }} />
           </div>
           <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text)' }}>No saved searches yet</h3>

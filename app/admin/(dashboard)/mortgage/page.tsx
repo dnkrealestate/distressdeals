@@ -48,7 +48,7 @@ export default function AdminMortgagePage() {
           {STATUS_TABS.map(s => (
             <button
               key={s} onClick={() => setStatus(s)} className="btn-ghost btn-sm capitalize"
-              style={status === s ? { color: 'var(--teal)', borderColor: 'rgba(49,178,222,0.40)', background: 'rgba(49,178,222,0.06)' } : undefined}
+              style={status === s ? { color: 'var(--teal)', borderColor: 'rgba(203,1,1,0.40)', background: 'rgba(203,1,1,0.06)' } : undefined}
             >
               {s}
             </button>

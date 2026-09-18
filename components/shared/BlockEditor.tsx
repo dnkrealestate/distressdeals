@@ -209,7 +209,7 @@ function ImageBlock({ block, onChange }: { block: Block; onChange: (b: Block) =>
 
   return (
     <div {...getRootProps()} className="rounded-lg p-6 text-center cursor-pointer transition-colors"
-      style={{ border: `2px dashed ${isDragActive ? 'var(--teal)' : 'var(--border)'}`, background: isDragActive ? 'rgba(49,178,222,0.05)' : 'var(--bg-alt)' }}>
+      style={{ border: `2px dashed ${isDragActive ? 'var(--teal)' : 'var(--border)'}`, background: isDragActive ? 'rgba(203,1,1,0.05)' : 'var(--bg-alt)' }}>
       <input {...getInputProps()} />
       {uploading ? <Loader2 size={18} className="animate-spin mx-auto" style={{ color: 'var(--teal)' }} /> : (
         <>
@@ -393,7 +393,7 @@ export default function BlockEditor({ blocks, onChange }: { blocks: Block[]; onC
                       key={l} type="button" onClick={() => updateBlock(block.id, { ...block, level: l as 2 | 3 | 4 })}
                       className="px-2 py-0.5 rounded text-xs font-medium"
                       style={block.level === l
-                        ? { color: 'var(--teal)', border: '1px solid rgba(49,178,222,0.4)', background: 'rgba(49,178,222,0.08)' }
+                        ? { color: 'var(--teal)', border: '1px solid rgba(203,1,1,0.4)', background: 'rgba(203,1,1,0.08)' }
                         : { color: 'var(--text-muted)', border: '1px solid var(--border)' }}
                     >
                       H{l}

@@ -16,7 +16,27 @@ export function formatDistanceKm(km: number): string {
   return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`
 }
 
-export interface GeocodeResult { label: string; lat: number; lng: number }
+export interface GeocodeResult {
+  label: string
+  lat: number
+  lng: number
+  // Structured pieces pulled from Nominatim's addressdetails — used to fill
+  // the Area and Address fields more accurately than naively splitting the
+  // display name (which reads finest-detail-first, so splitting on commas
+  // alone picks up a house number/building as "Area" for reverse-geocoded
+  // pins). Absent whenever Nominatim doesn't have that level of detail.
+  road?: string
+  area?: string
+}
+
+// Pulls a road+house-number "address" and a suburb-level "area" out of
+// Nominatim's structured `address` object, when present.
+function extractParts(d: any): { road?: string; area?: string } {
+  const a = d.address || {}
+  const road = [a.house_number, a.road].filter(Boolean).join(' ') || undefined
+  const area = a.suburb || a.neighbourhood || a.quarter || a.city_district || a.town || a.village || undefined
+  return { road, area }
+}
 
 // Free-text place search via OpenStreetMap's Nominatim — no API key needed
 // (same "no Google Maps key configured yet" constraint as the rest of the
@@ -24,9 +44,25 @@ export interface GeocodeResult { label: string; lat: number; lng: number }
 // this site operates in. Respects Nominatim's usage policy: no auto-fire on
 // every keystroke, callers should debounce.
 export async function geocodePlace(query: string): Promise<GeocodeResult[]> {
-  const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=ae&limit=5&q=${encodeURIComponent(query)}`
+  // accept-language=en — without it Nominatim returns names in whatever
+  // language it guesses for the region (Arabic for UAE places), which is
+  // unreadable to English-speaking staff picking from the suggestion list.
+  // addressdetails=1 — gives structured road/suburb fields (see extractParts)
+  // instead of forcing callers to guess from comma-split display_name.
+  const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=ae&limit=5&accept-language=en&addressdetails=1&q=${encodeURIComponent(query)}`
   const res = await fetch(url, { headers: { Accept: 'application/json' } })
   if (!res.ok) throw new Error('Geocoding failed')
   const data = await res.json()
-  return (data as any[]).map(d => ({ label: d.display_name as string, lat: Number(d.lat), lng: Number(d.lon) }))
+  return (data as any[]).map(d => ({ label: d.display_name as string, lat: Number(d.lat), lng: Number(d.lon), ...extractParts(d) }))
+}
+
+// Reverse geocode — turns coordinates (e.g. from the browser's "use my
+// current location", or a dragged/clicked map pin) back into a readable
+// place name via the same free Nominatim service.
+export async function reverseGeocode(lat: number, lng: number): Promise<GeocodeResult> {
+  const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=en&addressdetails=1`
+  const res = await fetch(url, { headers: { Accept: 'application/json' } })
+  if (!res.ok) throw new Error('Reverse geocoding failed')
+  const d = await res.json()
+  return { label: (d.display_name as string) || `${lat}, ${lng}`, lat, lng, ...extractParts(d) }
 }

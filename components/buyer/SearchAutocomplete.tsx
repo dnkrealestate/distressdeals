@@ -80,7 +80,7 @@ export default function SearchAutocomplete({
                 <button
                   key={area}
                   onClick={() => pick(() => onSelectArea ? onSelectArea(area) : router.push(`/areas/${area.toLowerCase().replace(/\s+/g, '-')}`))}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-sm transition-colors hover:bg-[rgba(49,178,222,0.08)]"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-sm transition-colors hover:bg-[rgba(203,1,1,0.08)]"
                   style={{ color: 'var(--text)' }}
                 >
                   <MapPin size={14} style={{ color: 'var(--teal)' }} /> {area}
@@ -96,7 +96,7 @@ export default function SearchAutocomplete({
                 <button
                   key={project}
                   onClick={() => pick(() => onSelectProject ? onSelectProject(project) : onChange(project))}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-sm transition-colors hover:bg-[rgba(49,178,222,0.08)]"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-sm transition-colors hover:bg-[rgba(203,1,1,0.08)]"
                   style={{ color: 'var(--text)' }}
                 >
                   <Building2 size={14} style={{ color: 'var(--teal)' }} /> {project}
@@ -112,7 +112,7 @@ export default function SearchAutocomplete({
                 <button
                   key={p.slug}
                   onClick={() => pick(() => router.push(`/buyer/properties/${p.slug}`))}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-colors hover:bg-[rgba(49,178,222,0.08)]"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-colors hover:bg-[rgba(203,1,1,0.08)]"
                 >
                   <Home size={14} className="flex-shrink-0" style={{ color: 'var(--teal)' }} />
                   <div className="min-w-0 flex-1">

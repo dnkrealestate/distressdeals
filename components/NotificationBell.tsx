@@ -202,9 +202,9 @@ export default function NotificationBell({ variant = 'navbar' }: { variant?: 'na
                       key={n._id}
                       onClick={() => openNotification(n)}
                       className="w-full text-left flex items-start gap-3 p-3.5 transition-colors"
-                      style={{ background: n.isRead ? 'transparent' : 'rgba(49,178,222,0.05)', borderBottom: '1px solid var(--border-soft)' }}
+                      style={{ background: n.isRead ? 'transparent' : 'rgba(203,1,1,0.05)', borderBottom: '1px solid var(--border-soft)' }}
                     >
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(49,178,222,0.10)', border: '1px solid rgba(49,178,222,0.20)' }}>
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(203,1,1,0.10)', border: '1px solid rgba(203,1,1,0.20)' }}>
                         <Icon size={14} style={{ color: 'var(--teal)' }} />
                       </div>
                       <div className="flex-1 min-w-0">

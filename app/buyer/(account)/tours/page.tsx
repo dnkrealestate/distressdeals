@@ -58,7 +58,7 @@ export default function BuyerToursPage() {
         <div className="space-y-3">{Array(4).fill(null).map((_, i) => <div key={i} className="shimmer h-24 rounded-2xl" />)}</div>
       ) : meetings.length === 0 ? (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center justify-center py-20 text-center card">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5" style={{ background: 'rgba(49,178,222,0.08)', border: '1px solid rgba(49,178,222,0.20)' }}>
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5" style={{ background: 'rgba(203,1,1,0.08)', border: '1px solid rgba(203,1,1,0.20)' }}>
             <CalendarClock size={28} style={{ color: 'var(--teal)' }} />
           </div>
           <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text)' }}>No tours scheduled</h3>
@@ -73,7 +73,7 @@ export default function BuyerToursPage() {
             return (
               <motion.div key={meeting._id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                 className="card p-4 flex items-center gap-4">
-                <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(49,178,222,0.08)', border: '1px solid rgba(49,178,222,0.20)' }}>
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(203,1,1,0.08)', border: '1px solid rgba(203,1,1,0.20)' }}>
                   <meta.icon size={17} style={{ color: 'var(--teal)' }} />
                 </div>
                 <div className="flex-1 min-w-0">

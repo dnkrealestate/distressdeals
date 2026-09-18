@@ -21,7 +21,7 @@ export default function RecentlyViewedCard({ excludeSlug }: { excludeSlug?: stri
   return (
     <div className="card p-5">
       <div className="flex items-center gap-2 mb-4">
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(49,178,222,0.10)', border: '1px solid rgba(49,178,222,0.20)' }}>
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(203,1,1,0.10)', border: '1px solid rgba(203,1,1,0.20)' }}>
           <Clock size={15} style={{ color: 'var(--teal)' }} />
         </div>
         <div>

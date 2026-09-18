@@ -67,7 +67,7 @@ export default function LeadModal({ property, onClose }: Props) {
           <form onSubmit={handleSubmit(onSubmit)}>
             {/* Property mini */}
             <div className="mx-6 mt-5 rounded-xl p-4 flex gap-3" style={{ background: 'var(--bg-alt)', border: '1px solid var(--border)' }}>
-              <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(49,178,222,0.10)' }}>
+              <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(203,1,1,0.10)' }}>
                 <MapPin size={20} style={{ color: 'var(--teal)' }} />
               </div>
               <div className="min-w-0">
@@ -142,7 +142,7 @@ export default function LeadModal({ property, onClose }: Props) {
         ) : (
           <motion.div initial={{ opacity:0, scale:0.9 }} animate={{ opacity:1, scale:1 }}
             className="p-8 text-center">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5" style={{ background: 'rgba(49,178,222,0.10)', border: '1px solid rgba(49,178,222,0.20)' }}>
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5" style={{ background: 'rgba(203,1,1,0.10)', border: '1px solid rgba(203,1,1,0.20)' }}>
               <CheckCircle2 size={28} style={{ color: 'var(--teal)' }} />
             </div>
             <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--text)' }}>Enquiry Submitted!</h3>

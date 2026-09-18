@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowRight,
   Building2, Anchor, TreePalm, Briefcase, Waves, Home, Trees,
@@ -20,7 +20,6 @@ import FeaturedProjectsSection from '@/components/FeaturedProjectsSection'
 import MortgageSection from '@/components/MortgageSection'
 import { propertyAPI, homepageAPI, communityContentAPI } from '@/lib/api'
 import { HOME_ICON_MAP, DEFAULT_HOME_ICON } from '@/lib/homeIcons'
-import { useThemeStore } from '@/store/themeStore'
 import type { Property, HomepageContent, CommunityContentWithStats } from '@/types'
 
 /* ─── DATA ──────────────────────────────────────────────────── */
@@ -39,12 +38,23 @@ const DEFAULT_AREA_ICON = MapPin
 
 interface AreaStat { area: string; count: number }
 
+// Converts an admin-picked hex color to an rgba() string so the hero's
+// ambient shade orbs keep their soft, translucent glow at any hue.
+function hexToRgba(hex: string, alpha: number): string {
+  const clean = hex.replace('#', '')
+  const full = clean.length === 3 ? clean.split('').map(c => c + c).join('') : clean
+  const num = parseInt(full, 16)
+  if (Number.isNaN(num) || full.length !== 6) return `rgba(148,163,184,${alpha})`
+  const r = (num >> 16) & 255, g = (num >> 8) & 255, b = num & 255
+  return `rgba(${r},${g},${b},${alpha})`
+}
+
 /* ─── ANIMATED HEADLINE ─────────────────────────────────────── */
 const ACCENT_WORDS = ['Dream', "Dubai's", 'Luxury']
 
 function HeadlineText({ text }: { text: string }) {
   return (
-    <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.08] md:leading-none tracking-tight text-center">
+    <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.08] md:leading-none tracking-tight text-center text-white">
       {text.split(' ').map((word, i) => (
         <span key={i}>
           {ACCENT_WORDS.includes(word)
@@ -70,8 +80,8 @@ function AreaCard({ area }: { area: AreaStat }) {
         <div
           className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-300"
           style={{
-            background: 'rgba(49,178,222,0.08)',
-            border:     '1px solid rgba(49,178,222,0.18)',
+            background: 'rgba(203,1,1,0.08)',
+            border:     '1px solid rgba(203,1,1,0.18)',
           }}
         >
           <Icon size={22} style={{ color: 'var(--teal)' }} />
@@ -101,11 +111,11 @@ function AreaCard({ area }: { area: AreaStat }) {
 function WhyCard({ icon, title, description }: { icon: string; title: string; description: string }) {
   const Icon = HOME_ICON_MAP[icon] || DEFAULT_HOME_ICON
   return (
-    <div className="group relative card p-7 overflow-hidden hover:border-[rgba(49,178,222,0.40)] transition-all duration-300">
+    <div className="group relative card p-7 overflow-hidden hover:border-[rgba(203,1,1,0.40)] transition-all duration-300">
       {/* Hover glow */}
       <div
         className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-        style={{ background: 'linear-gradient(135deg, rgba(49,178,222,0.06), transparent 55%)' }}
+        style={{ background: 'linear-gradient(135deg, rgba(203,1,1,0.06), transparent 55%)' }}
       />
 
       {/* Icon */}
@@ -113,8 +123,8 @@ function WhyCard({ icon, title, description }: { icon: string; title: string; de
         <div
           className="w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300"
           style={{
-            background: 'rgba(49,178,222,0.07)',
-            border:     '1px solid rgba(49,178,222,0.15)',
+            background: 'rgba(203,1,1,0.07)',
+            border:     '1px solid rgba(203,1,1,0.15)',
           }}
         >
           <Icon
@@ -125,7 +135,7 @@ function WhyCard({ icon, title, description }: { icon: string; title: string; de
         </div>
         {/* Hover ring */}
         <div
-          className="absolute inset-0 rounded-2xl border border-[rgba(49,178,222,0.20)] scale-110 opacity-0 group-hover:opacity-100 group-hover:scale-[1.3] transition-all duration-500"
+          className="absolute inset-0 rounded-2xl border border-[rgba(203,1,1,0.20)] scale-110 opacity-0 group-hover:opacity-100 group-hover:scale-[1.3] transition-all duration-500"
         />
       </div>
 
@@ -156,16 +166,8 @@ export default function HomeClient({ content }: { content: HomepageContent }) {
   const [areaStats, setAreaStats] = useState<AreaStat[] | null>(null)
   const [communities, setCommunities] = useState<CommunityContentWithStats[]>([])
   const heroRef = useRef<HTMLElement>(null)
-  const { dark } = useThemeStore()
 
   const headlines = content.heroHeadlines.length > 0 ? content.heroHeadlines : ['Find Your Dream Home']
-
-  const { scrollYProgress } = useScroll({
-    target: heroRef,
-    offset: ['start start', 'end start'],
-  })
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0])
-  const heroBgY     = useTransform(scrollYProgress, [0, 1], ['0%', '20%'])
 
   useEffect(() => {
     const t = setInterval(() => setHlIdx(i => (i + 1) % headlines.length), 4200)
@@ -198,15 +200,15 @@ export default function HomeClient({ content }: { content: HomepageContent }) {
 
   return (
     <div className="page overflow-x-hidden">
-      <Navbar transparent />
+      <Navbar />
 
       {/* ─── HERO ──────────────────────────────────────────── */}
       <section
         ref={heroRef}
-        className="relative h-screen min-h-[780px] flex items-center overflow-hidden"
+        className="relative min-h-[560px] md:min-h-[620px] py-0 md:py-0 flex items-center"
       >
-        {/* Background */}
-        <motion.div className="absolute inset-0" style={{ y: heroBgY }}>
+        {/* Background — fixed, no scroll-linked parallax */}
+        <div className="absolute inset-0">
           {/* Gradient base (shows through on any transparent edges) */}
           {/* <div
             className="absolute inset-0"
@@ -215,25 +217,35 @@ export default function HomeClient({ content }: { content: HomepageContent }) {
             }}
           /> */}
 
-          {/* Banner photo — white/dark space for text, subject on the right. Day/night swaps with theme, desktop/mobile swaps with viewport. Admin-editable via the Homepage CMS; falls back to the bundled defaults when unset. */}
-          <Image
-            src={(dark ? content.heroBannerDesktopNight : content.heroBannerDesktopDay) || (dark ? '/banners/home_banner_night.webp' : '/banners/home_banner_day.webp')}
-            alt=""
-            fill
-            priority
-            quality={100}
-            sizes="100vw"
-            className="object-cover object-right hidden md:block opacity-50"
-          />
-          <Image
-            src={(dark ? content.heroBannerMobileNight : content.heroBannerMobileDay) || (dark ? '/banners/home_banner_night_mobile.webp' : '/banners/home_banner_day_mobile.webp')}
-            alt=""
-            fill
-            priority
-            quality={100}
-            sizes="100vw"
-            className="object-cover object-center md:hidden opacity-50"
-          />
+          {/* Banner photo — framed like a Bayut-style hero card (inset
+              padding, rounded corners, subtle border) instead of bleeding
+              edge-to-edge, so the ambient grid/orbs peek out around it.
+              One fixed image per breakpoint (desktop/mobile) — no
+              theme-based day/night swap. Admin-editable via the Homepage
+              CMS; falls back to the bundled default when unset. */}
+          <div
+            className="absolute overflow-hidden inset-1.5 sm:inset-2.5 md:inset-3 rounded-2xl sm:rounded-3xl"
+            style={{ border: '1px solid rgba(255,255,255,0.18)' }}
+          >
+            <Image
+              src={content.heroBannerDesktopDay || '/banners/home_banner_day.webp'}
+              alt=""
+              fill
+              priority
+              quality={100}
+              sizes="100vw"
+              className="object-cover object-right hidden md:block"
+            />
+            <Image
+              src={content.heroBannerMobileDay || '/banners/home_banner_day_mobile.webp'}
+              alt=""
+              fill
+              priority
+              quality={100}
+              sizes="100vw"
+              className="object-cover object-center md:hidden"
+            />
+          </div>
 
           {/* Soft left-to-right fade so text always sits on a clean surface (theme-aware) */}
           {/* <div
@@ -243,43 +255,49 @@ export default function HomeClient({ content }: { content: HomepageContent }) {
             }}
           /> */}
 
-          {/* Subtle grid */}
+          {/* Subtle grid — masked to the banner photo */}
           <div
-            className="absolute inset-0 opacity-[0.04]"
-            style={{
-              backgroundImage:  'linear-gradient(rgba(49,178,222,0.7) 1px, transparent 1px), linear-gradient(90deg, rgba(49,178,222,0.7) 1px, transparent 1px)',
-              backgroundSize:   '64px 64px',
-            }}
-          />
+            className="absolute overflow-hidden inset-1.5 sm:inset-2.5 md:inset-3 rounded-2xl sm:rounded-3xl pointer-events-none"
+          >
+            <div
+              className="absolute inset-0 opacity-[0.04]"
+              style={{
+                backgroundImage:  'linear-gradient(rgba(203,1,1,0.7) 1px, transparent 1px), linear-gradient(90deg, rgba(203,1,1,0.7) 1px, transparent 1px)',
+                backgroundSize:   '64px 64px',
+              }}
+            />
 
-          {/* Orb — kept clear of the photo subject on the right */}
-          <div
-            className="absolute"
-            style={{
-              bottom: '8%', left: '3%',
-              width: 760, height: 760,
-              borderRadius: '100%',
-              background: 'radial-gradient(circle, rgba(97,187,77,0.5) 0%, transparent 60%)',
-            }}
-          />
+            {/* Color-shade orbs — clipped to the banner photo, drifting slowly
+                and weightlessly across the full frame (no easing "snap",
+                just a long, gentle loop that sweeps edge to edge) */}
+            <motion.div
+              className="absolute"
+              style={{
+                bottom: '8%', left: '3%',
+                width: 760, height: 760,
+                borderRadius: '100%',
+                background: `radial-gradient(circle, ${hexToRgba(content.heroShadeColor1 || '#FD7147', 0.5)} 0%, transparent 60%)`,
+              }}
+              animate={{ x: [0, 340, -160, 0], y: [0, -220, 120, 0] }}
+              transition={{ duration: 26, repeat: Infinity, ease: 'easeInOut' }}
+            />
 
-          {/* Orb — kept clear of the photo subject on the right */}
-          <div
-            className="absolute"
-            style={{
-              bottom: '-18%', right: '0%',
-              width: 960, height: 960,
-              borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(149,228,255,0.5) 0%, transparent 60%)',
-            }}
-          />
-        </motion.div>
+            <motion.div
+              className="absolute"
+              style={{
+                bottom: '-18%', right: '0%',
+                width: 960, height: 960,
+                borderRadius: '50%',
+                background: `radial-gradient(circle, ${hexToRgba(content.heroShadeColor2 || '#CB0101', 0.5)} 0%, transparent 60%)`,
+              }}
+              animate={{ x: [0, -320, 200, 0], y: [0, 200, -140, 0] }}
+              transition={{ duration: 32, repeat: Infinity, ease: 'easeInOut' }}
+            />
+          </div>
+        </div>
 
         {/* Content */}
-        <motion.div
-          className="relative z-10 wrap w-full"
-          style={{ opacity: heroOpacity }}
-        >
+        <div className="relative z-10 wrap w-full">
           {/* Eyebrow */}
           {/* <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -287,8 +305,8 @@ export default function HomeClient({ content }: { content: HomepageContent }) {
             transition={{ duration: 0.6 }}
             className="inline-flex items-center gap-2 mb-8"
             style={{
-              background:  'rgba(49,178,222,0.08)',
-              border:      '1px solid rgba(49,178,222,0.25)',
+              background:  'rgba(203,1,1,0.08)',
+              border:      '1px solid rgba(203,1,1,0.25)',
               borderRadius: 24,
               padding:     '6px 16px',
             }}
@@ -321,20 +339,27 @@ export default function HomeClient({ content }: { content: HomepageContent }) {
           </div>
 
           {/* ─── SEARCH ────────────────────────────────────────── */}
-          <div className="relative z-20 pb-8">
-            <SearchBar />
+          <div className="relative z-20 pb-8 max-w-4xl mx-auto">
+            <SearchBar compact />
           </div>
 
           {/* Subtitle */}
-          <motion.p
+          {/* <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="text-base md:text-lg  mb-10 leading-relaxed text-center"
-            style={{ color: 'var(--text)' }}
+            className="flex justify-center mb-10"
           >
-            {content.heroSubtitle}
-          </motion.p>
+            <p
+              className="text-lg md:text-xl font-semibold leading-snug text-center max-w-2xl px-5 py-3 rounded-2xl text-white"
+              style={{
+                background: 'rgba(203,1,1,0.14)',
+                border: '1px solid rgba(255,255,255,0.22)',
+              }}
+            >
+              {content.heroSubtitle}
+            </p>
+          </motion.div> */}
 
           {/* CTAs */}
           <motion.div
@@ -346,7 +371,12 @@ export default function HomeClient({ content }: { content: HomepageContent }) {
             <Link href="/buyer/properties" className="btn-primary btn-lg" onClick={() => trackCta('hero_explore_properties')}>
               Explore Properties <ArrowRight size={16} />
             </Link>
-            <Link href="/seller/register" className="btn-outline btn-lg backdrop-blur-sm " onClick={() => trackCta('hero_list_property')}>
+            <Link
+              href="/seller/register"
+              className="btn-lg inline-flex items-center justify-center gap-2 font-semibold"
+              style={{ background: 'var(--teal-light)', color: '#ffffff', border: 'none' }}
+              onClick={() => trackCta('hero_list_property')}
+            >
               List Your Property
             </Link>
           </motion.div>
@@ -382,7 +412,7 @@ export default function HomeClient({ content }: { content: HomepageContent }) {
               </div>
             ))}
           </motion.div> */}
-        </motion.div>
+        </div>
 
         {/* Scroll hint */}
         <div
@@ -402,8 +432,57 @@ export default function HomeClient({ content }: { content: HomepageContent }) {
         </div>
       </section>
 
+      {/* ─── SELL YOUR PROPERTY (compact banner) ───────────── */}
+      <section className="pt-10 md:pt-14">
+        <div className="wrap">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <Link
+              href="/seller/register"
+              onClick={() => trackCta('sell_banner')}
+              className="group relative flex items-center gap-5 rounded-2xl md:rounded-3xl p-6 md:p-8 overflow-hidden transition-transform duration-300 hover:-translate-y-0.5"
+              style={{ background: 'var(--grad)' }}
+            >
+              {/* Decorative circle */}
+              <div
+                className="absolute pointer-events-none"
+                style={{ top: -30, right: -30, width: 140, height: 140, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }}
+              />
+
+              <div
+                className="w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center flex-shrink-0 relative z-10"
+                style={{ background: 'rgba(255,255,255,0.18)' }}
+              >
+                <Home size={22} className="text-white" />
+              </div>
+
+              <div className="flex-1 min-w-0 relative z-10">
+                <h3 className="text-white font-bold text-lg md:text-xl mb-1">Sell Your Property</h3>
+                <p className="text-sm md:text-base" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                  Reach thousands of verified buyers — list it in minutes
+                </p>
+              </div>
+
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 relative z-10 transition-transform duration-300 group-hover:translate-x-1"
+                style={{ background: 'rgba(255,255,255,0.18)' }}
+              >
+                <ArrowRight size={18} className="text-white" />
+              </div>
+            </Link>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ─── FEATURED PROJECTS (off-plan) ──────────────────── */}
+      <FeaturedProjectsSection />
+
       {/* ─── STATS STRIP ───────────────────────────────────── */}
-      <section
+      {/* <section
         className="py-10"
         style={{ borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', background: 'var(--bg-alt)' }}
       >
@@ -423,8 +502,8 @@ export default function HomeClient({ content }: { content: HomepageContent }) {
                   <div
                     className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
                     style={{
-                      background: 'rgba(49,178,222,0.08)',
-                      border:     '1px solid rgba(49,178,222,0.18)',
+                      background: 'rgba(203,1,1,0.08)',
+                      border:     '1px solid rgba(203,1,1,0.18)',
                     }}
                   >
                     <Icon size={18} style={{ color: 'var(--teal)' }} />
@@ -438,7 +517,7 @@ export default function HomeClient({ content }: { content: HomepageContent }) {
             })}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* ─── BROWSE AREAS ──────────────────────────────────── */}
       {areaStats === null || areaStats.length > 0 ? (
@@ -546,19 +625,16 @@ export default function HomeClient({ content }: { content: HomepageContent }) {
         </div>
       </section>
 
-      {/* ─── FEATURED PROJECTS (off-plan) ──────────────────── */}
-      <FeaturedProjectsSection />
-
       {/* ─── WHY DISTRESS DEALS ────────────────────────────── */}
       <section className="section relative overflow-hidden">
         {/* Background glows */}
         <div
           className="absolute pointer-events-none"
-          style={{ top: '-8%', right: '-4%', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(49,178,222,0.06) 0%, transparent 70%)' }}
+          style={{ top: '-8%', right: '-4%', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(203,1,1,0.06) 0%, transparent 70%)' }}
         />
         <div
           className="absolute pointer-events-none"
-          style={{ bottom: '-5%', left: '-4%', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(97,187,77,0.06) 0%, transparent 70%)' }}
+          style={{ bottom: '-5%', left: '-4%', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(253,113,71,0.06) 0%, transparent 70%)' }}
         />
 
         <div className="wrap relative z-10">

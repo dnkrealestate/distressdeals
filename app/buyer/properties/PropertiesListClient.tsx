@@ -63,7 +63,7 @@ function TrendingAreasCard() {
       <div className="flex items-center gap-2 mb-4">
         <div
           className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-          style={{ background: 'rgba(49,178,222,0.10)', border: '1px solid rgba(49,178,222,0.20)' }}
+          style={{ background: 'rgba(203,1,1,0.10)', border: '1px solid rgba(203,1,1,0.20)' }}
         >
           <TrendingUp size={15} style={{ color: 'var(--teal)' }} />
         </div>
@@ -80,7 +80,7 @@ function TrendingAreasCard() {
             href={`/buyer/properties?area=${encodeURIComponent(a.name)}`}
             className="flex items-center justify-between py-2.5 px-2 rounded-lg transition-colors group"
             style={{}}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(49,178,222,0.05)' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(203,1,1,0.05)' }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
           >
             <div className="flex items-center gap-2.5">
@@ -126,7 +126,7 @@ function SponsoredCard() {
             href="#"
             className="flex gap-3 p-2.5 rounded-xl transition-colors group"
             style={{ border: '1px solid var(--border)' }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(49,178,222,0.40)' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(203,1,1,0.40)' }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)' }}
           >
             <div
@@ -276,7 +276,7 @@ function SortViewControls({
             className={cn('p-2 transition-colors', v === 'list' && 'hidden sm:inline-flex')}
             title={v === 'map' ? 'Map view' : v === 'list' ? 'List view' : 'Grid view'}
             style={{
-              background: view === v ? 'rgba(49,178,222,0.10)' : 'transparent',
+              background: view === v ? 'rgba(203,1,1,0.10)' : 'transparent',
               color:      view === v ? 'var(--teal)' : 'var(--text-muted)',
             }}
           >
@@ -294,7 +294,7 @@ function EmptyState({ onClear }: { onClear: () => void }) {
     <div className="flex flex-col items-center justify-center py-24 text-center">
       <div
         className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5"
-        style={{ background: 'rgba(49,178,222,0.08)', border: '1px solid rgba(49,178,222,0.20)' }}
+        style={{ background: 'rgba(203,1,1,0.08)', border: '1px solid rgba(203,1,1,0.20)' }}
       >
         <Search size={24} style={{ color: 'var(--teal)' }} />
       </div>
@@ -340,6 +340,10 @@ export default function PropertiesListClient({ forcedListingType }: { forcedList
     area:        searchParams.get('area')        || '',
     community:   searchParams.get('community')   || '',
     bedrooms:    searchParams.get('bedrooms')    || '',
+    category:    (searchParams.get('category') as any) || '',
+    bathrooms:   searchParams.get('bathrooms')   || '',
+    sizeMin:     Number(searchParams.get('sizeMin')) || 0,
+    sizeMax:     Number(searchParams.get('sizeMax')) || 0,
     priceMin:    Number(searchParams.get('priceMin')) || 0,
     priceMax:    Number(searchParams.get('priceMax')) || 0,
     sortBy:      searchParams.get('sortBy')      || 'newest',
@@ -391,6 +395,7 @@ export default function PropertiesListClient({ forcedListingType }: { forcedList
   }, [
     filters.listingType, filters.q, filters.area, filters.community, filters.bedrooms,
     filters.priceMin, filters.priceMax, (filters as any).furnishing, (filters as any).completion,
+    filters.category, filters.bathrooms, filters.sizeMin, filters.sizeMax,
   ])
 
   useEffect(() => { fetchTypeStats() }, [fetchTypeStats])
@@ -429,6 +434,10 @@ export default function PropertiesListClient({ forcedListingType }: { forcedList
       area:        searchParams.get('area')        || '',
       community:   searchParams.get('community')   || '',
       bedrooms:    searchParams.get('bedrooms')    || '',
+      category:    (searchParams.get('category') as any) || '',
+      bathrooms:   searchParams.get('bathrooms')   || '',
+      sizeMin:     Number(searchParams.get('sizeMin')) || 0,
+      sizeMax:     Number(searchParams.get('sizeMax')) || 0,
       priceMin:    Number(searchParams.get('priceMin')) || 0,
       priceMax:    Number(searchParams.get('priceMax')) || 0,
       page: 1,
@@ -462,13 +471,14 @@ export default function PropertiesListClient({ forcedListingType }: { forcedList
 
   const clearFilters = () => {
     setFilters(f => ({
-      ...f, type: '', q: '', area: '', bedrooms: '',
-      priceMin: 0, priceMax: 0, sortBy: 'newest', page: 1,
+      ...f, type: '', q: '', area: '', bedrooms: '', category: '', bathrooms: '',
+      sizeMin: 0, sizeMax: 0, priceMin: 0, priceMax: 0, sortBy: 'newest', page: 1,
     }))
   }
 
   const activeCount = [
     filters.type, filters.area, filters.bedrooms, filters.priceMin,
+    filters.category, filters.bathrooms, filters.sizeMin,
   ].filter(Boolean).length
 
   // Type-count pills stay a single row on every screen size — but instead
@@ -571,11 +581,13 @@ export default function PropertiesListClient({ forcedListingType }: { forcedList
         transition={{ duration: 0.18 }}
         className="sticky top-16 z-30" style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}
       >
-        <div className="wrap py-3 flex items-center justify-between gap-3 flex-wrap">
-          <PropertyFilterBar
-            filters={filters} setFilter={setFilter} clearFilters={clearFilters} activeCount={activeCount}
-            purposeHrefs={{ sale: '/for-sale', rent: '/for-rent' }}
-          />
+        <div className="wrap py-3 flex items-center gap-3 flex-nowrap">
+          <div className="flex-1 min-w-0">
+            <PropertyFilterBar
+              filters={filters} setFilter={setFilter} clearFilters={clearFilters} activeCount={activeCount}
+              purposeHrefs={{ sale: '/for-sale', rent: '/for-rent' }}
+            />
+          </div>
 
           <SortViewControls
             sortBy={filters.sortBy || 'newest'} onSortChange={v => setFilter('sortBy', v)}
@@ -731,7 +743,7 @@ export default function PropertiesListClient({ forcedListingType }: { forcedList
                         className="w-9 h-9 rounded-lg text-sm font-medium border transition-all"
                         style={{
                           borderColor: filters.page === p ? 'var(--teal)' : 'var(--border)',
-                          background:  filters.page === p ? 'rgba(49,178,222,0.10)' : 'transparent',
+                          background:  filters.page === p ? 'rgba(203,1,1,0.10)' : 'transparent',
                           color:       filters.page === p ? 'var(--teal)' : 'var(--text-muted)',
                         }}
                       >

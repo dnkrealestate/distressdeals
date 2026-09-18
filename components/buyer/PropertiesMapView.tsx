@@ -57,7 +57,7 @@ export default function PropertiesMapView({
       const { lat, lng } = p.location.coordinates!
       const icon = L.divIcon({
         className: '',
-        html: `<div style="background:var(--grad,#31B2DE);color:#fff;font-size:11px;font-weight:700;padding:5px 9px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,0.25);white-space:nowrap;transform:translate(-50%,-50%);cursor:pointer;">${formatPrice(p.price)}${rentSuffix(p)}</div>`,
+        html: `<div style="background:var(--grad,#CB0101);color:#fff;font-size:11px;font-weight:700;padding:5px 9px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,0.25);white-space:nowrap;transform:translate(-50%,-50%);cursor:pointer;">${formatPrice(p.price)}${rentSuffix(p)}</div>`,
         iconSize: [0, 0],
       })
       const marker = L.marker([lat, lng], { icon }).addTo(group)

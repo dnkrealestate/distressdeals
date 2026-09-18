@@ -1,6 +1,6 @@
 export type UserRole = 'buyer' | 'seller' | 'agent' | 'admin' | 'super_admin'
 export type PropertyType = 'apartment' | 'villa' | 'townhouse' | 'penthouse' | 'studio' | 'office' | 'retail' | 'warehouse' | 'plot' | 'commercial_villa' | 'other'
-export type PropertyCategory = 'residential' | 'commercial'
+export type PropertyCategory = 'residential' | 'commercial' | 'plot'
 export type ListingType = 'sale' | 'rent'
 export type RentFrequency = 'yearly' | 'monthly'
 export type SellerUrgency = 'this_month' | 'within_2_months' | 'flexible'
@@ -35,16 +35,30 @@ export interface Property {
     // address/additionalAddress/district are agent+admin-only — the API never
     // sends them to buyers/anonymous viewers, so treat them as absent in any
     // buyer-facing view.
-    address?: string; additionalAddress?: string; district?: string
+    address?: string; additionalAddress?: string; district?: string; unitNo?: string
     area?: string; community?: string; city: string; emirate: string
     coordinates?: { lat: number; lng: number }
   }
-  amenities: { bedrooms: number; bathrooms: number; parkingSpaces: number; floorArea: number; balconies: number; floor?: number }
+  amenities: {
+    bedrooms: number; bathrooms: number; parkingSpaces: number; floorArea: number; balconies: number
+    floor?: number; totalFloors?: number; yearBuilt?: number; plotArea?: number
+    view?: string; petPolicy?: string; otherRooms?: string; otherFacilities?: string
+    nearbySchools?: string; nearbyHospitals?: string; nearbyShoppingMalls?: string
+    distanceFromAirport?: number; nearbyPublicTransport?: string; otherNearbyPlaces?: string
+  }
   features: Record<string, boolean>
   furnishing: 'furnished' | 'semi_furnished' | 'unfurnished'
   completion: 'ready' | 'off_plan'
+  expectedCompletionDate?: string
+  offPlanSaleType?: 'primary' | 'resale'
+  ownershipStatus?: 'freehold' | 'leasehold'
+  financingAvailable?: boolean
+  financingInstitutionNames?: string
+  titleAr?: string; descriptionAr?: string
   developer?: string; projectName?: string; permitNumber?: string; permitQrImage?: string
-  images: PropertyImage[]; videos?: string[]; floorPlan?: string; brochure?: string; virtualTour?: string
+  images: PropertyImage[]
+  videos?: { platform: 'youtube' | 'vimeo' | 'dailymotion' | '3d_view'; url: string; title?: string }[]
+  floorPlan?: string; brochure?: string; virtualTour?: string
   seller: User; agent?: User
   // Set once the assigned agent has filled in title/description/area/photos —
   // required before the listing can be approved and published.
@@ -130,6 +144,8 @@ export interface HomepageContent {
   heroBannerDesktopNight?: string
   heroBannerMobileDay?: string
   heroBannerMobileNight?: string
+  heroShadeColor1?: string
+  heroShadeColor2?: string
 }
 
 export interface Project {
@@ -146,6 +162,7 @@ export interface Project {
   floorPlans?: { label: string; image: string; bedrooms?: string; size?: string; price?: number }[]
   masterPlan?: { image: string; description?: string }
   landmarks?: { name: string; category: 'metro' | 'school' | 'mall' | 'landmark' | 'airport'; lat: number; lng: number }[]
+  videos?: { platform: 'youtube' | 'vimeo' | 'dailymotion' | '3d_view'; url: string; title?: string }[]
 }
 
 export interface Developer {
@@ -227,6 +244,7 @@ export interface BuildingContent {
 export interface PropertyFilters {
   q?: string; type?: string; listingType?: string; priceMin?: number; priceMax?: number
   bedrooms?: string; area?: string; community?: string; furnishing?: string; completion?: string
+  category?: 'residential' | 'commercial' | ''; bathrooms?: string; sizeMin?: number; sizeMax?: number
   sortBy?: string; page?: number; limit?: number
 }
 

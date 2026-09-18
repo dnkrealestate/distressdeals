@@ -1,72 +1,106 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import Image from 'next/image'
-import { ArrowRight, Building2, MapPin, CalendarClock } from 'lucide-react'
+import { ArrowRight, ArrowLeft, Building2 } from 'lucide-react'
 import { projectAPI } from '@/lib/api'
-import { formatPrice, cn } from '@/lib/utils'
+import { UAE_EMIRATES } from '@/lib/constants'
+import ProjectCard from '@/components/buyer/ProjectCard'
 import type { Project } from '@/types'
 
-const STATUS_BADGE: Record<string, string> = {
-  upcoming: 'badge-blue', under_construction: 'badge-teal', ready: 'badge-green', sold_out: 'badge-gray',
+const SLIDE_LIMIT = 10
+
+/* ─── EMIRATE PILL — segmented tab, same visual language as the /projects
+   list page's status pills ────────────────────────────────────────── */
+function EmiratePill({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex-shrink-0 whitespace-nowrap px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200"
+      style={{
+        background: active ? 'var(--grad)' : 'transparent',
+        color:      active ? '#fff' : 'var(--text-mid)',
+        border:     active ? 'none' : '1px solid var(--border)',
+        boxShadow:  active ? '0 6px 16px rgba(203,1,1,0.30)' : 'none',
+        cursor: 'pointer',
+      }}
+    >
+      {children}
+    </button>
+  )
 }
 
-function ProjectCard({ project, delay }: { project: Project; delay: number }) {
+function ArrowButton({ direction, disabled, onClick }: { direction: 'left' | 'right'; disabled: boolean; onClick: () => void }) {
+  const Icon = direction === 'left' ? ArrowLeft : ArrowRight
   return (
-    <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay }}>
-      <Link href={`/projects/${project.slug}`}>
-        <div className="card-hover group h-full flex flex-col">
-          <div className="h-44 relative flex items-center justify-center flex-shrink-0 overflow-hidden" style={{ background: 'var(--bg-alt)' }}>
-            {project.coverImage ? (
-              <Image src={project.coverImage} alt={project.title} fill className="object-cover transition-transform duration-500 group-hover:scale-105" sizes="(max-width:768px)100vw,400px" />
-            ) : (
-              <Building2 size={36} style={{ color: 'var(--teal)', opacity: 0.35 }} />
-            )}
-            <span className={cn('badge absolute top-3 left-3 text-[10px] capitalize', STATUS_BADGE[project.status])}>
-              {project.status.replace('_', ' ')}
-            </span>
-          </div>
-          <div className="flex flex-col flex-1 p-5">
-            <p className="text-xs font-medium mb-1" style={{ color: 'var(--teal)' }}>{project.developer}</p>
-            <h3 className="font-semibold text-base mb-2 leading-snug line-clamp-2 transition-colors group-hover:text-[var(--teal)]" style={{ color: 'var(--text)' }}>
-              {project.title}
-            </h3>
-            <p className="text-xs flex items-center gap-1.5 mb-4" style={{ color: 'var(--text-muted)' }}>
-              <MapPin size={11} style={{ color: 'var(--teal)', opacity: 0.6 }} />{project.area}
-            </p>
-            <div className="flex items-center justify-between mt-auto pt-3" style={{ borderTop: '1px solid var(--border-soft)' }}>
-              <div>
-                <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>From</p>
-                <p className="text-sm font-bold grad-text">{formatPrice(project.priceFrom)}</p>
-              </div>
-              {(project.handoverQuarter || project.handoverYear) && (
-                <p className="text-xs flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
-                  <CalendarClock size={11} style={{ color: 'var(--teal)', opacity: 0.6 }} />
-                  {project.handoverQuarter} {project.handoverYear}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      </Link>
-    </motion.div>
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={direction === 'left' ? 'Previous projects' : 'Next projects'}
+      className="hidden md:flex w-10 h-10 rounded-full items-center justify-center flex-shrink-0 transition-all duration-200"
+      style={{
+        background: 'var(--surface)',
+        border: '1px solid var(--border)',
+        color: disabled ? 'var(--text-muted)' : 'var(--teal)',
+        opacity: disabled ? 0.4 : 1,
+        cursor: disabled ? 'default' : 'pointer',
+        boxShadow: '0 6px 16px -6px rgba(15,23,42,0.25)',
+      }}
+    >
+      <Icon size={16} />
+    </button>
   )
 }
 
 export default function FeaturedProjectsSection() {
+  const [emirate, setEmirate] = useState('')
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
+  // Whether ANY project exists site-wide — decides whether the whole
+  // section shows at all (an emirate-specific empty result should just
+  // show an inline message, not hide the tabs).
+  const [hasAnyProjects, setHasAnyProjects] = useState<boolean | null>(null)
+
+  const trackRef = useRef<HTMLDivElement>(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
 
   useEffect(() => {
-    projectAPI.getAll({ featured: 'true', limit: 3 })
-      .then(r => { if (r.data.success) setProjects(r.data.data.data || []) })
+    setLoading(true)
+    projectAPI.getAll({ ...(emirate && { emirate }), limit: SLIDE_LIMIT })
+      .then(r => {
+        if (!r.data.success) return
+        setProjects(r.data.data.data || [])
+        if (hasAnyProjects === null) setHasAnyProjects((r.data.data.total || 0) > 0)
+      })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [emirate])
 
-  if (!loading && projects.length === 0) return null
+  const updateScrollState = () => {
+    const el = trackRef.current
+    if (!el) return
+    setCanScrollLeft(el.scrollLeft > 4)
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
+  }
+
+  // Re-measure once the slides are actually in the DOM (switching emirate
+  // resets scrollLeft to 0, and slide count changes what's scrollable).
+  useEffect(() => {
+    const t = setTimeout(updateScrollState, 50)
+    if (trackRef.current) trackRef.current.scrollTo({ left: 0 })
+    return () => clearTimeout(t)
+  }, [projects])
+
+  const scrollByPage = (dir: 1 | -1) => {
+    const el = trackRef.current
+    if (!el) return
+    el.scrollBy({ left: dir * el.clientWidth * 0.9, behavior: 'smooth' })
+  }
+
+  if (hasAnyProjects === false) return null
 
   return (
     <section className="section">
@@ -75,30 +109,61 @@ export default function FeaturedProjectsSection() {
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="flex items-end justify-between mb-12 flex-wrap gap-4"
+          className="mb-8"
         >
-          <div>
-            <p className="eyebrow mb-3">New Developments</p>
-            <h2 className="heading-lg mb-3">
-              Featured <span className="grad-text">Off-Plan Projects</span>
-            </h2>
-            <p className="muted">Flexible payment plans from Dubai's leading developers</p>
-          </div>
-          <Link href="/projects" className="btn-ghost btn-sm hidden md:flex">
-            View All <ArrowRight size={14} />
-          </Link>
+          <p className="eyebrow mb-3">New Developments</p>
+          <h2 className="heading-lg mb-3">
+            Explore UAE <span className="grad-text">New Projects</span>
+          </h2>
+          <p className="muted">Flexible payment plans from the UAE's leading developers</p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {loading
-            ? Array(3).fill(null).map((_, i) => <div key={i} className="shimmer h-72 rounded-2xl" />)
-            : projects.map((project, i) => <ProjectCard key={project._id} project={project} delay={i * 0.08} />)
-          }
+        {/* Emirate tabs — filter the slider below without leaving the page */}
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide mb-8 pb-1">
+          <EmiratePill active={!emirate} onClick={() => setEmirate('')}>All Emirates</EmiratePill>
+          {UAE_EMIRATES.map(e => (
+            <EmiratePill key={e} active={emirate === e} onClick={() => setEmirate(emirate === e ? '' : e)}>
+              {e}
+            </EmiratePill>
+          ))}
         </div>
 
-        <div className="flex justify-center mt-8 md:hidden">
-          <Link href="/projects" className="btn-ghost btn-sm">
-            View All Projects <ArrowRight size={14} />
+        {loading ? (
+          <div className="flex gap-4 sm:gap-6 overflow-hidden">
+            {Array(3).fill(null).map((_, i) => (
+              <div key={i} className="shimmer h-80 rounded-2xl flex-shrink-0 w-[78vw] max-w-[280px] sm:w-[340px] sm:max-w-none lg:w-[380px]" />
+            ))}
+          </div>
+        ) : projects.length > 0 ? (
+          <div className="flex items-center gap-3">
+            <ArrowButton direction="left" disabled={!canScrollLeft} onClick={() => scrollByPage(-1)} />
+
+            <div
+              ref={trackRef}
+              onScroll={updateScrollState}
+              className="flex gap-4 sm:gap-6 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth flex-1 pb-2"
+            >
+              {projects.map((project, i) => (
+                <div key={project._id} className="flex-shrink-0 snap-start w-[78vw] max-w-[280px] sm:w-[340px] sm:max-w-none lg:w-[380px]">
+                  <ProjectCard project={project} layout="grid" delay={i * 0.06} />
+                </div>
+              ))}
+            </div>
+
+            <ArrowButton direction="right" disabled={!canScrollRight} onClick={() => scrollByPage(1)} />
+          </div>
+        ) : (
+          <div className="text-center py-16">
+            <Building2 size={28} style={{ color: 'var(--text-muted)', opacity: 0.4 }} className="mx-auto mb-3" />
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+              No new projects in {emirate} yet — check back soon.
+            </p>
+          </div>
+        )}
+
+        <div className="flex justify-center mt-10">
+          <Link href={emirate ? `/projects?emirate=${encodeURIComponent(emirate)}` : '/projects'} className="btn-outline gap-1.5">
+            View All {emirate ? `${emirate} ` : ''}Projects <ArrowRight size={14} />
           </Link>
         </div>
       </div>

@@ -147,7 +147,7 @@ export default function AdminUsersPage() {
               key={t.value}
               onClick={() => { setRole(t.value); setPage(1) }}
               className="btn-ghost btn-sm"
-              style={role === t.value ? { color: 'var(--teal)', borderColor: 'rgba(49,178,222,0.40)', background: 'rgba(49,178,222,0.06)' } : undefined}
+              style={role === t.value ? { color: 'var(--teal)', borderColor: 'rgba(203,1,1,0.40)', background: 'rgba(203,1,1,0.06)' } : undefined}
             >
               {t.label}
             </button>

@@ -77,7 +77,7 @@ export default function SellerLeadsPage() {
               key={t.v}
               onClick={() => setStatus(t.v)}
               className="btn-ghost btn-sm"
-              style={status === t.v ? { color: 'var(--teal)', borderColor: 'rgba(49,178,222,0.40)', background: 'rgba(49,178,222,0.06)' } : undefined}
+              style={status === t.v ? { color: 'var(--teal)', borderColor: 'rgba(203,1,1,0.40)', background: 'rgba(203,1,1,0.06)' } : undefined}
             >
               {t.l}
             </button>

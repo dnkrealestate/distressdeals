@@ -40,7 +40,7 @@ function BlogCard({ post, delay }: { post: BlogPost; delay: number }) {
               <>
                 <div
                   className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                  style={{ background: 'linear-gradient(135deg, rgba(49,178,222,0.10), transparent 60%)' }}
+                  style={{ background: 'linear-gradient(135deg, rgba(203,1,1,0.10), transparent 60%)' }}
                 />
                 <Icon size={36} style={{ color: 'var(--teal)', opacity: 0.35 }} />
               </>

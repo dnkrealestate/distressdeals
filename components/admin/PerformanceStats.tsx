@@ -5,7 +5,7 @@ interface CountryStat { country: string; count: number }
 
 function StatTile({ label, value, icon: Icon }: StatDef) {
   return (
-    <div className="rounded-xl p-3" style={{ background: 'rgba(49,178,222,0.06)', border: '1px solid rgba(49,178,222,0.15)' }}>
+    <div className="rounded-xl p-3" style={{ background: 'rgba(203,1,1,0.06)', border: '1px solid rgba(203,1,1,0.15)' }}>
       <div className="flex items-center gap-1.5 mb-1.5">
         <Icon size={13} style={{ color: 'var(--teal)', flexShrink: 0 }} />
         <p className="text-[10px] uppercase tracking-wide truncate" style={{ color: 'var(--text-muted)' }}>{label}</p>

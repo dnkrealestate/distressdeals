@@ -134,7 +134,7 @@ export default async function CommunityDetailPage({ params }: { params: { slug: 
                     const Icon = HOME_ICON_MAP[a.icon]
                     return (
                       <div key={i} className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(49,178,222,0.08)' }}>
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(203,1,1,0.08)' }}>
                           {Icon && <Icon size={15} style={{ color: 'var(--teal)' }} />}
                         </div>
                         <p className="text-xs" style={{ color: 'var(--text-mid)' }}>{a.label}</p>

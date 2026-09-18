@@ -46,7 +46,7 @@ function ToolbarButton({ onClick, title, active, children }: { onClick: () => vo
         width: 30, height: 30,
         border: `1px solid ${active ? 'var(--teal)' : 'var(--border)'}`,
         color: active ? 'var(--teal)' : 'var(--text-mid)',
-        background: active ? 'rgba(49,178,222,0.08)' : 'var(--surface)',
+        background: active ? 'rgba(203,1,1,0.08)' : 'var(--surface)',
       }}
     >
       {children}

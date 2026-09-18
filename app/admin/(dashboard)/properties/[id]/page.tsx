@@ -4,23 +4,28 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft, Pencil, CheckCircle2, XCircle, Handshake, RotateCcw, Trash2,
-  MessageSquare, Send, Loader2, ExternalLink, Building2, MapPin,
+  MessageSquare, Send, Loader2, ExternalLink, Building2, MapPin, Video,
   Eye, MessageCircleHeart, TrendingUp, Heart, CalendarClock, Share2,
 } from 'lucide-react'
 import { propertyAPI, agentAPI, chatAPI } from '@/lib/api'
 import { formatPrice, formatDate, propertyStatusColor, cn, rentSuffix } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
 import { PerformanceStats } from '@/components/admin/PerformanceStats'
+import { AMENITY_META, AMENITY_GROUPS } from '@/lib/amenities'
 import type { Property, Agent } from '@/types'
 import toast from 'react-hot-toast'
 
-const FEATURE_LABELS: Record<string, string> = {
-  pool: 'Swimming Pool', gym: 'Gym', concierge: 'Concierge', security24h: '24h Security',
-  smartHome: 'Smart Home', centralAC: 'Central A/C', builtInWardrobes: 'Built-in Wardrobes',
-  coveredParking: 'Covered Parking', maidRoom: 'Maid Room', studyRoom: 'Study Room',
-  jacuzzi: 'Jacuzzi', bbqArea: 'BBQ Area', petsAllowed: 'Pets Allowed', childrenPlay: "Children's Play",
-  viewSea: 'Sea View', viewGolf: 'Golf View', viewBurjKhalifa: 'Burj Khalifa View',
-}
+const NEARBY_FIELDS: { key: keyof Property['amenities']; l: string }[] = [
+  { key: 'view',                  l: 'View' },
+  { key: 'petPolicy',             l: 'Pet Policy' },
+  { key: 'otherRooms',            l: 'Other Rooms' },
+  { key: 'otherFacilities',       l: 'Other Facilities' },
+  { key: 'nearbySchools',         l: 'Nearby Schools' },
+  { key: 'nearbyHospitals',       l: 'Nearby Hospitals' },
+  { key: 'nearbyShoppingMalls',   l: 'Nearby Shopping Malls' },
+  { key: 'nearbyPublicTransport', l: 'Nearby Public Transport' },
+  { key: 'otherNearbyPlaces',     l: 'Other Nearby Places' },
+]
 
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -244,8 +249,16 @@ export default function AdminPropertyDetailPage() {
               </div>
               <p className="text-2xl font-bold grad-text">{formatPrice(property.price)}{rentSuffix(property)}</p>
             </div>
+            {property.titleAr && (
+              <p dir="rtl" className="text-sm font-medium mb-3" style={{ color: 'var(--text-mid)' }}>{property.titleAr}</p>
+            )}
             <div className="text-sm leading-relaxed rich-content" style={{ color: 'var(--text-mid)' }}
               dangerouslySetInnerHTML={{ __html: property.description }} />
+            {property.descriptionAr && (
+              <div dir="rtl" className="text-sm leading-relaxed mt-4 pt-4" style={{ color: 'var(--text-mid)', borderTop: '1px solid var(--border-soft)' }}>
+                {property.descriptionAr}
+              </div>
+            )}
           </Section>
 
           <Section title="Performance">
@@ -272,9 +285,21 @@ export default function AdminPropertyDetailPage() {
               <Field label="Listing" value={property.listingType === 'rent' ? `For Rent${property.rentFrequency ? ` (${property.rentFrequency})` : ''}` : 'For Sale'} />
               <Field label="Furnishing" value={<span className="capitalize">{property.furnishing?.replace('_', ' ')}</span>} />
               <Field label="Completion" value={<span className="capitalize">{property.completion?.replace('_', ' ')}</span>} />
+              {property.completion === 'off_plan' && (
+                <>
+                  <Field label="Off-Plan Sale Type" value={<span className="capitalize">{property.offPlanSaleType?.replace('_', ' ')}</span>} />
+                  <Field label="Expected Completion" value={property.expectedCompletionDate ? new Date(property.expectedCompletionDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : undefined} />
+                </>
+              )}
+              <Field label="Ownership Status" value={<span className="capitalize">{property.ownershipStatus || '—'}</span>} />
+              <Field label="Financing Available" value={property.financingAvailable ? 'Yes' : 'No'} />
+              {property.financingAvailable && (
+                <Field label="Financing Institutions" value={property.financingInstitutionNames} />
+              )}
               <Field label="Urgency (staff only)" value={<span className="capitalize">{property.urgency?.replace(/_/g, ' ') || '—'}</span>} />
               <Field label="Developer" value={property.developer} />
               <Field label="Project Name" value={property.projectName} />
+              <Field label="Permit Number" value={property.permitNumber} />
             </div>
           </Section>
 
@@ -291,6 +316,7 @@ export default function AdminPropertyDetailPage() {
           <Section title="Location (staff only)">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div><p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Street / Landmark</p><p style={{ color: 'var(--text)' }}>{property.location?.address || '—'}</p></div>
+              <div><p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Unit No.</p><p style={{ color: 'var(--text)' }}>{property.location?.unitNo || '—'}</p></div>
               <div><p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>District</p><p style={{ color: 'var(--text)' }}>{property.location?.district || '—'}</p></div>
               <div className="sm:col-span-2"><p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Additional Address</p><p style={{ color: 'var(--text)' }}>{property.location?.additionalAddress || '—'}</p></div>
             </div>
@@ -303,21 +329,53 @@ export default function AdminPropertyDetailPage() {
               <Field label="Parking Spaces" value={property.amenities?.parkingSpaces} />
               <Field label="Balconies" value={property.amenities?.balconies} />
               <Field label="Floor Area" value={property.amenities?.floorArea ? `${property.amenities.floorArea} sqft` : undefined} />
-              <Field label="Plot Area" value={(property.amenities as any)?.plotArea ? `${(property.amenities as any).plotArea} sqft` : undefined} />
-              <Field label="Floor #" value={(property.amenities as any)?.floor} />
-              <Field label="Total Floors" value={(property.amenities as any)?.totalFloors} />
-              <Field label="Year Built" value={(property.amenities as any)?.yearBuilt} />
+              <Field label="Plot Area / Land Area" value={property.amenities?.plotArea ? `${property.amenities.plotArea} sqft` : undefined} />
+              <Field label="Floor #" value={property.amenities?.floor} />
+              <Field label="Total Floors" value={property.amenities?.totalFloors} />
+              <Field label="Year Built" value={property.amenities?.yearBuilt} />
+              {NEARBY_FIELDS.map(({ key, l }) => (
+                <Field key={key} label={l} value={property.amenities?.[key] as any} />
+              ))}
+              <Field label="Distance From Airport" value={property.amenities?.distanceFromAirport ? `${property.amenities.distanceFromAirport} km` : undefined} />
             </div>
           </Section>
 
           <Section title="Features">
             {property.features && Object.values(property.features).some(Boolean) ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                {Object.entries(property.features).filter(([, v]) => v).map(([key]) => (
-                  <span key={key} className="badge badge-teal text-xs justify-start px-3 py-2">
-                    {FEATURE_LABELS[key] || key}
-                  </span>
-                ))}
+              <div className="space-y-5">
+                {AMENITY_GROUPS.map(group => {
+                  const active = group.keys.filter(k => property.features[k])
+                  if (active.length === 0) return null
+                  return (
+                    <div key={group.title}>
+                      <p className="text-xs font-semibold uppercase tracking-wider mb-2.5" style={{ color: 'var(--text-muted)' }}>{group.title}</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                        {active.map(key => (
+                          <span key={key} className="badge badge-teal text-xs justify-start px-3 py-2">
+                            {AMENITY_META[key]?.label || key}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+                {(() => {
+                  const grouped = new Set(AMENITY_GROUPS.flatMap(g => g.keys))
+                  const other = Object.entries(property.features).filter(([k, v]) => v && !grouped.has(k))
+                  if (other.length === 0) return null
+                  return (
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider mb-2.5" style={{ color: 'var(--text-muted)' }}>Other</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                        {other.map(([key]) => (
+                          <span key={key} className="badge badge-teal text-xs justify-start px-3 py-2">
+                            {AMENITY_META[key]?.label || key}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
             ) : (
               <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No features set yet.</p>
@@ -331,6 +389,23 @@ export default function AdminPropertyDetailPage() {
                   <div key={i} className="aspect-square rounded-xl overflow-hidden" style={{ background: 'var(--bg-alt)' }}>
                     <img src={img.url} alt="" className="w-full h-full object-cover" />
                   </div>
+                ))}
+              </div>
+            </Section>
+          )}
+
+          {(property.videos?.length || 0) > 0 && (
+            <Section title="Videos">
+              <div className="space-y-2">
+                {property.videos!.map((v, i) => (
+                  <a key={i} href={v.url} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-3 p-3 rounded-xl transition-colors hover:opacity-80" style={{ background: 'var(--bg-alt)' }}>
+                    <Video size={15} style={{ color: 'var(--teal)', flexShrink: 0 }} />
+                    <div className="min-w-0">
+                      <p className="text-sm truncate" style={{ color: 'var(--text)' }}>{v.title || v.url}</p>
+                      <p className="text-xs capitalize" style={{ color: 'var(--text-muted)' }}>{v.platform.replace('_', ' ')}</p>
+                    </div>
+                  </a>
                 ))}
               </div>
             </Section>

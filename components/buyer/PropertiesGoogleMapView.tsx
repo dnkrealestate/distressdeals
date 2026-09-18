@@ -39,7 +39,7 @@ function createPriceOverlay(g: any, map: any, position: any, label: string, onCl
       Object.assign(div.style, {
         position: 'absolute',
         transform: 'translate(-50%, -50%)',
-        background: 'var(--grad, #31B2DE)',
+        background: 'var(--grad, #CB0101)',
         color: '#fff',
         fontSize: '11px',
         fontWeight: '700',
