@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import { ArrowLeft, Pencil, Eye, TrendingUp, Heart, Building2, MapPin, BarChart3, Clock, MessageSquare, Loader2 } from 'lucide-react'
 import { propertyAPI, leadAPI, chatAPI } from '@/lib/api'
 import { formatPrice, formatDate, propertyStatusColor, cn, rentSuffix } from '@/lib/utils'
+import RentalAvailabilityCard from '@/components/shared/RentalAvailabilityCard'
 import type { Property, Lead } from '@/types'
 import toast from 'react-hot-toast'
 
@@ -152,6 +153,11 @@ export default function ListingDetailPage() {
           <div className="text-sm leading-relaxed rich-content" style={{ color: 'var(--text-mid)' }}
             dangerouslySetInnerHTML={{ __html: property.description }} />
         </div>
+
+        {/* Rental availability — quick update, rent listings only */}
+        {property.listingType === 'rent' && (
+          <RentalAvailabilityCard key={`${property.rentalStatus}-${property.availableFrom}`} property={property} onUpdated={setProperty} />
+        )}
 
         {/* Details */}
         <div className="card p-6 mb-6">

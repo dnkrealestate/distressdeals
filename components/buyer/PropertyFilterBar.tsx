@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { PropertyFilters } from '@/types'
+import { AVAILABILITY_FILTERS, AVAILABLE_WITHIN } from '@/lib/rental'
 
 /* ─── Shared data — property list pages + the map-search page all filter
    against the same vocabulary, so it lives here once instead of being
@@ -230,6 +231,8 @@ export function PropertyFilterBar({
   const purposeLabel = filters.listingType === 'rent' ? 'Rent' : filters.listingType === 'sale' ? 'Buy' : 'Buy / Rent'
   const category = (filters as any).category || ''
   const isCommercial = category === 'commercial'
+  const isRent = filters.listingType === 'rent'
+  const f = filters as any
   const typeOptions =
     category === 'commercial'  ? [{ v: '', l: 'All Types', icon: LayoutGrid }, ...COMMERCIAL_TYPES]  :
     category === 'residential' ? [{ v: '', l: 'All Types', icon: LayoutGrid }, ...RESIDENTIAL_TYPES] :
@@ -370,18 +373,39 @@ export function PropertyFilterBar({
           )}
         </FilterDropdown>
 
-        {/* More filters — Completion + Furnishing */}
-        <FilterDropdown label="More Filters" icon={SlidersHorizontal} active={!!(filters as any).completion || !!(filters as any).furnishing} widthClass="w-64" align="right">
+        {/* More filters — Completion (sale) or Rental availability (rent), plus Furnishing */}
+        <FilterDropdown label="More Filters" icon={SlidersHorizontal} active={!!f.completion || !!f.furnishing || !!f.rentalStatus || !!f.availableWithin} widthClass="w-64" align="right">
           {close => (
             <div className="space-y-4">
-              <div>
-                <p className="text-[10px] uppercase tracking-widest mb-2 font-semibold" style={{ color: 'var(--text-muted)' }}>Completion</p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {[{ v: '', l: 'All' }, { v: 'ready', l: 'Ready' }, { v: 'off_plan', l: 'Off-Plan' }].map(o => (
-                    <Pill key={o.v} active={(filters as any).completion === o.v} onClick={() => setFilter('completion' as any, o.v)} className="py-1.5">{o.l}</Pill>
-                  ))}
+              {isRent ? (
+                <>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest mb-2 font-semibold" style={{ color: 'var(--text-muted)' }}>Rental availability</p>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {AVAILABILITY_FILTERS.map(o => (
+                        <Pill key={o.v} active={(f.rentalStatus || '') === o.v} onClick={() => setFilter('rentalStatus' as any, o.v)} className="py-1.5">{o.l}</Pill>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest mb-2 font-semibold" style={{ color: 'var(--text-muted)' }}>Move in</p>
+                    <div className="flex flex-col gap-1.5">
+                      {AVAILABLE_WITHIN.map(o => (
+                        <Pill key={o.v} active={Number(f.availableWithin || 0) === o.v} onClick={() => setFilter('availableWithin' as any, o.v || '')} className="py-1.5 px-3 text-left">{o.l}</Pill>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest mb-2 font-semibold" style={{ color: 'var(--text-muted)' }}>Completion</p>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {[{ v: '', l: 'All' }, { v: 'ready', l: 'Ready' }, { v: 'off_plan', l: 'Off-Plan' }].map(o => (
+                      <Pill key={o.v} active={f.completion === o.v} onClick={() => setFilter('completion' as any, o.v)} className="py-1.5">{o.l}</Pill>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
               <div>
                 <p className="text-[10px] uppercase tracking-widest mb-2 font-semibold" style={{ color: 'var(--text-muted)' }}>Furnishing</p>
                 <div className="flex flex-col gap-1.5">

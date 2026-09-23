@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Search, ChevronRight, MapPin, Building2, Globe2, ChevronDown, X, LayoutList, Grid3X3, TrendingUp, Sparkles } from 'lucide-react'
+import { Search, ChevronRight, MapPin, Building2, Globe2, ChevronDown, X, LayoutList, Grid3X3, TrendingUp, Sparkles, CalendarClock, Wallet, Home } from 'lucide-react'
 
 import Navbar from '@/components/layouts/Navbar'
 import Footer from '@/components/layouts/Footer'
@@ -21,6 +21,49 @@ const STATUSES: { value: Project['status'] | ''; label: string }[] = [
   { value: 'ready',              label: 'Ready' },
   { value: 'sold_out',           label: 'Sold Out' },
 ]
+
+// New Projects filters beyond status/area/developer: when it's handed over, the delivery quarter,
+// a starting-price budget and the unit type. Handover keys encode the backend param:
+//   y2027 → handoverYear=2027 · min2030 → handoverYearMin=2030 · max2027 → handoverYearMax=2027
+const CURRENT_YEAR = new Date().getFullYear()
+const HANDOVER_CHOICES: { k: string; l: string }[] = [
+  { k: '', l: 'Any handover' },
+  { k: `max${CURRENT_YEAR}`, l: `This year (${CURRENT_YEAR})` },
+  { k: `max${CURRENT_YEAR + 1}`, l: `By ${CURRENT_YEAR + 1}` },
+  { k: `max${CURRENT_YEAR + 2}`, l: `By ${CURRENT_YEAR + 2}` },
+  ...[0, 1, 2, 3].map(i => ({ k: `y${CURRENT_YEAR + i}`, l: `${CURRENT_YEAR + i} only` })),
+  { k: `min${CURRENT_YEAR + 4}`, l: `${CURRENT_YEAR + 4} & beyond` },
+]
+const QUARTERS = ['Q1', 'Q2', 'Q3', 'Q4']
+const PRICE_CHOICES = [
+  { l: 'Any price', min: 0,       max: 0        },
+  { l: 'Under 1M',  min: 0,       max: 1000000  },
+  { l: '1M – 2M',   min: 1000000, max: 2000000  },
+  { l: '2M – 5M',   min: 2000000, max: 5000000  },
+  { l: '5M – 10M',  min: 5000000, max: 10000000 },
+  { l: '10M +',     min: 10000000, max: 0       },
+]
+const TYPE_CHOICES = [
+  { v: 'apartment', l: 'Apartments' }, { v: 'villa', l: 'Villas' }, { v: 'townhouse', l: 'Townhouses' },
+  { v: 'penthouse', l: 'Penthouses' }, { v: 'studio', l: 'Studios' },
+]
+function handoverParams(k: string) {
+  const m = /^(y|min|max)(\d{4})$/.exec(k)
+  if (!m) return {}
+  return { [m[1] === 'y' ? 'handoverYear' : m[1] === 'min' ? 'handoverYearMin' : 'handoverYearMax']: Number(m[2]) }
+}
+// Label for a handover key that came from a link (e.g. the homepage search) but isn't one of the preset choices.
+function handoverKeyLabel(k: string) {
+  const m = /^(y|min|max)(\d{4})$/.exec(k)
+  if (!m) return k
+  return m[1] === 'y' ? `${m[2]} only` : m[1] === 'min' ? `${m[2]} & beyond` : `By ${m[2]}`
+}
+function handoverKeyFromUrl(sp: URLSearchParams) {
+  if (sp.get('handoverYear')) return `y${sp.get('handoverYear')}`
+  if (sp.get('handoverYearMin')) return `min${sp.get('handoverYearMin')}`
+  if (sp.get('handoverYearMax')) return `max${sp.get('handoverYearMax')}`
+  return ''
+}
 
 interface DeveloperStat { developer: string; count: number; slug: string }
 
@@ -139,11 +182,17 @@ function StatusPill({ active, onClick, children }: { active: boolean; onClick: (
 export default function ProjectsListClient() {
   const searchParams = useSearchParams()
   const [filters, setFilters] = useState({
-    q: '', area: '', developer: '', status: '' as Project['status'] | '',
+    q: searchParams.get('q') || '', area: searchParams.get('area') || '', developer: '',
+    status: (searchParams.get('status') || '') as Project['status'] | '',
     emirate: searchParams.get('emirate') || '',
+    type: searchParams.get('type') || '',
+    priceMin: Number(searchParams.get('priceMin')) || 0,
+    priceMax: Number(searchParams.get('priceMax')) || 0,
+    handover: handoverKeyFromUrl(searchParams),
+    quarter: /^Q[1-4]$/.test(searchParams.get('handoverQuarter') || '') ? (searchParams.get('handoverQuarter') as string) : '',
     page: 1,
   })
-  const [query,   setQuery]   = useState('')
+  const [query,   setQuery]   = useState(searchParams.get('q') || '')
   // Bayut-style horizontal list rows by default — grid is the compact
   // alternative, same relationship as the property list pages.
   const [view, setView] = useState<'list' | 'grid'>('list')
@@ -175,18 +224,26 @@ export default function ProjectsListClient() {
 
   const setFilter = (key: keyof typeof filters, val: any) => setFilters(f => ({ ...f, [key]: val, page: key === 'page' ? val : 1 }))
 
+  // Everything but status/page — shared by the list and the status counts so they always agree.
+  const searchParamsFor = useCallback(() => ({
+    q: filters.q || undefined, area: filters.area || undefined,
+    developer: filters.developer || undefined, emirate: filters.emirate || undefined,
+    type: filters.type || undefined,
+    priceMin: filters.priceMin || undefined, priceMax: filters.priceMax || undefined,
+    ...handoverParams(filters.handover),
+    handoverQuarter: filters.quarter || undefined,
+  }), [filters.q, filters.area, filters.developer, filters.emirate, filters.type, filters.priceMin, filters.priceMax, filters.handover, filters.quarter])
+
   const fetchProjects = useCallback(() => {
     setLoading(true)
     projectAPI.getAll({
-      q: filters.q || undefined, area: filters.area || undefined,
-      developer: filters.developer || undefined, status: filters.status || undefined,
-      emirate: filters.emirate || undefined,
+      ...searchParamsFor(), status: filters.status || undefined,
       page: filters.page, limit,
     })
       .then(r => { if (r.data.success) { setProjects(r.data.data.data || []); setTotal(r.data.data.total || 0); setTotalPages(r.data.data.totalPages || 1) } })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [filters])
+  }, [filters.status, filters.page, searchParamsFor])
 
   useEffect(() => { fetchProjects() }, [fetchProjects])
 
@@ -194,12 +251,13 @@ export default function ProjectsListClient() {
   // property-type counts row on /for-sale — each pill shows what picking
   // THAT status would return from the current search, not just the active one.
   useEffect(() => {
-    projectAPI.getStatusStats({ q: filters.q || undefined, area: filters.area || undefined, developer: filters.developer || undefined, emirate: filters.emirate || undefined })
+    projectAPI.getStatusStats(searchParamsFor())
       .then(r => { if (r.data.success) { setStatusStats(r.data.data.stats); setStatusStatsTotal(r.data.data.total) } })
       .catch(() => {})
-  }, [filters.q, filters.area, filters.developer, filters.emirate])
+  }, [searchParamsFor])
 
-  const activeFilterCount = [filters.area, filters.developer, filters.status, filters.emirate].filter(Boolean).length
+  const activeFilterCount = [filters.area, filters.developer, filters.status, filters.emirate, filters.type, filters.priceMin, filters.priceMax, filters.handover, filters.quarter].filter(Boolean).length
+  const clearAll = () => setFilters(f => ({ ...f, area: '', developer: '', status: '', emirate: '', type: '', priceMin: 0, priceMax: 0, handover: '', quarter: '' }))
 
   return (
     <div className="page overflow-x-hidden">
@@ -333,13 +391,71 @@ export default function ProjectsListClient() {
 
               {activeFilterCount > 0 && (
                 <button
-                  onClick={() => setFilters(f => ({ ...f, area: '', developer: '', status: '', emirate: '' }))}
+                  onClick={clearAll}
                   className="text-xs px-1"
                   style={{ color: 'var(--text-muted)' }}
                 >
                   Clear
                 </button>
               )}
+            </div>
+          </div>
+
+          {/* Handover + budget + type — what off-plan buyers actually decide on */}
+          <div className="flex flex-wrap items-center gap-2.5 mt-3 pt-3" style={{ borderTop: '1px solid var(--border-soft)' }}>
+            <div className="relative">
+              <CalendarClock size={13} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--teal)', pointerEvents: 'none' }} />
+              <select
+                value={filters.handover}
+                onChange={e => setFilter('handover', e.target.value)}
+                aria-label="Handover year"
+                className="select-field h-10 pl-8 pr-8 text-xs rounded-xl"
+                style={{ color: filters.handover ? 'var(--text)' : 'var(--text-muted)' }}
+              >
+                {HANDOVER_CHOICES.map(h => <option key={h.k} value={h.k}>{h.l}</option>)}
+                {filters.handover && !HANDOVER_CHOICES.some(h => h.k === filters.handover) && (
+                  <option value={filters.handover}>{handoverKeyLabel(filters.handover)}</option>
+                )}
+              </select>
+              <ChevronDown size={11} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+            </div>
+
+            <div className="flex items-center gap-1" role="group" aria-label="Handover quarter">
+              {QUARTERS.map(q => (
+                <StatusPill key={q} active={filters.quarter === q} onClick={() => setFilter('quarter', filters.quarter === q ? '' : q)}>{q}</StatusPill>
+              ))}
+            </div>
+
+            <div className="relative">
+              <Wallet size={13} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--teal)', pointerEvents: 'none' }} />
+              <select
+                value={`${filters.priceMin}-${filters.priceMax}`}
+                onChange={e => { const [a, b] = e.target.value.split('-').map(Number); setFilters(f => ({ ...f, priceMin: a, priceMax: b, page: 1 })) }}
+                aria-label="Starting price"
+                className="select-field h-10 pl-8 pr-8 text-xs rounded-xl"
+                style={{ color: filters.priceMin || filters.priceMax ? 'var(--text)' : 'var(--text-muted)' }}
+              >
+                {PRICE_CHOICES.map(pc => <option key={pc.l} value={`${pc.min}-${pc.max}`}>{pc.min || pc.max ? `AED ${pc.l}` : pc.l}</option>)}
+                {!PRICE_CHOICES.some(pc => pc.min === filters.priceMin && pc.max === filters.priceMax) && (
+                  <option value={`${filters.priceMin}-${filters.priceMax}`}>Custom range</option>
+                )}
+              </select>
+              <ChevronDown size={11} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+            </div>
+
+            <div className="relative">
+              <Home size={13} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--teal)', pointerEvents: 'none' }} />
+              <select
+                value={filters.type}
+                onChange={e => setFilter('type', e.target.value)}
+                aria-label="Unit type"
+                className="select-field h-10 pl-8 pr-8 text-xs rounded-xl"
+                style={{ color: filters.type ? 'var(--text)' : 'var(--text-muted)' }}
+              >
+                <option value="">Any type</option>
+                {TYPE_CHOICES.map(t => <option key={t.v} value={t.v}>{t.l}</option>)}
+              </select>
+              <ChevronDown size={11} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
             </div>
           </div>
         </div>
@@ -394,7 +510,7 @@ export default function ProjectsListClient() {
                 <h3 className="font-semibold text-lg mb-2" style={{ color: 'var(--text)' }}>No projects found</h3>
                 <p className="muted mb-6 max-w-xs">Try a different area, developer, or status.</p>
                 <button
-                  onClick={() => { setQuery(''); setFilters({ q: '', area: '', developer: '', status: '', emirate: '', page: 1 }) }}
+                  onClick={() => { setQuery(''); setFilters({ q: '', area: '', developer: '', status: '', emirate: '', type: '', priceMin: 0, priceMax: 0, handover: '', quarter: '', page: 1 }) }}
                   className="btn-primary btn-sm"
                 >
                   Clear Filters

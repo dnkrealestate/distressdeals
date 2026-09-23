@@ -10,6 +10,9 @@ import {
   DollarSign, Sparkles, Camera, UploadCloud, X,
 } from 'lucide-react'
 import { propertyAPI } from '@/lib/api'
+import RentalAvailabilityFields from '@/components/shared/RentalAvailabilityFields'
+import { toDateInput, rentalStatusOf } from '@/lib/rental'
+import type { RentalStatus } from '@/types'
 import { formatPrice } from '@/lib/utils'
 import { UAE_EMIRATES } from '@/lib/constants'
 import { AMENITY_GROUPS, AMENITY_META } from '@/lib/amenities'
@@ -167,6 +170,10 @@ export default function SellerListingForm({ property, onSuccess }: { property?: 
   const [completion, setCompletion] = useState<string>(property?.completion || 'ready')
   const [urgency, setUrgency] = useState<string>(property?.urgency || 'flexible')
   const [rentFrequency, setRentFrequency] = useState<string>(property?.rentFrequency || 'yearly')
+  const [rentalStatus, setRentalStatus] = useState<RentalStatus>((property && rentalStatusOf(property)) || 'available_now')
+  const [availableFrom, setAvailableFrom] = useState<string>(toDateInput(property?.availableFrom))
+  const [availableFromError, setAvailableFromError] = useState(false)
+  const rentNeedsDate = listingType === 'rent' && rentalStatus !== 'available_now' && !availableFrom
   const [bedroomsError, setBedroomsError] = useState(false)
   const [missingFields, setMissingFields] = useState<{ key: string; label: string; step: number }[]>([])
   const [amenities, setAmenities] = useState<Record<string, boolean>>(property?.features || {})
@@ -283,6 +290,10 @@ export default function SellerListingForm({ property, onSuccess }: { property?: 
       setBedroomsError(true)
       missing.push({ key: 'bedrooms', label: 'Bedrooms', step: 1 })
     }
+    if (rentNeedsDate) {
+      setAvailableFromError(true)
+      missing.push({ key: 'availableFrom', label: 'Available-from date', step: 1 })
+    }
     missing.sort((a, b) => a.step - b.step)
     setMissingFields(missing)
     if (missing.length > 0) {
@@ -299,13 +310,25 @@ export default function SellerListingForm({ property, onSuccess }: { property?: 
       toast.error('Please complete: Bedrooms')
       return
     }
+    if (rentNeedsDate) {
+      setAvailableFromError(true)
+      setMissingFields([{ key: 'availableFrom', label: 'Available-from date', step: 1 }])
+      setStep(1)
+      toast.error('Please complete: Available-from date')
+      return
+    }
     setBedroomsError(false)
+    setAvailableFromError(false)
     setMissingFields([])
     setSubmitting(true)
     const payload = {
       category, type, listingType, price: Number(data.price),
       furnishing, completion, urgency,
-      ...(listingType === 'rent' && { rentFrequency }),
+      ...(listingType === 'rent' && {
+        rentFrequency,
+        rentalStatus,
+        ...(rentalStatus !== 'available_now' && availableFrom && { availableFrom }),
+      }),
       ...(category === 'residential' && { bedrooms: Number(bedrooms) }),
       ...(data.floorArea !== undefined && data.floorArea !== null && data.floorArea !== ('' as any) && { floorArea: Number(data.floorArea) }),
       features: amenities,
@@ -518,6 +541,17 @@ export default function SellerListingForm({ property, onSuccess }: { property?: 
             {listingType === 'rent' && (
               <Field label="Rent Frequency">
                 <TabGroup options={RENT_FREQUENCY} value={rentFrequency} onChange={setRentFrequency} />
+              </Field>
+            )}
+            {listingType === 'rent' && (
+              <Field label="Rental Availability">
+                <RentalAvailabilityFields
+                  status={rentalStatus}
+                  date={availableFrom}
+                  onStatus={v => { setRentalStatus(v); setAvailableFromError(false) }}
+                  onDate={v => { setAvailableFrom(v); setAvailableFromError(false) }}
+                  showError={availableFromError}
+                />
               </Field>
             )}
             <Field label={listingType === 'rent' ? `Expected Rent (AED Per ${rentFrequency === 'monthly' ? 'Month' : 'Year'}) *` : 'Expected Price (AED) *'}>

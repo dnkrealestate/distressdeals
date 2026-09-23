@@ -13,6 +13,8 @@ const CTA_LABELS: Record<string, string> = {
   cta_get_started:          'Bottom Banner — Get Started Free',
   cta_talk_to_expert:       'Bottom Banner — Talk to an Expert',
   mortgage_get_preapproved: 'Mortgage — Get Pre-Approved',
+  hero_map_search:          'Hero — Map Search button',
+  map_banner:               'Explore on the Map banner',
 }
 
 interface HomepageAnalytics { views: number; ctaClicks: Record<string, number> }

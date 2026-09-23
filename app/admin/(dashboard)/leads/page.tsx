@@ -14,6 +14,7 @@ import { formatDate, formatPrice, cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
 import type { Lead, Agent, Task as TaskT } from '@/types'
 import toast from 'react-hot-toast'
+import BuyerProfilePanel from '@/components/admin/BuyerProfilePanel'
 
 const STAGES = [
   { value: 'new',           label: 'New',         color: '#60A5FA' },
@@ -549,6 +550,10 @@ function LeadDetailDrawer({
                   </button>
                 </div>
               </div>
+
+              {(lead.buyer as any)?._id && (
+                <BuyerProfilePanel buyerId={(lead.buyer as any)._id} agents={agents as any} isAdmin={isAdmin} />
+              )}
 
               <div>
                 <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text)' }}>Timeline</p>

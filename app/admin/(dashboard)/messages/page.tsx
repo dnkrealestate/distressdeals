@@ -1,11 +1,15 @@
 'use client'
 import { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { MessageSquare, Send, User, Eye, Search, ArrowLeft, Home, Users, AlertCircle } from 'lucide-react'
+import { MessageSquare, Eye, Search, ArrowLeft, Home, Users, AlertCircle } from 'lucide-react'
 import { chatAPI } from '@/lib/api'
 import { getSocket } from '@/lib/socket'
 import { useAuthStore } from '@/store/authStore'
-import { cn, timeAgo, formatDateTime } from '@/lib/utils'
+import { cn } from '@/lib/utils'
+import { previewOf } from '@/lib/chat'
+import { usePresence, useChatThread } from '@/components/chat/useChat'
+import ChatComposer from '@/components/chat/ChatComposer'
+import { DayDivider, MessageBubble, OnlineDot, PresenceLine, StatusTicks, TypingBubble } from '@/components/chat/ChatParts'
 import type { ChatRoom, ChatMessage, User as UserT } from '@/types'
 import toast from 'react-hot-toast'
 
@@ -69,7 +73,7 @@ function roleLabel(room: ChatRoom | undefined, person?: UserT): string {
 
 interface SellerGroup { sellerId: string; seller?: UserT; rooms: ChatRoom[]; unreadCount: number; lastActivity: string }
 
-function SellerListItem({ group, active, onClick }: { group: SellerGroup; active: boolean; onClick: () => void }) {
+function SellerListItem({ group, active, onClick, isOnline }: { group: SellerGroup; active: boolean; onClick: () => void; isOnline: (id?: string) => boolean }) {
   const mostRecent = group.rooms[0]
   return (
     <button
@@ -77,8 +81,11 @@ function SellerListItem({ group, active, onClick }: { group: SellerGroup; active
       className="w-full flex items-center gap-3 p-3 rounded-xl text-left transition-colors"
       style={{ background: active ? 'rgba(203,1,1,0.08)' : 'transparent', border: active ? '1px solid rgba(203,1,1,0.25)' : '1px solid transparent' }}
     >
-      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style={{ background: 'var(--grad)' }}>
-        {group.seller?.name?.[0] || 'S'}
+      <div className="relative flex-shrink-0">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white" style={{ background: 'var(--grad)' }}>
+          {group.seller?.name?.[0] || 'S'}
+        </div>
+        <OnlineDot online={isOnline(group.seller?._id)} className="absolute -bottom-0.5 -right-0.5" />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
@@ -128,10 +135,13 @@ function RoomListItem({ room, active, onClick, currentUserId }: { room: ChatRoom
             </span>
           )}
         </div>
-        <p className="text-xs truncate mt-0.5" style={{ color: 'var(--text-muted)' }}>
-          {room.lastMessage
-            ? `${lastSenderName ? `${lastSenderName}: ` : ''}${room.lastMessage.content}`
-            : `Listing agent: ${agent?.name || '—'}`}
+        <p className="text-xs truncate mt-0.5 flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
+          {room.lastMessage ? (
+            <>
+              {room.lastMessage.sender?._id === currentUserId && <StatusTicks message={room.lastMessage} className="flex-shrink-0" />}
+              <span className="truncate">{lastSenderName ? `${lastSenderName}: ` : ''}{previewOf(room.lastMessage)}</span>
+            </>
+          ) : `Listing agent: ${agent?.name || '—'}`}
         </p>
         {(needsAgentReply(room) || extraAgents > 0) && (
           <div className="flex items-center gap-2 mt-1 flex-wrap">
@@ -159,11 +169,9 @@ function AdminMessagesView() {
   const [rooms, setRooms] = useState<ChatRoom[]>([])
   const [selectedSeller, setSelectedSeller] = useState<string | null>(null)
   const [activeRoom, setActiveRoom] = useState<string | null>(null)
-  const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [input, setInput] = useState('')
   const [q, setQ] = useState('')
   const [loadingRooms, setLoadingRooms] = useState(true)
-  const [loadingMsgs, setLoadingMsgs] = useState(false)
+  const presence = usePresence()
   const bottomRef = useRef<HTMLDivElement>(null)
 
   const loadRooms = useCallback(() => {
@@ -207,54 +215,32 @@ function AdminMessagesView() {
   const activeRoomData = rooms.find(r => r._id === activeRoom)
   const isParticipant = activeRoomData ? isParticipantOf(activeRoomData, user?._id) : false
 
-  // Load messages + join room on selection change
+  // The open conversation: history, live messages, ✓✓ marks, typing. Don't mark another agent's conversation as read
+  // on their behalf — that would hide the unread state from the person it actually belongs to.
+  const thread = useChatThread(activeRoom, user?._id, { markRead: isParticipant })
+
   useEffect(() => {
-    if (!activeRoom) return
-    const socket = getSocket()
-    setLoadingMsgs(true)
-    chatAPI.getMessages(activeRoom)
-      .then(r => { if (r.data.success) setMessages(r.data.data) })
-      .catch(() => toast.error('Failed to load messages'))
-      .finally(() => setLoadingMsgs(false))
+    if (activeRoom && isParticipant) setRooms(prev => prev.map(r => r._id === activeRoom ? { ...r, unreadCount: 0 } : r))
+  }, [activeRoom, isParticipant])
 
-    // Don't mark another agent's conversation as read on their behalf —
-    // that would hide the unread state from the person it actually belongs to.
-    if (isParticipant) {
-      chatAPI.markRead(activeRoom).catch(() => {})
-      setRooms(prev => prev.map(r => r._id === activeRoom ? { ...r, unreadCount: 0 } : r))
-    }
-
-    socket.emit('join_room', activeRoom)
-    return () => { socket.emit('leave_room', activeRoom) }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeRoom])
-
-  // Real-time incoming messages
+  // Every message for any room I can see: keep the list fresh — last message, unread count, most recent on top.
   useEffect(() => {
     const socket = getSocket()
-    const onMessage = (msg: ChatMessage & { room: string }) => {
-      if (msg.room === activeRoom) {
-        setMessages(prev => [...prev, msg])
-      } else {
-        setRooms(prev => prev.map(r => r._id === msg.room ? { ...r, lastMessage: msg, unreadCount: (r.unreadCount || 0) + 1 } : r))
-      }
+    const onMessage = (msg: ChatMessage) => {
+      setRooms(prev => {
+        const idx = prev.findIndex(r => r._id === msg.room)
+        if (idx < 0) return prev
+        const isActive = msg.room === activeRoom
+        const fromMe = msg.sender._id === user?._id
+        const updated = { ...prev[idx], lastMessage: msg, unreadCount: isActive || fromMe ? 0 : (prev[idx].unreadCount || 0) + 1 }
+        return [updated, ...prev.filter((_, i) => i !== idx)]
+      })
     }
     socket.on('new_message', onMessage)
     return () => { socket.off('new_message', onMessage) }
-  }, [activeRoom])
+  }, [activeRoom, user?._id])
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
-
-  const send = async () => {
-    const content = input.trim()
-    if (!content || !activeRoom) return
-    setInput('')
-    try {
-      await chatAPI.sendMessage(activeRoom, content)
-    } catch {
-      toast.error('Failed to send message')
-    }
-  }
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [thread.messages.length, thread.typers.length])
 
   const openSeller = (group: SellerGroup) => {
     setSelectedSeller(group.sellerId)
@@ -274,6 +260,8 @@ function AdminMessagesView() {
   const { seller } = activeRoomData ? getParties(activeRoomData) : { seller: undefined }
   const activeAgents = activeRoomData ? agentParticipants(activeRoomData) : []
   const activeSellerGroup = sellerGroups.find(g => g.sellerId === selectedSeller)
+  const sellerOnline = presence.isOnline(seller?._id)
+  const sellerLastSeen = (seller?._id && presence.lastSeen[seller._id]) || seller?.lastSeenAt
 
   const needle = q.trim().toLowerCase()
   const filteredSellerGroups = needle
@@ -328,7 +316,7 @@ function AdminMessagesView() {
               </div>
             ) : (
               filteredSellerGroups.map(g => (
-                <SellerListItem key={g.sellerId} group={g} active={g.sellerId === selectedSeller} onClick={() => openSeller(g)} />
+                <SellerListItem key={g.sellerId} group={g} active={g.sellerId === selectedSeller} onClick={() => openSeller(g)} isOnline={presence.isOnline} />
               ))
             )
           ) : filteredSellerRooms.length === 0 ? (
@@ -358,18 +346,24 @@ function AdminMessagesView() {
               <button onClick={() => setActiveRoom(null)} className="md:hidden btn-ghost btn-sm p-2 -ml-1 flex-shrink-0" aria-label="Back to conversations">
                 <ArrowLeft size={16} />
               </button>
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style={{ background: 'var(--grad)' }}>
-                {seller?.name?.[0] || 'S'}
+              <div className="relative flex-shrink-0">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white" style={{ background: 'var(--grad)' }}>
+                  {seller?.name?.[0] || 'S'}
+                </div>
+                <OnlineDot online={sellerOnline} className="absolute -bottom-0.5 -right-0.5" />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>
                   {activeRoomData?.property?.title || seller?.name || 'Seller'}
                 </p>
-                <p className="text-xs truncate flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
-                  <Users size={10} className="flex-shrink-0" />
-                  {seller?.name || 'Seller'}
-                  {activeAgents.length > 0 && ` · ${activeAgents.map(a => a.name).join(', ')}`}
-                </p>
+                <div className="flex items-center gap-2 min-w-0">
+                  <PresenceLine typingNames={thread.typers.map(t => t.name)} onlineCount={sellerOnline ? 1 : 0} lastSeenAt={sellerLastSeen} />
+                  <span className="text-xs truncate flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
+                    <Users size={10} className="flex-shrink-0" />
+                    {seller?.name || 'Seller'}
+                    {activeAgents.length > 0 && ` · ${activeAgents.map(a => a.name).join(', ')}`}
+                  </span>
+                </div>
               </div>
               {!isParticipant && (
                 <span className="badge badge-gray text-[10px] flex-shrink-0 gap-1">
@@ -378,27 +372,30 @@ function AdminMessagesView() {
               )}
             </header>
 
-            <div className="flex-1 overflow-y-auto p-5 space-y-3">
-              {loadingMsgs ? (
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-2.5">
+              {thread.loading ? (
                 Array(4).fill(null).map((_, i) => <div key={i} className={cn('shimmer h-10 rounded-2xl w-1/2', i % 2 ? 'ml-auto' : '')} />)
-              ) : messages.length === 0 ? (
+              ) : thread.messages.length === 0 ? (
                 <p className="text-center text-xs" style={{ color: 'var(--text-muted)' }}>No messages yet — say hello!</p>
               ) : (
-                messages.map(m => {
-                  const mine = m.sender._id === user?._id
-                  const label = roleLabel(activeRoomData, m.sender)
-                  return (
-                    <div key={m._id} title={formatDateTime(m.createdAt)}>
-                      <div className={mine ? 'bubble-out' : 'bubble-in'}>
-                        {m.content}
+                (() => {
+                  let lastDay = ''
+                  return thread.messages.map(m => {
+                    const day = new Date(m.createdAt).toDateString()
+                    const divider = day !== lastDay ? <DayDivider key={`d-${m._id}`} iso={m.createdAt} /> : null
+                    lastDay = day
+                    const mine = m.sender._id === user?._id
+                    const label = roleLabel(activeRoomData, m.sender)
+                    return (
+                      <div key={m._id} className="space-y-2.5">
+                        {divider}
+                        <MessageBubble message={m} mine={mine} senderLabel={`${m.sender.name}${label ? ` · ${label}` : ''}`} />
                       </div>
-                      <p className={cn('text-[10px] mt-1', mine ? 'text-right' : '')} style={{ color: 'var(--text-muted)' }}>
-                        {m.sender.name}{label && ` · ${label}`} · {timeAgo(m.createdAt)}
-                      </p>
-                    </div>
-                  )
-                })
+                    )
+                  })
+                })()
               )}
+              {thread.typers.length > 0 && <TypingBubble />}
               <div ref={bottomRef} />
             </div>
 
@@ -409,18 +406,7 @@ function AdminMessagesView() {
                     <AlertCircle size={13} className="flex-shrink-0" /> The seller is waiting on a reply
                   </div>
                 )}
-                <div className="p-4 flex items-center gap-2">
-                  <input
-                    className="input flex-1"
-                    placeholder="Type a message…"
-                    value={input}
-                    onChange={e => setInput(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') send() }}
-                  />
-                  <button onClick={send} className="btn-primary p-3 flex-shrink-0" disabled={!input.trim()}>
-                    <Send size={15} />
-                  </button>
-                </div>
+                <ChatComposer onSend={thread.send} onTyping={thread.notifyTyping} onBlur={thread.stopTyping} sending={thread.sending} />
               </div>
             ) : (
               <div className="p-4 flex items-center justify-center gap-2 flex-shrink-0 text-xs" style={{ borderTop: '1px solid var(--border)', color: 'var(--text-muted)' }}>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -17,6 +18,7 @@ import PropertyCard from '@/components/buyer/PropertyCard'
 import BlogSection  from '@/components/BlogSection'
 import MarketWatchSection from '@/components/MarketWatchSection'
 import FeaturedProjectsSection from '@/components/FeaturedProjectsSection'
+import MapExploreSection from '@/components/MapExploreSection'
 import MortgageSection from '@/components/MortgageSection'
 import { propertyAPI, homepageAPI, communityContentAPI } from '@/lib/api'
 import { HOME_ICON_MAP, DEFAULT_HOME_ICON } from '@/lib/homeIcons'
@@ -197,6 +199,7 @@ export default function HomeClient({ content }: { content: HomepageContent }) {
   }, [])
 
   const trackCta = (cta: string) => { homepageAPI.trackCta(cta).catch(() => {}) }
+  const router = useRouter()
 
   return (
     <div className="page overflow-x-hidden">
@@ -340,7 +343,7 @@ export default function HomeClient({ content }: { content: HomepageContent }) {
 
           {/* ─── SEARCH ────────────────────────────────────────── */}
           <div className="relative z-20 pb-8 max-w-4xl mx-auto">
-            <SearchBar compact />
+            <SearchBar compact onMapClick={() => { trackCta('hero_map_search'); router.push('/map-search') }} />
           </div>
 
           {/* Subtitle */}
@@ -624,6 +627,9 @@ export default function HomeClient({ content }: { content: HomepageContent }) {
           </div>
         </div>
       </section>
+
+      {/* ─── EXPLORE ON THE MAP — right after the property listings ─── */}
+      <MapExploreSection onCta={() => trackCta('map_banner')} />
 
       {/* ─── WHY DISTRESS DEALS ────────────────────────────── */}
       <section className="section relative overflow-hidden">

@@ -6,6 +6,7 @@ import { X, Send, CheckCircle2, Loader2 } from 'lucide-react'
 import { leadAPI } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import toast from 'react-hot-toast'
+import AccountStep, { type LeadAccountMeta } from '@/components/buyer/AccountStep'
 
 export default function ProjectInterestModal({
   projectId, projectTitle, open, onClose,
@@ -17,13 +18,15 @@ export default function ProjectInterestModal({
   const [message, setMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [sent, setSent] = useState(false)
+  const [outcome, setOutcome] = useState<{ duplicate?: boolean } & LeadAccountMeta>({})
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim() || !email.trim() || !phone.trim()) { toast.error('Name, email, and phone are required'); return }
     setSubmitting(true)
     try {
-      await leadAPI.createProjectLead({ project: projectId, name: name.trim(), email: email.trim(), phone: phone.trim(), message: message.trim() || undefined })
+      const res = await leadAPI.createProjectLead({ project: projectId, name: name.trim(), email: email.trim(), phone: phone.trim(), message: message.trim() || undefined })
+      setOutcome(res.data.meta || {})
       setSent(true)
     } catch (err: any) {
       toast.error(err?.error || 'Failed to send — please try again')
@@ -70,9 +73,14 @@ export default function ProjectInterestModal({
                 </div>
                 <h4 className="font-semibold text-sm mb-1.5" style={{ color: 'var(--text)' }}>Thanks — we've got it!</h4>
                 <p className="text-xs mb-5" style={{ color: 'var(--text-muted)' }}>
-                  A member of our team will reach out shortly with more details on {projectTitle}.
+                  {outcome.duplicate
+                    ? `You’ve already asked about ${projectTitle} — our team has your request and will be in touch.`
+                    : `A member of our team will reach out shortly with more details on ${projectTitle}.`}
                 </p>
-                <button onClick={close} className="btn-primary btn-sm w-full">Done</button>
+                {/* AccountStep no-ops on its own when the backend didn't resolve a buyer — checking isAuthenticated
+                    here too would hide its own "you're in" confirmation once logging in flips that flag to true. */}
+                <AccountStep meta={outcome} email={email} onDone={close} />
+                <button onClick={close} className="btn-primary btn-sm w-full mt-5">Done</button>
               </div>
             ) : (
               <form onSubmit={submit} className="p-5 space-y-3">

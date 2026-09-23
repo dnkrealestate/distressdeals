@@ -7,8 +7,11 @@ import { useFavoritesStore } from '@/store/favoritesStore'
 import { userAPI, authAPI, leadAPI } from '@/lib/api'
 import { getInitials, formatDate } from '@/lib/utils'
 import toast from 'react-hot-toast'
+import MyInterests from '@/components/buyer/MyInterests'
+import RecentActivity from '@/components/buyer/RecentActivity'
+import BecomeSeller from '@/components/buyer/BecomeSeller'
 
-const TABS = ['Profile', 'Notifications', 'Security'] as const
+const TABS = ['Profile', 'My Interests', 'Activity', 'Notifications', 'Security'] as const
 type Tab = typeof TABS[number]
 
 const NOTIFICATION_FIELDS: { key: string; label: string; desc: string }[] = [
@@ -39,7 +42,7 @@ export default function BuyerProfilePage() {
 
   useEffect(() => {
     fetchFavorites()
-    leadAPI.myLeads({ limit: 1 }).then(r => { if (r.data.success) setLeadCount(r.data.data.total) }).catch(() => {})
+    leadAPI.myInterests().then(r => { if (r.data.success) setLeadCount(r.data.data.length) }).catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -185,6 +188,24 @@ export default function BuyerProfilePage() {
               </div>
             ))}
           </div>
+        </motion.div>
+      )}
+
+      {tab === 'Profile' && <BecomeSeller />}
+
+      {tab === 'My Interests' && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card p-6">
+          <h3 className="font-semibold mb-1" style={{ color: 'var(--text)' }}>Properties &amp; projects you’re interested in</h3>
+          <p className="text-xs mb-5" style={{ color: 'var(--text-muted)' }}>Your agent can see this list, so they can suggest what fits.</p>
+          <MyInterests />
+        </motion.div>
+      )}
+
+      {tab === 'Activity' && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card p-6">
+          <h3 className="font-semibold mb-1" style={{ color: 'var(--text)' }}>Recently viewed</h3>
+          <p className="text-xs mb-5" style={{ color: 'var(--text-muted)' }}>Properties you’ve opened on this device, most recent first.</p>
+          <RecentActivity />
         </motion.div>
       )}
 

@@ -15,7 +15,9 @@ import { reverseGeocode, type GeocodeResult } from '@/lib/distance'
 import { LocationSearch } from './LocationSearch'
 import StepIndicator from './StepIndicator'
 import RichTextEditor from './RichTextEditor'
-import type { Property, Project } from '@/types'
+import type { Property, Project, RentalStatus } from '@/types'
+import RentalAvailabilityFields from '@/components/shared/RentalAvailabilityFields'
+import { toDateInput, rentalStatusOf } from '@/lib/rental'
 import toast from 'react-hot-toast'
 
 const LocationPickerMap = dynamic(() => import('./LocationPickerMap'), {
@@ -220,6 +222,9 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
   const [category, setCategory] = useState<'residential' | 'commercial'>(property?.category === 'commercial' ? 'commercial' : 'residential')
   const [type, setType] = useState<string>(property?.type || 'apartment')
   const [listingType, setListingType] = useState(property?.listingType || 'sale')
+  const [rentalStatus, setRentalStatus] = useState<RentalStatus>((property && rentalStatusOf(property)) || 'available_now')
+  const [availableFrom, setAvailableFrom] = useState<string>(toDateInput(property?.availableFrom))
+  const [availableFromError, setAvailableFromError] = useState(false)
   const [furnishing, setFurnishing] = useState<'unfurnished' | 'furnished'>(property?.furnishing === 'furnished' ? 'furnished' : 'unfurnished')
   const [completion, setCompletion] = useState<string>(property?.completion || 'ready')
   const [expectedCompletionDate, setExpectedCompletionDate] = useState(
@@ -425,12 +430,22 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
     const plainText = description.replace(/<[^>]*>/g, '').trim()
     if (!plainText) { setDescriptionError(true); setStep(1); return }
     setDescriptionError(false)
+    if (listingType === 'rent' && rentalStatus !== 'available_now' && !availableFrom) {
+      setAvailableFromError(true); setStep(1)
+      toast.error('Please choose the date the rental becomes available')
+      return
+    }
+    setAvailableFromError(false)
     setSubmitting(true)
     const payload = {
       title: data.title, titleAr: data.titleAr || undefined,
       description, descriptionAr: descriptionAr || undefined,
       category, type, listingType,
       price: Number(data.price), furnishing, completion,
+      ...(listingType === 'rent' && {
+        rentalStatus,
+        ...(rentalStatus !== 'available_now' && availableFrom && { availableFrom }),
+      }),
       ...(completion === 'off_plan' && {
         expectedCompletionDate: expectedCompletionDate || undefined,
         offPlanSaleType,
@@ -532,6 +547,17 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
                 <OptionCard icon={KeyRound} label="For Rent" active={listingType === 'rent'} onClick={() => setListingType('rent')} />
               </div>
             </Field>
+            {listingType === 'rent' && (
+              <Field label="Rental Availability">
+                <RentalAvailabilityFields
+                  status={rentalStatus}
+                  date={availableFrom}
+                  onStatus={v => { setRentalStatus(v); setAvailableFromError(false) }}
+                  onDate={v => { setAvailableFrom(v); setAvailableFromError(false) }}
+                  showError={availableFromError}
+                />
+              </Field>
+            )}
           </div>
         </div>
 

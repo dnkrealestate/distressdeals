@@ -10,6 +10,8 @@ export type AgentPermission = 'approve_listings' | 'manage_leads' | 'schedule_me
 
 export interface User {
   _id: string; name: string; email: string; phone?: string; avatar?: string
+  // Chat presence: when they were last connected (only present while they are offline).
+  lastSeenAt?: string
   role: UserRole; status: string; isEmailVerified: boolean; isPhoneVerified: boolean
   favorites: string[]; createdAt: string
   permissions?: AgentPermission[]; agentRole?: string
@@ -22,11 +24,14 @@ export interface User {
 
 export interface PropertyImage { url: string; publicId: string; isPrimary: boolean; order: number; caption?: string }
 
+// Rent listings only: can a tenant move in now, soon, or is a tenant still in place.
+export type RentalStatus = 'available_now' | 'available_soon' | 'occupied'
+
 export interface Property {
   _id: string; title: string; description: string; slug: string
   referenceId?: string
   category?: PropertyCategory
-  type: PropertyType; listingType: ListingType; rentFrequency?: RentFrequency; status: PropertyStatus
+  type: PropertyType; listingType: ListingType; rentFrequency?: RentFrequency; rentalStatus?: RentalStatus; availableFrom?: string; status: PropertyStatus
   price: number; pricePerSqft?: number
   // How soon the seller wants to sell/rent — internal-only, never sent to
   // buyers/anonymous viewers (see backend sanitizeForPublic).
@@ -98,10 +103,16 @@ export interface Agent {
   specializations: PropertyType[]
 }
 
+export interface ChatAttachment { url: string; name: string; size: number; mimeType: string; kind: 'image' | 'document' }
+
 export interface ChatMessage {
   _id: string; room: string; sender: User; content: string
   type: 'text' | 'image' | 'document' | 'system'
+  attachments?: ChatAttachment[]
   isRead: boolean; createdAt: string
+  // Receipts: who it reached / who opened it (drives the ✓ ✓✓ marks).
+  deliveredTo?: { user: string; at: string }[]
+  readBy?: { user: string; readAt: string }[]
 }
 
 export interface ChatRoom {
@@ -244,6 +255,7 @@ export interface BuildingContent {
 export interface PropertyFilters {
   q?: string; type?: string; listingType?: string; priceMin?: number; priceMax?: number
   bedrooms?: string; area?: string; community?: string; furnishing?: string; completion?: string
+  rentalStatus?: string; availableWithin?: number
   category?: 'residential' | 'commercial' | ''; bathrooms?: string; sizeMin?: number; sizeMax?: number
   sortBy?: string; page?: number; limit?: number
 }

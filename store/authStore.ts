@@ -12,6 +12,10 @@ interface AuthState {
   googleLogin: (token: string, role?: string) => Promise<void>
   facebookLogin: (accessToken: string, role?: string) => Promise<void>
   register: (data: any) => Promise<void>
+  // Sets a password on an account with none yet (from an "I'm interested" submission) and signs straight in.
+  claimAccount: (claimToken: string, password: string) => Promise<void>
+  // WhatsApp-code-verified password reset — signs straight in on success.
+  resetPasswordWithOtp: (phone: string, otp: string, password: string) => Promise<void>
   logout:   () => void
   setUser:  (user: User) => void
   fetchMe:  () => Promise<void>
@@ -52,6 +56,22 @@ export const useAuthStore = create<AuthState>()(
       register: async (data) => {
         set({ isLoading: true })
         const res = await authAPI.register(data)
+        const { token, user } = res.data.data
+        localStorage.setItem('luxestate_token', token)
+        set({ user, token, isAuthenticated: true, isLoading: false })
+      },
+
+      claimAccount: async (claimToken, password) => {
+        set({ isLoading: true })
+        const res = await authAPI.claimAccount(claimToken, password)
+        const { token, user } = res.data.data
+        localStorage.setItem('luxestate_token', token)
+        set({ user, token, isAuthenticated: true, isLoading: false })
+      },
+
+      resetPasswordWithOtp: async (phone, otp, password) => {
+        set({ isLoading: true })
+        const res = await authAPI.resetPasswordWithOtp(phone, otp, password)
         const { token, user } = res.data.data
         localStorage.setItem('luxestate_token', token)
         set({ user, token, isAuthenticated: true, isLoading: false })

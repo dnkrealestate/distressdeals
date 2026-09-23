@@ -23,11 +23,17 @@ api.interceptors.request.use(cfg => {
   return cfg
 })
 
-// Response interceptor — handle auth errors
+// Response interceptor — handle auth errors.
+// A 401 from a request made WITH a token means that token is dead (expired/revoked) — bounce to login. A 401 from
+// the login/register/claim-account endpoints themselves just means "wrong credentials", which the calling form
+// already shows inline (and, for claim/login done from inside a modal elsewhere on the site, hijacking the whole
+// page to /auth/login would defeat the entire point of logging in without leaving where they were).
+const CREDENTIAL_ENDPOINTS = /\/auth\/(login|register|claim-account|google|facebook)(\?|$)/
 api.interceptors.response.use(
   res => res,
   err => {
-    if (err.response?.status === 401 && typeof window !== 'undefined') {
+    const isCredentialAttempt = CREDENTIAL_ENDPOINTS.test(err.config?.url || '')
+    if (err.response?.status === 401 && !isCredentialAttempt && typeof window !== 'undefined') {
       localStorage.removeItem('luxestate_token')
       window.location.href = '/auth/login'
     }
@@ -44,21 +50,41 @@ export const authAPI = {
   appleAuth:        (data: any) => api.post('/auth/apple', data),
   sendOtp:          (phone: string) => api.post('/auth/send-otp', { phone }),
   verifyOtp:        (otp: string) => api.post('/auth/verify-otp', { otp }),
-  forgotPassword:   (email: string) => api.post('/auth/forgot-password', { email }),
-  resetPassword:    (token: string, password: string) => api.post('/auth/reset-password', { token, password }),
+  // Forgot password: a WhatsApp code to the registered number doubles as proof of ownership and reset authorization.
+  sendForgotPasswordOtp: (phone: string) => api.post('/auth/forgot-password/send-otp', { phone }),
+  resetPasswordWithOtp:  (phone: string, otp: string, password: string) => api.post('/auth/forgot-password/reset', { phone, otp, password }),
   verifyEmail:      (token: string) => api.post('/auth/verify-email', { token }),
   resendVerification: () => api.post('/auth/resend-verification'),
+  // Sets a password on an account that has none yet (auto-created, or never claimed), from the token an
+  // 'I'm interested' submission handed back — signs the person straight in.
+  claimAccount: (claimToken: string, password: string) => api.post('/auth/claim-account', { claimToken, password }),
+  // Buyer → seller: a WhatsApp code to the number they want to sell with.
+  sendSellerOtp:   (phone: string) => api.post('/auth/become-seller/send-otp', { phone }),
+  verifySellerOtp: (otp: string) => api.post('/auth/become-seller/verify-otp', { otp }),
   changePassword:   (currentPassword: string, newPassword: string) => api.post('/auth/change-password', { currentPassword, newPassword }),
   getMe:            () => api.get('/auth/me'),
   refreshToken:     () => api.post('/auth/refresh'),
 }
 
+// ── Routing (drive times) ───────────────────────────
+export const routingAPI = {
+  driveTimes: (origins: { lat: number; lng: number }[], destinations: { lat: number; lng: number }[]) =>
+    api.post('/routing/drive-times', { origins, destinations }),
+  // One drive with its road geometry and turn-by-turn steps.
+  route: (origin: { lat: number; lng: number }, destination: { lat: number; lng: number }) =>
+    api.post('/routing/route', { origin, destination }),
+}
+
 // ── Properties ──────────────────────────────────────
 export const propertyAPI = {
   getAll:       (params?: any) => api.get('/properties', { params }),
+  // Lightweight pins for the map search tool (filters + drawn polygon / radius).
+  getMapPins:   (params?: any) => api.get('/properties/map', { params }),
   getOne:       (slug: string) => api.get(`/properties/${slug}`),
   create:       (data: FormData) => api.post('/properties', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   update:       (id: string, data: any) => api.put(`/properties/${id}`, data),
+  // Rent availability only — routine upkeep, doesn't send a live listing back to review.
+  updateAvailability: (id: string, data: { rentalStatus: string; availableFrom?: string }) => api.patch(`/properties/${id}/availability`, data),
   delete:       (id: string) => api.delete(`/properties/${id}`),
   requestDelete: (id: string, reason?: string) => api.post(`/properties/${id}/delete-request`, { reason }),
   approveDeleteRequest: (id: string) => api.patch(`/properties/${id}/delete-request/approve`),
@@ -89,6 +115,12 @@ export const propertyAPI = {
 // ── Users / Profile ─────────────────────────────────
 export const userAPI = {
   updateProfile: (data: any) => api.patch('/users/me', data),
+  // Compare list is kept on the server so the buyer's agent can see it.
+  getCompare:  () => api.get('/users/me/compare'),
+  setCompare:  (ids: string[]) => api.put('/users/me/compare', { ids }),
+  // Staff: a buyer's interests, likes, compare list and needs.
+  getBuyerProfile: (id: string) => api.get(`/users/${id}/buyer-profile`),
+  assignBuyerAgent: (id: string, agentId: string) => api.patch(`/users/${id}/assign-agent`, { agentId }),
   getOne:        (id: string) => api.get(`/users/${id}`),
 }
 
@@ -110,6 +142,8 @@ export const leadAPI = {
   reassign:       (id: string, agentId: string) => api.patch(`/leads/${id}/reassign`, { agentId }),
   shuffle:        (ids: string[]) => api.post('/leads/shuffle', { ids }),
   myLeads:        (params?: any) => api.get('/leads/my-leads', { params }),
+  // Everything I have expressed interest in (properties and projects), whatever my role.
+  myInterests:    () => api.get('/leads/my-interests'),
   pipeline:       () => api.get('/leads/pipeline'),
   sourceReport:   () => api.get('/leads/source-report'),
   aiSummary:      (id: string) => api.post(`/leads/${id}/ai-summary`),
@@ -149,7 +183,14 @@ export const chatAPI = {
   getRoom:     (id: string) => api.get(`/chat/rooms/${id}`),
   createRoom:  (data: any) => api.post('/chat/rooms', data),
   getMessages: (roomId: string, params?: any) => api.get(`/chat/rooms/${roomId}/messages`, { params }),
-  sendMessage: (roomId: string, content: string, type?: string) => api.post(`/chat/rooms/${roomId}/messages`, { content, type }),
+  // Plain text goes as JSON; with attachments it is multipart (text + up to 5 files).
+  sendMessage: (roomId: string, content: string, files: File[] = []) => {
+    if (files.length === 0) return api.post(`/chat/rooms/${roomId}/messages`, { content })
+    const fd = new FormData()
+    if (content) fd.append('content', content)
+    files.forEach(f => fd.append('files', f))
+    return api.post(`/chat/rooms/${roomId}/messages`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+  },
   markRead:    (roomId: string) => api.patch(`/chat/rooms/${roomId}/read`),
 }
 

@@ -4,11 +4,15 @@ import { Providers } from '@/components/Providers'
 import { Toaster } from 'react-hot-toast'
 import EmailVerificationBanner from '@/components/EmailVerificationBanner'
 import MobileBottomNav from '@/components/layouts/MobileBottomNav'
+import FloatingActions from '@/components/layouts/FloatingActions'
+import { GoogleTagHead, GoogleTagNoScript } from '@/components/GoogleTags'
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://distressdealsuae.com'),
   title: { default: 'Distress Deals Dubai — Verified Properties, Managed End-to-End', template: '%s | Distress Deals Dubai' },
   description: "Dubai's centralized real estate platform. Every listing verified, one dedicated agent from first message to keys-in-hand — buy, sell, or rent with confidence.",
+  // Google Search Console site-ownership verification (renders <meta name="google-site-verification">).
+  verification: { google: 'KrXeALfeYBTVJyLMYrcTeL2aTOpRbWPWuhkg_-JR79k' },
   keywords: ['Dubai real estate', 'property for sale Dubai', 'apartments for rent Dubai', 'villas Dubai', 'off-plan Dubai'],
   openGraph: {
     type: 'website', locale: 'en_AE', url: '/',
@@ -39,10 +43,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
       </head>
       <body>
+        <GoogleTagNoScript />
+        <GoogleTagHead />
         <Providers>
           <EmailVerificationBanner />
           {children}
           <MobileBottomNav />
+          <FloatingActions />
           <Toaster
             position="top-right"
             toastOptions={{

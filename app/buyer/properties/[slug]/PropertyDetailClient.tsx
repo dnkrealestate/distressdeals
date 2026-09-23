@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -20,6 +21,8 @@ import Navbar from '@/components/layouts/Navbar'
 import Footer from '@/components/layouts/Footer'
 import PropertyCard from '@/components/buyer/PropertyCard'
 import RecentlyViewedCard from '@/components/buyer/RecentlyViewedCard'
+import RentalBadge from '@/components/buyer/RentalBadge'
+import { rentalLabel } from '@/lib/rental'
 import LeadModal from '../../LeadModal'
 import { propertyAPI } from '@/lib/api'
 import { addRecentlyViewed } from '@/lib/recentlyViewed'
@@ -62,12 +65,11 @@ const REPORT_REASONS = [
   'Incorrect information', 'Already sold or rented', 'Fraud or scam', 'Duplicate listing', 'Other',
 ]
 
-// Free, keyless OpenStreetMap embed — no API key/billing needed, unlike
-// Google Maps or Mapbox (both deferred per the infra decisions for this project).
-function osmEmbedUrl(lat: number, lng: number, delta = 0.006): string {
-  const bbox = `${lng - delta}%2C${lat - delta}%2C${lng + delta}%2C${lat + delta}`
-  return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat}%2C${lng}`
-}
+// Custom-styled Google map, loaded client-side only (the Maps script needs `window`).
+const LocationMap = dynamic(() => import('@/components/shared/LocationMap'), {
+  ssr: false,
+  loading: () => <div className="shimmer w-full h-full" />,
+})
 
 export default function PropertyDetailClient({ property }: { property: Property }) {
   const router = useRouter()
@@ -308,6 +310,7 @@ export default function PropertyDetailClient({ property }: { property: Property 
                   <span className={cn('badge', property.listingType === 'sale' ? 'badge-teal' : 'badge-blue')}>
                     {property.listingType === 'sale' ? 'For Sale' : 'For Rent'}
                   </span>
+                  {property.listingType === 'rent' && <RentalBadge property={property} className="!text-xs !px-2.5 !py-1" />}
                   {property.completion === 'off_plan' && <span className="badge badge-purple">Off-Plan</span>}
                   {property.isFeatured && (
                     <span className="badge" style={{ background: 'var(--grad)', color: '#fff', border: 'none' }}>
@@ -439,7 +442,7 @@ export default function PropertyDetailClient({ property }: { property: Property 
                         { icon: Bed,       l: 'Bedrooms',       v: property.amenities?.bedrooms > 0 ? property.amenities.bedrooms : 'Studio' },
                         { icon: Bath,      l: 'Bathrooms',      v: property.amenities?.bathrooms || undefined },
                         { icon: Sofa,      l: 'Furnishing',     v: property.furnishing?.replace('_',' ') },
-                        { icon: Calendar,  l: 'Available from', v: property.completion === 'off_plan' ? 'On Completion' : 'Ready to Move' },
+                        { icon: Calendar,  l: property.listingType === 'rent' ? 'Availability' : 'Available from', v: property.listingType === 'rent' ? rentalLabel(property) : property.completion === 'off_plan' ? 'On Completion' : 'Ready to Move' },
                         { icon: Hash,      l: 'Unit No.',       v: property.location?.unitNo },
                         { icon: Landmark,  l: 'Ownership',      v: property.ownershipStatus },
                         { icon: Tag,       l: 'Off-Plan Sale',  v: property.completion === 'off_plan' ? property.offPlanSaleType : undefined },
@@ -514,22 +517,17 @@ export default function PropertyDetailClient({ property }: { property: Property 
                     </div>
                   )}
 
-                  {/* Location map — free OpenStreetMap embed, no API key needed */}
+                  {/* Location map — custom Google map */}
                   {coords && (
                     <div className="card p-6">
                       <h3 className="font-semibold mb-5 flex items-center gap-2" style={{ color: 'var(--text)' }}>
                         <MapIcon size={16} style={{ color: TEAL }} /> Location
                       </h3>
                       <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)', height: 320 }}>
-                        <iframe
-                          title="Property location map"
-                          src={osmEmbedUrl(coords.lat, coords.lng)}
-                          className="w-full h-full border-0"
-                          loading="lazy"
-                        />
+                        <LocationMap lat={coords.lat} lng={coords.lng} />
                       </div>
                       <a
-                        href={`https://www.openstreetmap.org/?mlat=${coords.lat}&mlon=${coords.lng}#map=15/${coords.lat}/${coords.lng}`}
+                        href={`https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`}
                         target="_blank" rel="noopener noreferrer"
                         className="text-xs mt-2 inline-flex items-center gap-1.5 hover:opacity-80 transition-opacity"
                         style={{ color: TEAL }}
@@ -663,6 +661,7 @@ export default function PropertyDetailClient({ property }: { property: Property 
               <div className="text-center mb-6">
                 <p className="text-3xl font-bold grad-text">{formatPrice(property.price)}</p>
                 {property.listingType === 'rent' && <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{rentPeriodLabel(property)}</p>}
+                {property.listingType === 'rent' && <div className="mt-2"><RentalBadge property={property} /></div>}
               </div>
 
               <button onClick={() => setLeadOpen(true)} className="btn-primary w-full py-4 text-base mb-3">

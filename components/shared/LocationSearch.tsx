@@ -3,13 +3,6 @@ import { useState, useEffect, useRef } from 'react'
 import { Search, MapPin, Loader2 } from 'lucide-react'
 import { geocodePlace, type GeocodeResult } from '@/lib/distance'
 
-// Free, keyless OpenStreetMap embed for a location preview — no API
-// key/billing needed, matching the map used on the public detail pages.
-export function osmEmbedUrl(lat: number, lng: number, delta = 0.01): string {
-  const bbox = `${lng - delta}%2C${lat - delta}%2C${lng + delta}%2C${lat + delta}`
-  return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat}%2C${lng}`
-}
-
 // Location search — type-to-search a place (free OSM Nominatim, no API
 // key), pick a suggestion to fill Area/Emirate/coordinates at once. Shared
 // by the Property and Project admin listing wizards.

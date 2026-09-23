@@ -240,6 +240,14 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
     : user?.role === 'agent'                                ? '/admin/dashboard'
     : '/buyer/profile'
 
+  // "Profile" has to point at wherever THIS role's profile page actually lives — the buyer account area
+  // (`/buyer/(account)/*`) redirects straight to /auth/login for anyone who isn't role === 'buyer', so a seller
+  // hitting a hardcoded /buyer/profile here saw what looked like their profile silently failing to open.
+  const profileHref =
+    user?.role === 'seller' ? '/seller/profile'
+    : user?.role === 'buyer' ? '/buyer/profile'
+    : dashHref   // staff have no separate profile page yet — their dashboard doubles as one
+
   return (
     <>
       <nav
@@ -365,9 +373,11 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
                         </div>
 
                         {[
-                          { href: dashHref,        icon: LayoutDashboard, label: 'Dashboard' },
-                          { href: '/buyer/profile', icon: User,            label: 'Profile'   },
-                          { href: '/settings',      icon: Settings,        label: 'Settings'  },
+                          { href: dashHref,    icon: LayoutDashboard, label: 'Dashboard' },
+                          // Staff have no separate profile page — omit the duplicate rather than link "Profile" to
+                          // the same place "Dashboard" already goes.
+                          ...(profileHref !== dashHref ? [{ href: profileHref, icon: User, label: 'Profile' }] : []),
+                          { href: '/settings', icon: Settings,        label: 'Settings'  },
                         ].map(item => (
                           <Link
                             key={item.href}

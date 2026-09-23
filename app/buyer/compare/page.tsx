@@ -7,6 +7,7 @@ import Navbar from '@/components/layouts/Navbar'
 import Footer from '@/components/layouts/Footer'
 import { useCompareStore } from '@/store/compareStore'
 import { formatPrice, formatArea, cn, rentSuffix } from '@/lib/utils'
+import { rentalLabel } from '@/lib/rental'
 
 const SPECS = [
   { label: 'Price',        key: (p: any) => `${formatPrice(p.price)}${rentSuffix(p)}`                 },
@@ -18,7 +19,8 @@ const SPECS = [
   { label: 'Price/sqft',   key: (p: any) => p.pricePerSqft ? `AED ${Math.round(p.pricePerSqft).toLocaleString()}` : '—' },
   { label: 'Parking',      key: (p: any) => p.amenities?.parkingSpaces                               },
   { label: 'Furnishing',   key: (p: any) => p.furnishing?.replace('_',' ')                           },
-  { label: 'Completion',   key: (p: any) => p.completion?.replace('_',' ')                           },
+  { label: 'Completion',   key: (p: any) => p.listingType === 'rent' ? undefined : p.completion?.replace('_',' ') },
+  { label: 'Availability', key: (p: any) => p.listingType === 'rent' ? rentalLabel(p) : undefined      },
   { label: 'Area',         key: (p: any) => p.location?.area                                         },
   { label: 'Emirate',      key: (p: any) => p.location?.emirate                                      },
 ]

@@ -8,13 +8,15 @@ import { useAuthStore } from '@/store/authStore'
 import { getStoredUtm } from '@/lib/utm'
 import { formatPrice, cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
+import AccountStep, { type LeadAccountMeta } from '@/components/buyer/AccountStep'
 import type { Property } from '@/types'
 
 interface Props { property: Property; onClose: () => void }
 
 export default function LeadModal({ property, onClose }: Props) {
-  const { user, isAuthenticated } = useAuthStore()
+  const { user } = useAuthStore()
   const [submitted, setSubmitted] = useState(false)
+  const [outcome, setOutcome] = useState<{ duplicate?: boolean; email?: string } & LeadAccountMeta>({})
   const [loading, setLoading]     = useState(false)
 
   const { register, handleSubmit, formState: { errors } } = useForm({
@@ -30,12 +32,13 @@ export default function LeadModal({ property, onClose }: Props) {
   const onSubmit = async (data: any) => {
     setLoading(true)
     try {
-      await leadAPI.create({
+      const res = await leadAPI.create({
         property: property._id,
         ...data,
         budget: data.budget ? { min: 0, max: Number(data.budget) } : undefined,
         ...getStoredUtm(),
       })
+      setOutcome({ ...res.data.meta, email: data.email })
       setSubmitted(true)
     } catch {
       toast.error('Failed to submit. Please try again.')
@@ -147,9 +150,15 @@ export default function LeadModal({ property, onClose }: Props) {
             </div>
             <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--text)' }}>Enquiry Submitted!</h3>
             <p className="text-sm leading-relaxed mb-6" style={{ color: 'var(--text-mid)' }}>
-              Our team has received your interest and will reach out within 2 hours to discuss this property and schedule a viewing.
+              {outcome.duplicate
+                ? 'You’ve already asked about this property — our team has your request and will be in touch.'
+                : 'Our team has received your interest and will reach out within 2 hours to discuss this property and schedule a viewing.'}
             </p>
-            <button onClick={onClose} className="btn-primary px-8">Done</button>
+            {/* AccountStep no-ops on its own when the backend didn't resolve a buyer (e.g. an already-signed-in
+                submitter) — checking isAuthenticated here too would hide its own "you're in" confirmation the
+                moment claiming/logging in flips that flag to true. */}
+            <AccountStep meta={outcome} email={outcome.email || ''} onDone={onClose} />
+            <button onClick={onClose} className="btn-primary px-8 mt-6">Done</button>
           </motion.div>
         )}
       </motion.div>

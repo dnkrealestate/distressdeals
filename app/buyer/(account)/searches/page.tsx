@@ -15,6 +15,8 @@ function describeFilters(filters: SavedSearch['filters']): string {
   }
   if (filters.furnishing) bits.push(filters.furnishing.replace('_', ' '))
   if (filters.completion) bits.push(filters.completion.replace('_', ' '))
+  if (filters.rentalStatus) bits.push(filters.rentalStatus.replace(/_/g, ' '))
+  if (filters.availableWithin) bits.push(`move in within ${filters.availableWithin} days`)
   if (filters.q) bits.push(`"${filters.q}"`)
   return bits.join(' · ')
 }

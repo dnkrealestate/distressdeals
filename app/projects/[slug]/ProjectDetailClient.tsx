@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowLeft, MapPin, CalendarClock, Wallet, BedDouble, Bath, Home, ShieldCheck, Phone, Building2, MessageCircleHeart, Share2,
@@ -17,6 +18,12 @@ import { AMENITY_META } from '@/lib/amenities'
 import { haversineKm, formatDistanceKm, geocodePlace, type GeocodeResult } from '@/lib/distance'
 import type { Project } from '@/types'
 import toast from 'react-hot-toast'
+
+// Custom-styled Google map, loaded client-side only (the Maps script needs `window`).
+const LocationMap = dynamic(() => import('@/components/shared/LocationMap'), {
+  ssr: false,
+  loading: () => <div className="shimmer w-full h-full" />,
+})
 
 const STATUS_BADGE: Record<string, string> = {
   upcoming: 'badge-blue', under_construction: 'badge-teal', ready: 'badge-green', sold_out: 'badge-gray',
@@ -119,11 +126,11 @@ function NearbyDistances({ project }: { project: Project }) {
     <>
       {coords && (
         <div className="rounded-xl overflow-hidden mb-6" style={{ height: 320, border: '1px solid var(--border)' }}>
-          <iframe
-            title="Project location map"
-            className="w-full h-full"
-            style={{ border: 0 }}
-            src={`https://www.openstreetmap.org/export/embed.html?bbox=${coords.lng - 0.02}%2C${coords.lat - 0.015}%2C${coords.lng + 0.02}%2C${coords.lat + 0.015}&layer=mapnik&marker=${coords.lat}%2C${coords.lng}`}
+          <LocationMap
+            lat={coords.lat}
+            lng={coords.lng}
+            zoom={14}
+            landmarks={landmarks.map(l => ({ lat: l.lat, lng: l.lng, title: l.name }))}
           />
         </div>
       )}

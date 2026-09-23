@@ -20,13 +20,12 @@ import { PropertyFilterBar, Pill, FilterDropdown, DropdownOption, TYPES } from '
 import { propertyAPI, savedSearchAPI } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import type { Property, PropertyFilters } from '@/types'
-import type { MapBounds } from '@/components/buyer/PropertiesMapView'
+import type { MapBounds } from '@/lib/googleMaps'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
-// Leaflet touches `window` at import time — must never run during Next's
-// server render of this (client) page.
-const PropertiesMapView = dynamic(() => import('@/components/buyer/PropertiesMapView'), {
+// Loaded client-side only — the Maps script needs `window`.
+const PropertiesMapView = dynamic(() => import('@/components/buyer/PropertiesGoogleMapView'), {
   ssr: false,
   loading: () => <div className="shimmer rounded-2xl" style={{ height: 600 }} />,
 })
@@ -36,6 +35,7 @@ const PropertiesMapView = dynamic(() => import('@/components/buyer/PropertiesMap
 // building blocks now live in PropertyFilterBar.tsx, shared with the
 // map-search page.
 const SORT_OPTIONS = [
+  { v: 'recommended', l: 'Recommended'     },
   { v: 'newest',    l: 'Newest First'      },
   { v: 'price_asc', l: 'Price: Low → High' },
   { v: 'price_desc',l: 'Price: High → Low' },
@@ -155,6 +155,8 @@ function describeFilters(filters: PropertyFilters): string {
   if (filters.type) parts.push(filters.type)
   parts.push(filters.listingType === 'rent' ? 'for Rent' : 'for Sale')
   if (filters.area) parts.push(`in ${filters.area}`)
+  if (filters.rentalStatus === 'available_now') parts.push('available now')
+  else if (filters.availableWithin) parts.push(`available within ${filters.availableWithin} days`)
   return parts.join(' ') || 'All Properties'
 }
 
@@ -346,7 +348,9 @@ export default function PropertiesListClient({ forcedListingType }: { forcedList
     sizeMax:     Number(searchParams.get('sizeMax')) || 0,
     priceMin:    Number(searchParams.get('priceMin')) || 0,
     priceMax:    Number(searchParams.get('priceMax')) || 0,
-    sortBy:      searchParams.get('sortBy')      || 'newest',
+    rentalStatus:   searchParams.get('rentalStatus') || '',
+    availableWithin: Number(searchParams.get('availableWithin')) || 0,
+    sortBy:      searchParams.get('sortBy')      || 'recommended',
     page:        Number(searchParams.get('page')) || 1,
     limit:       12,
   })
@@ -395,6 +399,7 @@ export default function PropertiesListClient({ forcedListingType }: { forcedList
   }, [
     filters.listingType, filters.q, filters.area, filters.community, filters.bedrooms,
     filters.priceMin, filters.priceMax, (filters as any).furnishing, (filters as any).completion,
+    filters.rentalStatus, filters.availableWithin,
     filters.category, filters.bathrooms, filters.sizeMin, filters.sizeMax,
   ])
 
@@ -440,6 +445,8 @@ export default function PropertiesListClient({ forcedListingType }: { forcedList
       sizeMax:     Number(searchParams.get('sizeMax')) || 0,
       priceMin:    Number(searchParams.get('priceMin')) || 0,
       priceMax:    Number(searchParams.get('priceMax')) || 0,
+      rentalStatus:   searchParams.get('rentalStatus') || '',
+      availableWithin: Number(searchParams.get('availableWithin')) || 0,
       page: 1,
     }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -472,13 +479,15 @@ export default function PropertiesListClient({ forcedListingType }: { forcedList
   const clearFilters = () => {
     setFilters(f => ({
       ...f, type: '', q: '', area: '', bedrooms: '', category: '', bathrooms: '',
-      sizeMin: 0, sizeMax: 0, priceMin: 0, priceMax: 0, sortBy: 'newest', page: 1,
+      sizeMin: 0, sizeMax: 0, priceMin: 0, priceMax: 0, sortBy: 'recommended', page: 1,
+      furnishing: '', completion: '', rentalStatus: '', availableWithin: 0,
     }))
   }
 
   const activeCount = [
     filters.type, filters.area, filters.bedrooms, filters.priceMin,
     filters.category, filters.bathrooms, filters.sizeMin,
+    filters.rentalStatus, filters.availableWithin, (filters as any).completion, (filters as any).furnishing,
   ].filter(Boolean).length
 
   // Type-count pills stay a single row on every screen size — but instead

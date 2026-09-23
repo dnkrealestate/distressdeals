@@ -1,37 +1,19 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, MapPinOff } from 'lucide-react'
+import { Search } from 'lucide-react'
 import { formatPrice, rentSuffix } from '@/lib/utils'
+import { DUBAI_CENTER, baseMapOptions, useGoogleMapsStatus, useMapTheme, type MapBounds } from '@/lib/googleMaps'
+import { MAP_STYLES } from '@/lib/mapStyles'
+import MapStatusOverlay from '@/components/shared/MapStatusOverlay'
 import type { Property } from '@/types'
-import type { MapBounds } from './PropertiesMapView'
 
-const DUBAI_CENTER = { lat: 25.2048, lng: 55.2708 }
-const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
-
-// Loaded once per page (Google's own loader guards against double-injection,
-// but a single shared promise avoids racing two components that mount at
-// nearly the same time into loading the script twice).
-let loaderPromise: Promise<void> | null = null
-function loadGoogleMaps(): Promise<void> {
-  if (typeof window === 'undefined') return Promise.reject(new Error('no window'))
-  if ((window as any).google?.maps) return Promise.resolve()
-  if (loaderPromise) return loaderPromise
-  loaderPromise = new Promise((resolve, reject) => {
-    const script = document.createElement('script')
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&loading=async`
-    script.async = true
-    script.onload = () => resolve()
-    script.onerror = () => reject(new Error('Failed to load Google Maps'))
-    document.head.appendChild(script)
-  })
-  return loaderPromise
-}
+export type { MapBounds }
 
 // A small styled price-pill marker, drawn as a plain DOM overlay positioned
 // via the map's projection — matches the look of the price bubbles from the
 // previous Leaflet map without needing the paid AdvancedMarkerElement setup.
-function createPriceOverlay(g: any, map: any, position: any, label: string, onClick: () => void) {
+function createPriceOverlay(g: any, map: any, position: any, label: string, title: string, onClick: () => void) {
   class PriceOverlay extends g.maps.OverlayView {
     div: HTMLDivElement | null = null
     onAdd() {
@@ -50,6 +32,7 @@ function createPriceOverlay(g: any, map: any, position: any, label: string, onCl
         cursor: 'pointer',
       } as CSSStyleDeclaration)
       div.textContent = label
+      div.title = title
       div.addEventListener('click', onClick)
       this.div = div
       this.getPanes().overlayMouseTarget.appendChild(div)
@@ -72,10 +55,9 @@ function createPriceOverlay(g: any, map: any, position: any, label: string, onCl
   return overlay
 }
 
-// Google Maps replacement for the Leaflet-based PropertiesMapView, used by
-// the full-screen /map-search page — same props/behaviour (bounds-based
-// "Search this area", fullHeight for the big-map layout) so it drops in
-// without the page needing to know which provider is underneath.
+// The site's property map (custom-styled Google Maps) — used by the results
+// page and the full-screen /map-search page. Supports bounds-based "Search This
+// Area" and a fullHeight layout for the big-map page.
 export default function PropertiesGoogleMapView({
   properties, onSearchThisArea, searching, fullHeight,
 }: {
@@ -88,34 +70,29 @@ export default function PropertiesGoogleMapView({
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<any>(null)
   const overlaysRef = useRef<any[]>([])
+  // True while the map is moving because WE fitted it to the markers — that must not offer "Search This Area".
+  const programmaticRef = useRef(false)
   const [showSearchHere, setShowSearchHere] = useState(false)
-  const [status, setStatus] = useState<'loading' | 'ready' | 'missing-key' | 'error'>('loading')
   const [fittedOnce, setFittedOnce] = useState(false)
+  const theme = useMapTheme()
 
-  // Init once
+  // Init once, as soon as the Maps script is available.
+  const status = useGoogleMapsStatus(g => {
+    if (!containerRef.current || mapRef.current) return
+    const map = new g.maps.Map(containerRef.current, {
+      ...baseMapOptions(theme),
+      center: DUBAI_CENTER,
+      zoom: 11,
+    })
+    map.addListener('dragend', () => setShowSearchHere(true))
+    map.addListener('zoom_changed', () => { if (!programmaticRef.current) setShowSearchHere(true) })
+    mapRef.current = map
+  })
+
+  // Follow the site's light/dark switch.
   useEffect(() => {
-    if (!API_KEY) { setStatus('missing-key'); return }
-    let cancelled = false
-    loadGoogleMaps()
-      .then(() => {
-        if (cancelled || !containerRef.current || mapRef.current) return
-        const g = (window as any).google
-        const map = new g.maps.Map(containerRef.current, {
-          center: DUBAI_CENTER,
-          zoom: 11,
-          streetViewControl: false,
-          mapTypeControl: false,
-          fullscreenControl: false,
-          clickableIcons: false,
-        })
-        map.addListener('dragend', () => setShowSearchHere(true))
-        map.addListener('zoom_changed', () => setShowSearchHere(true))
-        mapRef.current = map
-        setStatus('ready')
-      })
-      .catch(() => setStatus('error'))
-    return () => { cancelled = true }
-  }, [])
+    mapRef.current?.setOptions({ styles: MAP_STYLES[theme] })
+  }, [theme, status])
 
   // Re-plot markers whenever the result set changes
   useEffect(() => {
@@ -132,7 +109,7 @@ export default function PropertiesGoogleMapView({
       const position = new g.maps.LatLng(lat, lng)
       const label = `${formatPrice(p.price)}${rentSuffix(p)}`
       overlaysRef.current.push(
-        createPriceOverlay(g, map, position, label, () => router.push(`/buyer/properties/${p.slug}`))
+        createPriceOverlay(g, map, position, label, p.title, () => router.push(`/buyer/properties/${p.slug}`))
       )
     })
 
@@ -142,6 +119,8 @@ export default function PropertiesGoogleMapView({
     if (withCoords.length > 0 && !fittedOnce) {
       const bounds = new g.maps.LatLngBounds()
       withCoords.forEach(p => bounds.extend({ lat: p.location.coordinates!.lat, lng: p.location.coordinates!.lng }))
+      programmaticRef.current = true
+      g.maps.event.addListenerOnce(map, 'idle', () => { programmaticRef.current = false })
       map.fitBounds(bounds, 60)
       setFittedOnce(true)
     }
@@ -165,23 +144,7 @@ export default function PropertiesGoogleMapView({
     >
       <div ref={containerRef} className="w-full h-full" style={{ background: 'var(--bg-alt)' }} />
 
-      {status === 'missing-key' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center px-6" style={{ background: 'var(--bg-alt)' }}>
-          <MapPinOff size={28} style={{ color: 'var(--text-muted)' }} />
-          <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Map isn't configured yet</p>
-          <p className="text-xs max-w-xs" style={{ color: 'var(--text-muted)' }}>
-            Add a Google Maps API key to <code>NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code> to enable this map.
-          </p>
-        </div>
-      )}
-
-      {status === 'error' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center px-6" style={{ background: 'var(--bg-alt)' }}>
-          <MapPinOff size={28} style={{ color: 'var(--text-muted)' }} />
-          <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Couldn't load the map</p>
-          <p className="text-xs max-w-xs" style={{ color: 'var(--text-muted)' }}>Check the Google Maps API key and try again.</p>
-        </div>
-      )}
+      <MapStatusOverlay status={status} />
 
       {status === 'ready' && showSearchHere && (
         <button

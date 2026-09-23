@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/authStore'
 import { useThemeStore } from '@/store/themeStore'
 import { getSocket, disconnectSocket } from '@/lib/socket'
 import { captureUtmParams } from '@/lib/utm'
+import { useCompareStore } from '@/store/compareStore'
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 60_000, retry: 1 } } })
 
@@ -25,6 +26,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (token) getSocket()
     else disconnectSocket()
+  }, [token])
+
+  // Signed in: bring the saved compare list back (and keep it in sync from here on).
+  useEffect(() => {
+    if (token) useCompareStore.getState().loadFromServer()
   }, [token])
 
   // Apply the persisted theme to <html data-theme="..."> so the CSS variables switch.

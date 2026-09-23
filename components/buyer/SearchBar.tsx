@@ -57,6 +57,19 @@ const HANDOVER_OPTIONS = [
   { label: '2029 & Beyond',status: '',      year: 2029, yearMin: true  },
 ]
 
+// Rent tab: replaces the sale-side Ready / Off-Plan status with when the tenant can move in.
+const RENT_AVAILABILITY_OPTIONS = [
+  { label: 'Any Availability',   status: '',              within: 0   },
+  { label: 'Available Now',      status: 'available_now', within: 0   },
+  { label: 'Within 30 Days',     status: '',              within: 30  },
+  { label: 'Within 3 Months',    status: '',              within: 90  },
+  { label: 'Within 6 Months',    status: '',              within: 180 },
+  { label: 'Currently Rented',   status: 'occupied',      within: 0   },
+]
+
+// New Projects: delivery quarter, combined with the year above.
+const HANDOVER_QUARTERS = ['Q1', 'Q2', 'Q3', 'Q4']
+
 type ListingTab = 'sale' | 'rent' | 'project'
 
 /* ── Pill chip ───────────────────────────────────────────── */
@@ -245,7 +258,7 @@ function MobileFilterModal({
   priceRange, setPriceRange,
   onSearch, onApplyAI,
   compact, category, setCategory, bathrooms, setBathrooms, sizeRange, setSizeRange,
-  handover, setHandover,
+  handover, setHandover, rentAvail, setRentAvail, handoverQuarter, setHandoverQuarter,
 }: {
   open: boolean; onClose: () => void
   tab: ListingTab; setTab: (v: ListingTab) => void
@@ -264,6 +277,8 @@ function MobileFilterModal({
   bathrooms?: string; setBathrooms?: (v: string) => void
   sizeRange?: typeof SIZES[number]; setSizeRange?: (v: typeof SIZES[number]) => void
   handover?: typeof HANDOVER_OPTIONS[number]; setHandover?: (v: typeof HANDOVER_OPTIONS[number]) => void
+  rentAvail?: typeof RENT_AVAILABILITY_OPTIONS[number]; setRentAvail?: (v: typeof RENT_AVAILABILITY_OPTIONS[number]) => void
+  handoverQuarter?: string; setHandoverQuarter?: (v: string) => void
 }) {
   const [aiQuery, setAiQuery] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
@@ -287,7 +302,9 @@ function MobileFilterModal({
   const activeCount =
     (bedrooms ? 1 : 0) + (priceRange.min ? 1 : 0) + (propType ? 1 : 0) + (area ? 1 : 0) +
     (bathrooms ? 1 : 0) + (sizeRange?.min || sizeRange?.max ? 1 : 0) +
-    (handover?.status || handover?.year ? 1 : 0)
+    (handover?.status || handover?.year ? 1 : 0) +
+    (tab === 'rent' && (rentAvail?.status || rentAvail?.within) ? 1 : 0) +
+    (tab === 'project' && handoverQuarter ? 1 : 0)
 
   const modalTypeOptions = compact ? typeOptionsFor(category || '') : null
 
@@ -433,6 +450,13 @@ function MobileFilterModal({
                       </Chip>
                     ))}
                   </div>
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {HANDOVER_QUARTERS.map(q => (
+                      <Chip key={q} active={handoverQuarter === q} onClick={() => setHandoverQuarter?.(handoverQuarter === q ? '' : q)}>
+                        {q}
+                      </Chip>
+                    ))}
+                  </div>
                 </div>
               ) : compact && category === 'commercial' ? (
                 <div>
@@ -467,6 +491,22 @@ function MobileFilterModal({
                 </div>
               )}
 
+              {/* Rental availability — Rent tab only, replaces the Ready / Off-Plan status */}
+              {compact && tab === 'rent' && (
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)' }}>
+                    Rental Availability
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {RENT_AVAILABILITY_OPTIONS.map(o => (
+                      <Chip key={o.label} active={rentAvail?.label === o.label} onClick={() => setRentAvail?.(o)}>
+                        {o.label}
+                      </Chip>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Price range */}
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)' }}>
@@ -479,7 +519,7 @@ function MobileFilterModal({
                 <button
                   onClick={() => {
                     setBedrooms(''); setPriceRange(PRICE_RANGES[0]); setPropType(''); setArea('')
-                    if (compact) { setCategory?.(''); setBathrooms?.(''); setSizeRange?.(SIZES[0]); setHandover?.(HANDOVER_OPTIONS[0]) }
+                    if (compact) { setCategory?.(''); setBathrooms?.(''); setSizeRange?.(SIZES[0]); setHandover?.(HANDOVER_OPTIONS[0]); setRentAvail?.(RENT_AVAILABILITY_OPTIONS[0]); setHandoverQuarter?.('') }
                   }}
                   className="text-xs transition-colors"
                   style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
@@ -550,6 +590,8 @@ export default function SearchBar({
   const [bathrooms,  setBathrooms]  = useState('')
   const [sizeRange,  setSizeRange]  = useState(SIZES[0])
   const [handover,   setHandover]   = useState(HANDOVER_OPTIONS[0])
+  const [handoverQuarter, setHandoverQuarter] = useState('')
+  const [rentAvail,  setRentAvail]   = useState(RENT_AVAILABILITY_OPTIONS[0])
 
   const activeCount =
     (bedrooms       ? 1 : 0) +
@@ -558,7 +600,9 @@ export default function SearchBar({
     (area           ? 1 : 0) +
     (bathrooms      ? 1 : 0) +
     (sizeRange.min || sizeRange.max ? 1 : 0) +
-    (handover.status || handover.year ? 1 : 0)
+    (handover.status || handover.year ? 1 : 0) +
+    (tab === 'rent' && (rentAvail.status || rentAvail.within) ? 1 : 0) +
+    (tab === 'project' && handoverQuarter ? 1 : 0)
 
   const compactTypeOptions = typeOptionsFor(category)
 
@@ -574,6 +618,7 @@ export default function SearchBar({
       if (priceRange.max)   pp.set('priceMax', String(priceRange.max))
       if (handover.status)  pp.set('status', handover.status)
       if (handover.year)    pp.set(handover.yearMin ? 'handoverYearMin' : 'handoverYear', String(handover.year))
+      if (handoverQuarter)  pp.set('handoverQuarter', handoverQuarter)
       const qs = pp.toString()
       router.push(qs ? `/projects?${qs}` : '/projects')
       return
@@ -590,6 +635,10 @@ export default function SearchBar({
     if (priceRange.max)  p.set('priceMax',  String(priceRange.max))
     if (sizeRange.min)   p.set('sizeMin',   String(sizeRange.min))
     if (sizeRange.max)   p.set('sizeMax',   String(sizeRange.max))
+    if ((forcedListingType || tab) === 'rent') {
+      if (rentAvail.status) p.set('rentalStatus',    rentAvail.status)
+      if (rentAvail.within) p.set('availableWithin', String(rentAvail.within))
+    }
 
     if (basePath) {
       p.set('listingType', forcedListingType || tab)
@@ -707,7 +756,7 @@ export default function SearchBar({
           <button
             onClick={onMapClick}
             className="flex-shrink-0 flex items-center justify-center h-11 w-11 rounded-xl border"
-            style={{ borderColor: 'var(--border)', color: 'var(--text-mid)' }}
+            style={{ borderColor: 'var(--teal)', color: 'var(--teal)', background: 'rgba(203,1,1,0.08)' }}
             aria-label="Search on map"
           >
             <MapIcon size={16} />
@@ -804,8 +853,8 @@ export default function SearchBar({
           {onMapClick && (
             <button
               onClick={onMapClick}
-              className="flex-shrink-0 flex items-center gap-1.5 h-11 px-4 rounded-xl border text-xs font-medium transition-all duration-200"
-              style={{ borderColor: 'var(--border)', color: 'var(--text-mid)', cursor: 'pointer' }}
+              className="flex-shrink-0 flex items-center gap-1.5 h-11 px-4 rounded-xl border text-xs font-semibold transition-all duration-200"
+              style={{ borderColor: 'var(--teal)', color: 'var(--teal)', background: 'rgba(203,1,1,0.08)', cursor: 'pointer' }}
             >
               <MapIcon size={13} />
               Map
@@ -955,9 +1004,9 @@ export default function SearchBar({
             {/* Handover — additional filter, only on the New Projects tab */}
             {tab === 'project' && (
               <FilterDropdown
-                label={handover.status || handover.year ? handover.label : 'Handover'}
+                label={[handover.status || handover.year ? handover.label : '', handoverQuarter].filter(Boolean).join(' · ') || 'Handover'}
                 icon={Calendar}
-                active={!!handover.status || !!handover.year}
+                active={!!handover.status || !!handover.year || !!handoverQuarter}
                 widthClass="w-52"
                 fullWidth
               >
@@ -966,6 +1015,32 @@ export default function SearchBar({
                     {HANDOVER_OPTIONS.map(h => (
                       <DropdownOption key={h.label} active={handover.label === h.label} onClick={() => { setHandover(h); close() }}>
                         {h.label}
+                      </DropdownOption>
+                    ))}
+                    <div className="flex gap-1.5 pt-2 mt-1" style={{ borderTop: '1px solid var(--border-soft)' }}>
+                      {HANDOVER_QUARTERS.map(q => (
+                        <FilterPill key={q} active={handoverQuarter === q} onClick={() => setHandoverQuarter(handoverQuarter === q ? '' : q)} className="flex-1 py-1.5">{q}</FilterPill>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </FilterDropdown>
+            )}
+
+            {/* Rental availability — Rent tab only (Rent's counterpart to sale status / project handover) */}
+            {tab === 'rent' && (
+              <FilterDropdown
+                label={rentAvail.status || rentAvail.within ? rentAvail.label : 'Availability'}
+                icon={Calendar}
+                active={!!rentAvail.status || !!rentAvail.within}
+                widthClass="w-52"
+                fullWidth
+              >
+                {close => (
+                  <div className="flex flex-col gap-1">
+                    {RENT_AVAILABILITY_OPTIONS.map(o => (
+                      <DropdownOption key={o.label} active={rentAvail.label === o.label} onClick={() => { setRentAvail(o); close() }}>
+                        {o.label}
                       </DropdownOption>
                     ))}
                   </div>
@@ -996,8 +1071,8 @@ export default function SearchBar({
             {onMapClick && (
               <button
                 onClick={onMapClick}
-                className="flex-1 min-w-0 flex items-center justify-center gap-1.5 h-11 px-4 rounded-xl border text-xs font-medium transition-all duration-200"
-                style={{ borderColor: 'var(--border)', color: 'var(--text-mid)', cursor: 'pointer' }}
+                className="flex-1 min-w-0 flex items-center justify-center gap-1.5 h-11 px-4 rounded-xl text-xs font-bold text-white transition-transform duration-200 hover:-translate-y-0.5"
+                style={{ background: 'var(--grad)', boxShadow: '0 6px 16px -6px rgba(203,1,1,0.6)', cursor: 'pointer' }}
               >
                 <MapIcon size={13} />
                 Map
@@ -1100,6 +1175,8 @@ export default function SearchBar({
         bathrooms={bathrooms} setBathrooms={setBathrooms}
         sizeRange={sizeRange} setSizeRange={setSizeRange}
         handover={handover} setHandover={setHandover}
+        rentAvail={rentAvail} setRentAvail={setRentAvail}
+        handoverQuarter={handoverQuarter} setHandoverQuarter={setHandoverQuarter}
       />
     </div>
     </div>

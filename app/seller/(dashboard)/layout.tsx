@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   Home, TrendingUp, MessageSquare, Plus,
-  LogOut, Sun, Moon, X,
+  LogOut, Sun, Moon, X, User,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useThemeStore } from '@/store/themeStore'
@@ -19,6 +19,7 @@ const NAV = [
   { href: '/seller/listings', icon: Home,          label: 'My Listings' },
   { href: '/seller/leads',    icon: TrendingUp,     label: 'Leads'       },
   { href: '/seller/messages', icon: MessageSquare,  label: 'Messages'    },
+  { href: '/seller/profile',  icon: User,           label: 'Profile'     },
 ]
 
 function ThemeToggle() {

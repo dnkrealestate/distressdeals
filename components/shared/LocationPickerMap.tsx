@@ -1,27 +1,12 @@
 'use client'
 import { useEffect, useRef } from 'react'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
+import { DUBAI_CENTER, PIN_URL, baseMapOptions, useGoogleMapsStatus, useMapTheme } from '@/lib/googleMaps'
+import { MAP_STYLES } from '@/lib/mapStyles'
+import MapStatusOverlay from './MapStatusOverlay'
 
-// Click (or drag the pin) to set a location — free OpenStreetMap tiles, no
-// API key. Touches `window` at import time, so callers must load this via
-// next/dynamic with ssr:false (see PropertiesMapView for the same pattern).
-const DUBAI_CENTER: [number, number] = [25.2048, 55.2708]
-
-// Leaflet's default marker icon resolves to relative image paths that
-// don't survive Next.js/Webpack bundling (same reason PropertiesMapView
-// uses its own divIcon instead of the built-in one) — without this the
-// pin simply never renders. A plain inline SVG teardrop sidesteps that
-// entirely; iconAnchor points the tip at the exact coordinate.
-const pinIcon = L.divIcon({
-  className: '',
-  html: `<svg width="30" height="40" viewBox="0 0 30 40" xmlns="http://www.w3.org/2000/svg" style="display:block;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.35));">
-    <path d="M15 0C6.716 0 0 6.716 0 15c0 10.5 15 25 15 25s15-14.5 15-25C30 6.716 23.284 0 15 0z" fill="#CB0101"/>
-    <circle cx="15" cy="15" r="6" fill="#fff"/>
-  </svg>`,
-  iconSize: [30, 40],
-  iconAnchor: [15, 40],
-})
+// Click the map (or drag the pin) to set a location. Same custom Google map
+// as the property maps. Touches `window`, so callers load this via next/dynamic
+// with ssr:false.
 
 export default function LocationPickerMap({
   lat, lng, onPick,
@@ -31,44 +16,64 @@ export default function LocationPickerMap({
   onPick: (lat: number, lng: number) => void
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const mapRef = useRef<L.Map | null>(null)
-  const markerRef = useRef<L.Marker | null>(null)
+  const mapRef = useRef<any>(null)
+  const markerRef = useRef<any>(null)
   const onPickRef = useRef(onPick)
   onPickRef.current = onPick
+  const theme = useMapTheme()
 
-  useEffect(() => {
+  const status = useGoogleMapsStatus(g => {
     if (!containerRef.current || mapRef.current) return
-    const center: [number, number] = lat !== undefined && lng !== undefined ? [lat, lng] : DUBAI_CENTER
-    const map = L.map(containerRef.current, { zoomControl: true }).setView(center, lat !== undefined ? 15 : 10)
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
-      maxZoom: 19,
-    }).addTo(map)
+    const hasPoint = lat !== undefined && lng !== undefined
+    const center = hasPoint ? { lat: lat as number, lng: lng as number } : DUBAI_CENTER
 
-    const marker = L.marker(center, { draggable: true, icon: pinIcon }).addTo(map)
-    marker.on('dragend', () => {
-      const p = marker.getLatLng()
-      onPickRef.current(p.lat, p.lng)
+    const map = new g.maps.Map(containerRef.current, {
+      ...baseMapOptions(theme),
+      center,
+      zoom: hasPoint ? 15 : 10,
+      // The picker often sits inside a scrolling form — let a single finger/wheel drive the map.
+      gestureHandling: 'greedy',
     })
-    map.on('click', (e: L.LeafletMouseEvent) => {
-      marker.setLatLng(e.latlng)
-      onPickRef.current(e.latlng.lat, e.latlng.lng)
+    // Legacy google.maps.Marker: it's the one marker type that supports
+    // dragging without a Cloud Map ID (AdvancedMarkerElement requires one).
+    const marker = new g.maps.Marker({
+      position: center,
+      map,
+      draggable: true,
+      icon: { url: PIN_URL, scaledSize: new g.maps.Size(30, 40), anchor: new g.maps.Point(15, 40) },
+    })
+    marker.addListener('dragend', () => {
+      const p = marker.getPosition()
+      onPickRef.current(p.lat(), p.lng())
+    })
+    map.addListener('click', (e: any) => {
+      marker.setPosition(e.latLng)
+      onPickRef.current(e.latLng.lat(), e.latLng.lng())
     })
 
     mapRef.current = map
     markerRef.current = marker
+  })
 
-    return () => { map.remove(); mapRef.current = null; markerRef.current = null }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  useEffect(() => {
+    mapRef.current?.setOptions({ styles: MAP_STYLES[theme] })
+  }, [theme, status])
 
   // Re-center and move the pin when lat/lng change from outside (search
   // result picked, or "Use my current location") without rebuilding the map.
   useEffect(() => {
-    if (!mapRef.current || !markerRef.current || lat === undefined || lng === undefined) return
-    markerRef.current.setLatLng([lat, lng])
-    mapRef.current.setView([lat, lng], Math.max(mapRef.current.getZoom(), 14))
-  }, [lat, lng])
+    const map = mapRef.current
+    const marker = markerRef.current
+    if (!map || !marker || lat === undefined || lng === undefined) return
+    marker.setPosition({ lat, lng })
+    map.panTo({ lat, lng })
+    if ((map.getZoom() ?? 0) < 14) map.setZoom(14)
+  }, [lat, lng, status])
 
-  return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <div ref={containerRef} style={{ width: '100%', height: '100%', background: 'var(--bg-alt)' }} />
+      <MapStatusOverlay status={status} />
+    </div>
+  )
 }

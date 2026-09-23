@@ -15,6 +15,7 @@ import { useCompareStore }   from '@/store/compareStore'
 import { formatPrice, formatArea, cn, rentSuffix } from '@/lib/utils'
 import ImageSlider            from '@/components/buyer/ImageSlider'
 import { SpecPill }           from '@/components/buyer/SpecPill'
+import RentalBadge            from '@/components/buyer/RentalBadge'
 import LeadModal              from '@/app/buyer/LeadModal'
 import type { Property }     from '@/types'
 
@@ -142,6 +143,7 @@ export default function PropertyCard({
 
             <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
               <ListingBadge type={p.listingType} />
+              {p.listingType === 'rent' && <RentalBadge property={p} onImage />}
               {p.completion === 'off_plan' && <span className="badge badge-purple text-[10px]">Off-Plan</span>}
               {p.isFeatured && (
                 <span className="badge text-[10px]" style={{ background: 'rgba(203,1,1,0.20)', color: '#CB0101', border: '1px solid rgba(203,1,1,0.40)' }}>
@@ -246,6 +248,7 @@ export default function PropertyCard({
           {/* Top-left badges */}
           <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
             <ListingBadge type={p.listingType} />
+            {p.listingType === 'rent' && <RentalBadge property={p} onImage />}
 
             {p.completion === 'off_plan' && (
               <span className="badge badge-purple text-[10px]">Off-Plan</span>

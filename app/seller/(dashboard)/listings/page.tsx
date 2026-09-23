@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { propertyAPI, chatAPI } from '@/lib/api'
 import { formatPrice, formatArea, formatDate, cn, rentSuffix } from '@/lib/utils'
+import RentalBadge from '@/components/buyer/RentalBadge'
 import type { Property } from '@/types'
 import toast from 'react-hot-toast'
 
@@ -275,6 +276,7 @@ export default function SellerListingsPage() {
                         {STATUS_LABEL[p.status] || p.status}
                       </span>
                       {p.isFeatured && <span className="badge badge-teal text-[10px]">✦ Featured</span>}
+                      {p.listingType === 'rent' && <RentalBadge property={p} />}
                     </div>
                     <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
                       {p.location?.area}, {p.location?.city} · {formatPrice(p.price)}

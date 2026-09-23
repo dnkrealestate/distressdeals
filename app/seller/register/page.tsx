@@ -136,7 +136,7 @@ export default function SellerRegisterPage() {
 
           <div className="space-y-4">
             {[
-              { icon: ShieldCheck,  text: 'WhatsApp OTP verification for security'       },
+              { icon: ShieldCheck,  text: 'WhatsApp OTP verification for security'          },
               { icon: Building2,    text: 'Expert team reviews & approves your listing'  },
               { icon: CheckCircle2, text: 'Reach thousands of verified buyers instantly' },
             ].map(({ icon: Icon, text }) => (

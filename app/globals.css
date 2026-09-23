@@ -465,3 +465,29 @@ body {
   from { width: 0; }
   to   { width: 100%; }
 }
+
+/* ── Map search tool (components/map/*) ──────────────────────────────────
+   Pins and clusters are DOM nodes created imperatively inside a Google Maps
+   OverlayView (they must be positioned by the map's projection), so they're
+   styled here rather than with Tailwind classes. The outer .map-anchor is
+   moved by an inline transform; the inner node is what hover/selected restyle. */
+.map-anchor { position: absolute; left: 0; top: 0; will-change: transform; }
+.map-pin {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 5px 9px; border-radius: 999px; border: 2px solid #fff;
+  background: var(--grad, #CB0101); color: #fff;
+  font-size: 11px; font-weight: 700; line-height: 1; white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28); cursor: pointer; user-select: none;
+  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+}
+.map-pin:hover, .map-pin.is-hover { transform: scale(1.12); filter: brightness(1.08); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.38); }
+.map-pin.is-selected { transform: scale(1.22); background: #111827 !important; box-shadow: 0 0 0 3px rgba(203, 1, 1, 0.55), 0 8px 20px rgba(0, 0, 0, 0.45); }
+.map-pin.is-offplan { border-style: dashed; }
+.map-cluster {
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 999px; border: 3px solid rgba(255, 255, 255, 0.92);
+  background: var(--grad, #CB0101); color: #fff; font-weight: 800; user-select: none;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), 0 0 0 6px rgba(203, 1, 1, 0.18);
+  cursor: pointer; transition: transform .12s ease;
+}
+.map-cluster:hover { transform: scale(1.1); }
