@@ -130,7 +130,7 @@ export default function Footer() {
             <div className="inline-flex items-center gap-2 rounded-full px-3.5 py-2" style={{ background: 'rgba(203,1,1,.06)', border: '1px solid rgba(203,1,1,.18)' }}>
               <Shield size={13} style={{ color: '#CB0101' }} />
               <span className="text-xs font-semibold" style={{ color: '#CB0101' }}>RERA Registered</span>
-              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>· Broker No: 12345</span>
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>· Broker No: </span>
             </div>
           </div>
 
