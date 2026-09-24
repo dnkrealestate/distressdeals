@@ -4,10 +4,10 @@ import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   LayoutDashboard, Home, TrendingUp, Users, CalendarDays,
-  FileText, UserCog, LogOut, Sun, Moon, ShieldCheck, MessageSquare, LayoutTemplate, Building2, Wallet,
-  MoreHorizontal, X, Landmark, MapPin, Layers,
+  UserCog, LogOut, Sun, Moon, ShieldCheck, MessageSquare, Wallet,
+  MoreHorizontal, X, Settings as SettingsIcon,
 } from 'lucide-react'
-import { useAuthStore } from '@/store/authStore'
+import { useAuthStore, useAuthHydrated } from '@/store/authStore'
 import { useThemeStore } from '@/store/themeStore'
 import NotificationBell from '@/components/NotificationBell'
 import { Logo } from '@/components/shared/Logo'
@@ -26,13 +26,7 @@ const NAV: { href: string; icon: any; label: string; permission: AgentPermission
   { href: '/admin/messages',   icon: MessageSquare,     label: 'Messages', permission: null                 },
   { href: '/admin/agents',     icon: Users,             label: 'Agents',   permission: 'manage_agents'      },
   { href: '/admin/meetings',   icon: CalendarDays,     label: 'Meetings', permission: 'schedule_meetings'  },
-  { href: '/admin/content',    icon: FileText,          label: 'Content',  permission: 'manage_content'     },
-  { href: '/admin/homepage',   icon: LayoutTemplate,    label: 'Homepage', permission: 'manage_content'     },
-  { href: '/admin/projects',   icon: Building2,         label: 'Projects', permission: 'manage_content'     },
-  { href: '/admin/developers', icon: Landmark,          label: 'Developers', permission: 'manage_content'   },
-  { href: '/admin/areas',      icon: MapPin,            label: 'Areas',      permission: 'manage_content'   },
-  { href: '/admin/communities', icon: Layers,           label: 'Communities', permission: 'manage_content'  },
-  { href: '/admin/buildings',  icon: Building2,         label: 'Buildings',  permission: 'manage_content'   },
+  { href: '/admin/settings',   icon: SettingsIcon,      label: 'Settings', permission: 'manage_content'     },
   { href: '/admin/users',      icon: UserCog,           label: 'Users',    permission: 'ADMIN_ONLY'         },
 ]
 
@@ -40,6 +34,10 @@ const NAV: { href: string; icon: any; label: string; permission: AgentPermission
 // else (plus theme/sign out, which the sidebar footer normally carries) lives
 // behind the "More" sheet on mobile.
 const MOBILE_PRIMARY_HREFS = ['/admin/dashboard', '/admin/properties', '/admin/leads', '/admin/messages']
+
+// Sub-sections consolidated under the "Settings" hub — visiting any of these
+// keeps the Settings nav item highlighted even though they're no longer top-level links.
+const SETTINGS_SUB_PATHS = ['/admin/content', '/admin/homepage', '/admin/seo', '/admin/projects', '/admin/developers', '/admin/areas', '/admin/communities', '/admin/buildings']
 
 const ALLOWED_ROLES = ['admin', 'super_admin', 'agent']
 
@@ -66,11 +64,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     chatAPI.getUnreadCount().then(r => { if (r.data.success) setMsgUnread(r.data.data.count) }).catch(() => {})
   }, [isAuthenticated])
 
+  const hydrated = useAuthHydrated()
+
   useEffect(() => {
+    if (!hydrated) return
     if (!isAuthenticated || !user || !ALLOWED_ROLES.includes(user.role)) {
       router.replace('/admin/login')
     }
-  }, [isAuthenticated, user, router])
+  }, [hydrated, isAuthenticated, user, router])
 
   // Sidebar badge for unread messages — refetches on any new message
   // anywhere (cheap single count call) and again whenever the user leaves
@@ -89,7 +90,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => { setMoreOpen(false) }, [pathname])
 
-  if (!isAuthenticated || !user || !ALLOWED_ROLES.includes(user.role)) return null
+  if (!hydrated || !isAuthenticated || !user || !ALLOWED_ROLES.includes(user.role)) return null
 
   const isFullAccess = user.role === 'admin' || user.role === 'super_admin'
   const visibleNav = NAV.filter(n => {
@@ -99,7 +100,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return (user.permissions || []).includes(n.permission)
   })
 
-  const isActive = (href: string) => pathname === href || pathname?.startsWith(href + '/')
+  const isActive = (href: string) => {
+    if (pathname === href || pathname?.startsWith(href + '/')) return true
+    if (href === '/admin/settings') return SETTINGS_SUB_PATHS.some(p => pathname === p || pathname?.startsWith(p + '/'))
+    return false
+  }
   const mobilePrimaryNav = visibleNav.filter(n => MOBILE_PRIMARY_HREFS.includes(n.href))
   const mobileMoreNav = visibleNav.filter(n => !MOBILE_PRIMARY_HREFS.includes(n.href))
 

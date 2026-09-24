@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Calculator, Wallet, X, Loader2, CheckCircle2 } from 'lucide-react'
@@ -94,6 +94,14 @@ function PreApprovalForm({ inputs, monthlyPayment, onClose }: {
 }
 
 export default function MortgageSection() {
+  return (
+    <Suspense fallback={null}>
+      <MortgageSectionInner />
+    </Suspense>
+  )
+}
+
+function MortgageSectionInner() {
   const searchParams = useSearchParams()
   const [propertyPrice, setPropertyPrice] = useState(2_000_000)
   const [downPaymentPct, setDownPaymentPct] = useState(20)

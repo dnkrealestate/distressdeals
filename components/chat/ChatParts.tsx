@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Check, CheckCheck, Download, File, FileSpreadsheet, FileText, Presentation, X } from 'lucide-react'
+import { Check, CheckCheck, Download, File, FileSpreadsheet, FileText, Info, Presentation, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   clockTime, dayLabel, fileFlavour, formatFileSize, lastSeenLabel, messageStatus, type FileFlavour, type MessageStatus,
@@ -165,6 +165,19 @@ export function MessageBubble({ message, mine, senderLabel }: { message: ChatMes
   const attachments = message.attachments ?? []
   const hasText = !!message.content?.trim()
   const imageOnly = attachments.length > 0 && !hasText && attachments.every(a => a.kind === 'image')
+
+  // Platform notes (e.g. "New enquiry from Buyer B-A1") — centred, not attributed to a side of the conversation.
+  if (message.type === 'system') {
+    return (
+      <div className="flex flex-col items-center my-1">
+        <div className="flex items-start gap-1.5 max-w-[92%] sm:max-w-lg px-3 py-2 rounded-xl text-xs text-center" style={{ background: 'var(--bg-alt)', color: 'var(--text)', border: '1px solid var(--border)' }}>
+          <Info size={13} className="flex-shrink-0 mt-px" style={{ color: 'var(--teal)' }} />
+          <span>{message.content}</span>
+        </div>
+        <span className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>{clockTime(message.createdAt)}</span>
+      </div>
+    )
+  }
 
   return (
     <div className={cn('flex flex-col', mine ? 'items-end' : 'items-start')}>

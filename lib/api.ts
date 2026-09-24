@@ -255,6 +255,7 @@ export const projectAPI = {
   getStatusStats: (params?: any) => api.get('/projects/status-stats', { params }),
   trackShare: (id: string) => api.post(`/projects/${id}/share`),
   getAnalytics: (id: string) => api.get(`/projects/${id}/analytics`),
+  aiDescription: (data: any) => api.post('/projects/ai-description', data),
 }
 
 // ── Developers (real, admin-managed records) ──────────
@@ -316,6 +317,25 @@ export const mortgageAPI = {
   getAll:  (params?: any) => api.get('/mortgage-inquiries', { params }),
   update:  (id: string, data: any) => api.patch(`/mortgage-inquiries/${id}`, data),
   delete:  (id: string) => api.delete(`/mortgage-inquiries/${id}`),
+}
+
+// ── Contact (general enquiries — no property/project attached) ──
+export const contactAPI = {
+  submit: (data: { name: string; email: string; phone?: string; message: string; source: 'contact_form' | 'valuation_request' | 'fast_sale_request' }) =>
+    api.post('/contact', data),
+}
+
+// ── Content pages (admin-editable body content for the distress-sale landing pages + About) ──
+export const contentPageAPI = {
+  get:    (pageKey: string) => api.get(`/content-pages/${pageKey}`),
+  update: (pageKey: string, data: Partial<import('@/types').ContentPageData>) => api.put(`/content-pages/${pageKey}`, data),
+}
+
+// ── SEO settings (admin-editable title/description/keywords per page) ──
+export const seoAPI = {
+  get:    (pageKey: string) => api.get(`/seo/${pageKey}`),
+  getAll: () => api.get('/seo'),
+  update: (pageKey: string, data: { title?: string; description?: string; keywords?: string }) => api.put(`/seo/${pageKey}`, data),
 }
 
 // ── Homepage CMS ─────────────────────────────────────

@@ -204,7 +204,7 @@ export default function PropertyDetailClient({ property }: { property: Property 
     }
   }
 
-  const shareUrl = typeof window !== 'undefined' ? window.location.href : `https://distressdeals.ae/buyer/properties/${property.slug}`
+  const shareUrl = typeof window !== 'undefined' ? window.location.href : `https://www.distressdealsuae.com/buyer/properties/${property.slug}`
 
   const share = async () => {
     propertyAPI.trackShare(property._id).catch(() => {})

@@ -1,16 +1,13 @@
 import type { Metadata } from 'next'
+import { resolveSeo } from '@/lib/seo'
 import BuildingsListClient from './BuildingsListClient'
 
-export const metadata: Metadata = {
-  title: 'Dubai Buildings & Towers',
-  description: 'Building-level guides for Dubai towers and developments — amenities, developer, and year built.',
-  alternates: { canonical: '/buildings' },
-  openGraph: {
-    title: 'Dubai Buildings & Towers',
+export async function generateMetadata(): Promise<Metadata> {
+  return resolveSeo('buildings', {
+    title: 'Dubai Buildings & Towers Directory',
     description: 'Building-level guides for Dubai towers and developments — amenities, developer, and year built.',
-    type: 'website',
-    url: '/buildings',
-  },
+    path: '/buildings',
+  })
 }
 
 export default function BuildingsPage() {

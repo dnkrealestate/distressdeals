@@ -1,12 +1,22 @@
+import type { Metadata } from 'next'
 import { homepageAPI } from '@/lib/api'
+import { resolveSeo } from '@/lib/seo'
 import HomeClient from '@/components/HomeClient'
 import type { HomepageContent } from '@/types'
+
+export async function generateMetadata(): Promise<Metadata> {
+  return resolveSeo('home', {
+    title: 'Distress Sale Dubai | Distressed Property Deals UAE',
+    description: "Dubai's centralized real estate platform. Every listing verified, one dedicated agent from first message to keys-in-hand — buy, sell, or rent with confidence.",
+    path: '/',
+  })
+}
 
 // Defaults mirror the backend schema's defaults — used only if the CMS
 // fetch fails outright, so the homepage never renders empty.
 const FALLBACK_CONTENT: HomepageContent = {
   _id: '',
-  heroHeadlines: ['Find Your Dream Home', "Invest in Dubai's Finest", 'Live Where Luxury Meets Life'],
+  heroHeadlines: ['Distressed Property Deals in Dubai', "Invest in Dubai's Finest", 'Live Where Luxury Meets Life'],
   heroSubtitle: "Discover exclusive villas, apartments & penthouses. Buy, sell, or rent — managed by Dubai's most trusted specialists.",
   heroMiniStats: [{ value: '2,400+', label: 'Active Listings' }, { value: '850+', label: 'Deals Closed' }, { value: '4.9★', label: 'Client Rating' }],
   whyCards: [

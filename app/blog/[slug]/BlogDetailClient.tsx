@@ -20,7 +20,7 @@ export default function BlogDetailClient({ post }: { post: BlogPost }) {
   const [related, setRelated] = useState<BlogPost[]>([])
   const [toc, setToc] = useState<TocItem[]>([])
   const contentRef = useRef<HTMLDivElement>(null)
-  const shareUrl = typeof window !== 'undefined' ? window.location.href : `https://distressdeals.ae/blog/${post.slug}`
+  const shareUrl = typeof window !== 'undefined' ? window.location.href : `https://www.distressdealsuae.com/blog/${post.slug}`
 
   useEffect(() => {
     blogAPI.getAll({ category: post.category, limit: 4 })

@@ -16,7 +16,8 @@ import { AMENITY_META, AMENITY_GROUPS } from '@/lib/amenities'
 import { reverseGeocode, type GeocodeResult } from '@/lib/distance'
 import { LocationSearch } from '@/components/shared/LocationSearch'
 import StepIndicator from '@/components/shared/StepIndicator'
-import BlockEditor, { Block, htmlToBlocks, blocksToHtml } from '@/components/shared/BlockEditor'
+import { Block, htmlToBlocks, blocksToHtml } from '@/components/shared/BlockEditor'
+import ProjectDescriptionStep, { type ProjectSeo, type ProjectFacts } from '@/components/admin/ProjectDescriptionStep'
 import { PerformanceStats } from '@/components/admin/PerformanceStats'
 import type { Project, Developer } from '@/types'
 import toast from 'react-hot-toast'
@@ -128,6 +129,9 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
   const [gallery, setGallery] = useState<string[]>(project?.images?.map(i => i.url) || [])
   const [uploadingGallery, setUploadingGallery] = useState(false)
   const [blocks, setBlocks] = useState<Block[]>(() => htmlToBlocks(project?.description || ''))
+  const [seo, setSeo] = useState<ProjectSeo>({
+    metaTitle: project?.metaTitle || '', metaDescription: project?.metaDescription || '', focusKeyword: project?.focusKeyword || '',
+  })
   const [submitting, setSubmitting] = useState(false)
   const [developers, setDevelopers] = useState<Developer[]>([])
   const [permitQrImage, setPermitQrImage] = useState(project?.permitQrImage || '')
@@ -392,6 +396,9 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
         .filter(l => l.name && l.lat !== '' && l.lng !== '')
         .map(l => ({ name: l.name, category: l.category, lat: Number(l.lat), lng: Number(l.lng) })),
       videos,
+      metaTitle: seo.metaTitle.trim(),
+      metaDescription: seo.metaDescription.trim(),
+      focusKeyword: seo.focusKeyword.trim(),
     }
 
     try {
@@ -406,8 +413,32 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
     }
   }
 
-  const goNext = () => setStep(s => (s < 3 ? (s + 1) as 1 | 2 | 3 : s))
-  const goPrev = () => setStep(s => (s > 1 ? (s - 1) as 1 | 2 | 3 : s))
+  const goNext = () => setStep(s => Math.min(s + 1, 4))
+  const goPrev = () => setStep(s => Math.max(s - 1, 1))
+
+  // Required fields all live in step 1 — if any are missing when saving from the last step, take the admin there.
+  const onInvalid = () => { setStep(1); toast.error('Fill in the required fields in Details first') }
+
+  // The form's current values, in words, for the AI description writer.
+  const getFacts = (): ProjectFacts => {
+    const v = getValues()
+    const category = (c: string) => LANDMARK_CATEGORIES.find(x => x.value === c)?.label || c
+    return {
+      title: v.title || '', developer: v.developer || undefined,
+      type: TYPE_OPTIONS.find(t => t.value === v.type)?.label || v.type || undefined,
+      status: v.status || undefined,
+      area: v.area || undefined, community: v.community || undefined, city: v.city || undefined, emirate: v.emirate || undefined,
+      priceFrom: Number(v.priceFrom) || undefined, priceTo: Number(v.priceTo) || undefined,
+      bedrooms: v.bedrooms || undefined, bathrooms: v.bathrooms || undefined, sizeRange: v.sizeRange || undefined,
+      handoverQuarter: v.handoverQuarter || undefined, handoverYear: v.handoverYear ? String(v.handoverYear) : undefined,
+      paymentPlan: v.paymentPlan || undefined,
+      amenities: Object.keys(amenities).filter(k => amenities[k]).map(k => AMENITY_META[k]?.label || k),
+      landmarks: landmarks.filter(l => l.name.trim()).map(l => `${l.name.trim()} (${category(l.category)})`),
+      floorPlans: floorPlans.filter(f => f.label.trim()).map(f =>
+        [f.label.trim(), f.bedrooms, f.size, f.price && `from AED ${Number(f.price).toLocaleString('en-US')}`].filter(Boolean).join(', ')),
+      masterPlanNotes: masterPlanDescription.trim() || undefined,
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6" style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}>
@@ -419,8 +450,12 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
           <button type="button" onClick={onClose} className="btn-ghost btn-sm p-2"><X size={14} /></button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="flex-1 min-h-0 overflow-y-auto p-6">
-          <StepIndicator step={step} onJump={setStep} />
+        <form
+          onSubmit={handleSubmit(onSubmit, onInvalid)}
+          onKeyDown={e => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') e.preventDefault() }}
+          className="flex-1 min-h-0 overflow-y-auto p-6"
+        >
+          <StepIndicator step={step} onJump={setStep} labels={['Details', 'Amenities', 'Uploads', 'Description']} />
 
           {/* ── Step 1 — Details ─────────────────────────────────── */}
           <div className={cn('space-y-5', step !== 1 && 'hidden')}>
@@ -582,9 +617,6 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
               <div className="space-y-4">
                 <Field label="Reference Number">
                   <input className="input" value={project?.referenceId || 'Assigned on save'} disabled style={{ opacity: 0.7 }} />
-                </Field>
-                <Field label="Description">
-                  <BlockEditor blocks={blocks} onChange={setBlocks} />
                 </Field>
                 <div className="grid grid-cols-2 gap-4">
                   <Field label="Price From (AED) *">
@@ -882,6 +914,20 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
                 </>
               )}
             </div>
+
+            <div className="flex items-center justify-between">
+              <button type="button" onClick={goPrev} className="btn-ghost">Previous</button>
+              <button type="button" onClick={goNext} className="btn-primary">Next</button>
+            </div>
+          </div>
+
+          {/* ── Step 4 — Description (last, so the AI can use everything entered before it) ── */}
+          <div className={cn('space-y-5', step !== 4 && 'hidden')}>
+            <ProjectDescriptionStep
+              blocks={blocks} onBlocksChange={setBlocks}
+              seo={seo} onSeoChange={setSeo}
+              getFacts={getFacts} slug={project?.slug} onJump={setStep}
+            />
 
             <div className="flex items-center justify-between">
               <button type="button" onClick={goPrev} className="btn-ghost">Previous</button>

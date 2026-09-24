@@ -43,17 +43,18 @@ export default async function NewsDetailPage({ params }: { params: { slug: strin
     image: item.coverImage ? [item.coverImage] : undefined,
     datePublished: item.publishedAt || item.createdAt,
     dateModified: item.publishedAt || item.createdAt,
+    author: { '@type': 'Organization', name: 'Distress Deals Dubai' },
     publisher: { '@type': 'Organization', name: 'Distress Deals Dubai' },
-    mainEntityOfPage: { '@type': 'WebPage', '@id': `https://distressdeals.ae/news/${item.slug}` },
+    mainEntityOfPage: { '@type': 'WebPage', '@id': `https://www.distressdealsuae.com/news/${item.slug}` },
   }
 
   const breadcrumbJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://distressdeals.ae' },
-      { '@type': 'ListItem', position: 2, name: 'News', item: 'https://distressdeals.ae/news' },
-      { '@type': 'ListItem', position: 3, name: item.title, item: `https://distressdeals.ae/news/${item.slug}` },
+      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.distressdealsuae.com' },
+      { '@type': 'ListItem', position: 2, name: 'News', item: 'https://www.distressdealsuae.com/news' },
+      { '@type': 'ListItem', position: 3, name: item.title, item: `https://www.distressdealsuae.com/news/${item.slug}` },
     ],
   }
 

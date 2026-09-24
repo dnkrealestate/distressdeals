@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
@@ -180,6 +180,14 @@ function StatusPill({ active, onClick, children }: { active: boolean; onClick: (
 }
 
 export default function ProjectsListClient() {
+  return (
+    <Suspense fallback={null}>
+      <ProjectsListClientInner />
+    </Suspense>
+  )
+}
+
+function ProjectsListClientInner() {
   const searchParams = useSearchParams()
   const [filters, setFilters] = useState({
     q: searchParams.get('q') || '', area: searchParams.get('area') || '', developer: '',
@@ -272,7 +280,7 @@ export default function ProjectsListClient() {
         </nav>
 
         <h1 className="heading-md mb-1">
-          Off-Plan <span className="grad-text">New Projects</span>
+          Off-Plan <span className="grad-text">Projects in Dubai</span>
         </h1>
         <p className="muted">
           {loading ? 'Loading…' : `${total.toLocaleString()} developments found`}

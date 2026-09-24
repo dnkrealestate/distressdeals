@@ -6,6 +6,7 @@ import { Plus, X, Trash2, ShieldCheck, Users as UsersIcon, TrendingUp, Trophy, C
 import { agentAPI, leadAPI } from '@/lib/api'
 import { getSocket } from '@/lib/socket'
 import { cn, formatDate, formatPrice } from '@/lib/utils'
+import { IdTag } from '@/components/shared/UserIdChip'
 import type { Agent, AgentPermission, Lead, AgentPerformance } from '@/types'
 import toast from 'react-hot-toast'
 
@@ -283,7 +284,7 @@ export default function AdminAgentsPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{a.user?.name}</p>
+                      <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{a.user?.name}<IdTag id={a.user?.displayId} /></p>
                       <span className="badge badge-teal text-xs capitalize">{a.agentRole?.replace('_', ' ')}</span>
                       <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{a.agentId}</span>
                       <span className={cn('badge text-[10px]', a.isOnline ? 'badge-green' : 'badge-gray')}>

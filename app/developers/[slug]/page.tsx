@@ -12,7 +12,7 @@ import { projectAPI, developerAPI } from '@/lib/api'
 import { formatPrice } from '@/lib/utils'
 import type { DeveloperWithStats, Project } from '@/types'
 
-const SITE_URL = 'https://distressdeals.ae'
+const SITE_URL = 'https://www.distressdealsuae.com'
 
 const getDeveloper = cache(async (slug: string): Promise<DeveloperWithStats | null> => {
   try {

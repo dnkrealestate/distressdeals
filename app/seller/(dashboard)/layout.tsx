@@ -6,7 +6,7 @@ import {
   Home, TrendingUp, MessageSquare, Plus,
   LogOut, Sun, Moon, X, User,
 } from 'lucide-react'
-import { useAuthStore } from '@/store/authStore'
+import { useAuthStore, useAuthHydrated } from '@/store/authStore'
 import { useThemeStore } from '@/store/themeStore'
 import NotificationBell from '@/components/NotificationBell'
 import { Logo } from '@/components/shared/Logo'
@@ -39,16 +39,19 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
 
+  const hydrated = useAuthHydrated()
+
   useEffect(() => {
+    if (!hydrated) return
     if (!isAuthenticated || !user || user.role !== 'seller') {
       router.replace('/seller/login')
     }
-  }, [isAuthenticated, user, router])
+  }, [hydrated, isAuthenticated, user, router])
 
   // Close the mobile account sheet on every navigation.
   useEffect(() => { setMenuOpen(false) }, [pathname])
 
-  if (!isAuthenticated || !user || user.role !== 'seller') return null
+  if (!hydrated || !isAuthenticated || !user || user.role !== 'seller') return null
 
   const isActive = (href: string) => pathname === href || pathname?.startsWith(href + '/')
 

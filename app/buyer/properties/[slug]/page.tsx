@@ -36,6 +36,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   }
 }
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.distressdealsuae.com'
+
 export default async function PropertyDetailPage({ params }: { params: { slug: string } }) {
   const property = await getProperty(params.slug)
   if (!property) notFound()
@@ -45,7 +47,7 @@ export default async function PropertyDetailPage({ params }: { params: { slug: s
     '@type': 'RealEstateListing',
     name: property.title,
     description: property.description.replace(/<[^>]*>/g, '').slice(0, 300),
-    url: `https://distressdeals.ae/buyer/properties/${property.slug}`,
+    url: `${SITE_URL}/buyer/properties/${property.slug}`,
     datePosted: property.createdAt,
     image: property.images?.map(i => i.url),
     address: {
@@ -73,9 +75,9 @@ export default async function PropertyDetailPage({ params }: { params: { slug: s
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://distressdeals.ae' },
-      { '@type': 'ListItem', position: 2, name: 'Properties', item: 'https://distressdeals.ae/buyer/properties' },
-      { '@type': 'ListItem', position: 3, name: property.title, item: `https://distressdeals.ae/buyer/properties/${property.slug}` },
+      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
+      { '@type': 'ListItem', position: 2, name: 'Properties', item: `${SITE_URL}/buyer/properties` },
+      { '@type': 'ListItem', position: 3, name: property.title, item: `${SITE_URL}/buyer/properties/${property.slug}` },
     ],
   }
 

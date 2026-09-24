@@ -10,7 +10,7 @@ import { buildingContentAPI } from '@/lib/api'
 import { HOME_ICON_MAP } from '@/lib/homeIcons'
 import type { BuildingContent } from '@/types'
 
-const SITE_URL = 'https://distressdeals.ae'
+const SITE_URL = 'https://www.distressdealsuae.com'
 
 const getBuilding = cache(async (slug: string): Promise<BuildingContent | null> => {
   try {

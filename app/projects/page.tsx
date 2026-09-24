@@ -1,21 +1,14 @@
 import type { Metadata } from 'next'
+import { resolveSeo } from '@/lib/seo'
 import ProjectsListClient from './ProjectsListClient'
 
-export const metadata: Metadata = {
-  title: 'Off-Plan Projects',
-  description: "Explore Dubai's newest off-plan developments — payment plans, handover dates, and prices from leading developers.",
-  alternates: { canonical: '/projects' },
-  openGraph: {
-    title: 'Off-Plan Projects',
+export async function generateMetadata(): Promise<Metadata> {
+  const seo = await resolveSeo('projects', {
+    title: 'Off-Plan Projects Dubai | Prices & Payment Plans',
     description: "Explore Dubai's newest off-plan developments — payment plans, handover dates, and prices from leading developers.",
-    type: 'website',
-    url: '/projects',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Off-Plan Projects',
-    description: "Explore Dubai's newest off-plan developments.",
-  },
+    path: '/projects',
+  })
+  return { ...seo, twitter: { card: 'summary_large_image', title: seo.title as string, description: seo.description as string } }
 }
 
 export default function ProjectsPage() {

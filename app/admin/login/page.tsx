@@ -59,7 +59,7 @@ export default function AdminLoginPage() {
               <input
                 type="email"
                 className="bg-transparent outline-none flex-1 text-sm"
-                placeholder="you@distressdeals.ae"
+                placeholder="you@distressdealsuae.com"
                 {...register('email', { required: true })}
               />
             </div>

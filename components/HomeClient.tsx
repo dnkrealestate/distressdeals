@@ -52,7 +52,7 @@ function hexToRgba(hex: string, alpha: number): string {
 }
 
 /* ─── ANIMATED HEADLINE ─────────────────────────────────────── */
-const ACCENT_WORDS = ['Dream', "Dubai's", 'Luxury']
+const ACCENT_WORDS = ['Dream', "Dubai's", 'Luxury', 'Distressed', 'Dubai']
 
 function HeadlineText({ text }: { text: string }) {
   return (

@@ -4,6 +4,7 @@ import { useAuthStore } from '@/store/authStore'
 import MyInterests from '@/components/buyer/MyInterests'
 import RecentActivity from '@/components/buyer/RecentActivity'
 import SellerListingsSummary from '@/components/seller/SellerListingsSummary'
+import UserIdChip from '@/components/shared/UserIdChip'
 import { getInitials, formatDate } from '@/lib/utils'
 
 // A seller's own profile — and, because a seller can also be a buyer, everything they have expressed interest in.
@@ -16,7 +17,10 @@ export default function SellerProfilePage() {
           {getInitials(user?.name || '')}
         </div>
         <div className="min-w-0 flex-1">
-          <h1 className="text-lg font-bold truncate" style={{ color: 'var(--text)' }}>{user?.name}</h1>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-lg font-bold truncate" style={{ color: 'var(--text)' }}>{user?.name}</h1>
+            <UserIdChip id={user?.displayId} label="Seller ID" />
+          </div>
           <div className="flex items-center gap-x-4 gap-y-1 flex-wrap text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
             <span className="flex items-center gap-1"><Mail size={12} /> {user?.email}</span>
             <span className="flex items-center gap-1"><Phone size={12} /> {user?.phone || 'No number'}</span>

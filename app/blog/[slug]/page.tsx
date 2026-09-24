@@ -50,16 +50,16 @@ export default async function BlogDetailPage({ params }: { params: { slug: strin
     dateModified: post.publishedAt || post.createdAt,
     author: { '@type': 'Organization', name: post.author?.name || 'Distress Deals Dubai' },
     publisher: { '@type': 'Organization', name: 'Distress Deals Dubai' },
-    mainEntityOfPage: { '@type': 'WebPage', '@id': `https://distressdeals.ae/blog/${post.slug}` },
+    mainEntityOfPage: { '@type': 'WebPage', '@id': `https://www.distressdealsuae.com/blog/${post.slug}` },
   }
 
   const breadcrumbJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://distressdeals.ae' },
-      { '@type': 'ListItem', position: 2, name: 'Blog', item: 'https://distressdeals.ae/blog' },
-      { '@type': 'ListItem', position: 3, name: post.title, item: `https://distressdeals.ae/blog/${post.slug}` },
+      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.distressdealsuae.com' },
+      { '@type': 'ListItem', position: 2, name: 'Blog', item: 'https://www.distressdealsuae.com/blog' },
+      { '@type': 'ListItem', position: 3, name: post.title, item: `https://www.distressdealsuae.com/blog/${post.slug}` },
     ],
   }
 

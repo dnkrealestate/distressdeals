@@ -18,8 +18,9 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   const project = await getProject(params.slug)
   if (!project) return { title: 'Project Not Found' }
 
-  const title = `${project.title} by ${project.developer}`
-  const description = `Starting from ${project.priceFrom.toLocaleString()} AED in ${project.area}, Dubai. ${project.bedrooms ? `${project.bedrooms} · ` : ''}Handover ${project.handoverQuarter || ''} ${project.handoverYear || ''}.`.trim()
+  const title = project.metaTitle?.trim() || `${project.title} by ${project.developer}`
+  const description = project.metaDescription?.trim()
+    || `Starting from ${project.priceFrom.toLocaleString()} AED in ${project.area}, Dubai. ${project.bedrooms ? `${project.bedrooms} · ` : ''}Handover ${project.handoverQuarter || ''} ${project.handoverYear || ''}.`.trim()
   const images = project.coverImage ? [{ url: project.coverImage }] : undefined
 
   return {
@@ -48,9 +49,9 @@ export default async function ProjectDetailPage({ params }: { params: { slug: st
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://distressdeals.ae' },
-      { '@type': 'ListItem', position: 2, name: 'Projects', item: 'https://distressdeals.ae/projects' },
-      { '@type': 'ListItem', position: 3, name: project.title, item: `https://distressdeals.ae/projects/${project.slug}` },
+      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.distressdealsuae.com' },
+      { '@type': 'ListItem', position: 2, name: 'Projects', item: 'https://www.distressdealsuae.com/projects' },
+      { '@type': 'ListItem', position: 3, name: project.title, item: `https://www.distressdealsuae.com/projects/${project.slug}` },
     ],
   }
 

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { authAPI } from '@/lib/api'
@@ -99,3 +100,15 @@ export const useAuthStore = create<AuthState>()(
     }
   )
 )
+
+// True once the saved session has been read back on the client. While React hydrates server HTML, the store reports
+// its initial signed-out state (to match the server), so an auth guard that redirects before this would bounce a
+// signed-in user to the login page on every hard refresh.
+export function useAuthHydrated() {
+  const [hydrated, setHydrated] = useState(false)
+  useEffect(() => {
+    if (useAuthStore.persist.hasHydrated()) setHydrated(true)
+    return useAuthStore.persist.onFinishHydration(() => setHydrated(true))
+  }, [])
+  return hydrated
+}

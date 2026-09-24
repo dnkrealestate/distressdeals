@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { leadAPI, agentAPI, chatAPI, taskAPI } from '@/lib/api'
 import { formatDate, formatPrice, cn } from '@/lib/utils'
+import { IdTag } from '@/components/shared/UserIdChip'
 import { useAuthStore } from '@/store/authStore'
 import type { Lead, Agent, Task as TaskT } from '@/types'
 import toast from 'react-hot-toast'
@@ -329,7 +330,7 @@ function LeadDetailDrawer({
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div>
                   <div className="flex items-center gap-2">
-                    <p className="text-base font-semibold" style={{ color: 'var(--text)' }}>{lead.buyer?.name || lead.name || 'Guest'}</p>
+                    <p className="text-base font-semibold" style={{ color: 'var(--text)' }}>{lead.buyer?.name || lead.name || 'Guest'}<IdTag id={lead.buyer?.displayId} /></p>
                     {lead.leadType === 'project' && (
                       <span className="badge text-[10px]" style={{ background: 'rgba(168,85,247,0.15)', color: '#A855F7', border: '1px solid rgba(168,85,247,0.30)' }}>Project Lead</span>
                     )}
@@ -461,7 +462,7 @@ function LeadDetailDrawer({
                   </div>
                 ) : (
                   <div className="card p-3">
-                    <p className="text-xs font-medium" style={{ color: 'var(--text)' }}>{lead.assignedAgent?.name || 'Unassigned'}</p>
+                    <p className="text-xs font-medium" style={{ color: 'var(--text)' }}>{lead.assignedAgent?.name || 'Unassigned'}<IdTag id={lead.assignedAgent?.displayId} /></p>
                   </div>
                 )}
               </div>
@@ -629,7 +630,7 @@ function LeadCard({ lead, isAdmin, onOpen, onDragStart, onRequestReason, onChang
       style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}
     >
       <div className="flex items-center gap-1.5 mb-0.5">
-        <p className="text-xs font-semibold line-clamp-1" style={{ color: 'var(--text)' }}>{lead.buyer?.name || lead.name || 'Guest'}</p>
+        <p className="text-xs font-semibold line-clamp-1" style={{ color: 'var(--text)' }}>{lead.buyer?.name || lead.name || 'Guest'}<IdTag id={lead.buyer?.displayId} /></p>
         {lead.leadType === 'project' && <span className="badge text-[9px] flex-shrink-0" style={{ background: 'rgba(168,85,247,0.15)', color: '#A855F7', border: '1px solid rgba(168,85,247,0.30)', padding: '1px 5px' }}>Project</span>}
       </div>
       <p className="text-xs line-clamp-1" style={{ color: 'var(--text-muted)' }}>{(lead.property as any)?.title || (lead.project as any)?.title || '—'}</p>
@@ -868,7 +869,7 @@ function AdminLeadsView() {
                       <tr key={lead._id}>
                         <td className="cursor-pointer" onClick={() => setDetailId(lead._id)}>
                           <div className="flex items-center gap-1.5">
-                            <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>{lead.buyer?.name || lead.name || 'Guest'}</p>
+                            <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>{lead.buyer?.name || lead.name || 'Guest'}<IdTag id={lead.buyer?.displayId} /></p>
                             {lead.leadType === 'project' && <span className="badge text-[9px] flex-shrink-0" style={{ background: 'rgba(168,85,247,0.15)', color: '#A855F7', border: '1px solid rgba(168,85,247,0.30)', padding: '1px 5px' }}>Project</span>}
                           </div>
                           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{lead.email || lead.buyer?.email}</p>
@@ -890,7 +891,7 @@ function AdminLeadsView() {
                               ))}
                             </select>
                           ) : (
-                            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{lead.assignedAgent?.name || 'Unassigned'}</p>
+                            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{lead.assignedAgent?.name || 'Unassigned'}<IdTag id={lead.assignedAgent?.displayId} /></p>
                           )}
                         </td>
                         <td>

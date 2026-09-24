@@ -75,7 +75,7 @@ function RoomListItem({ room, active, onClick, currentUserId, isOnline }: { room
           {last ? (
             <>
               {lastMine && <StatusTicks message={last} className="flex-shrink-0" />}
-              <span className="truncate">{lastMine ? '' : last.sender?.name ? `${last.sender.name}: ` : ''}{previewOf(last)}</span>
+              <span className="truncate">{lastMine || last.type === 'system' ? '' : last.sender?.name ? `${last.sender.name}: ` : ''}{previewOf(last)}</span>
             </>
           ) : agents.length > 0 ? `${agents.map(a => a.name).join(', ')} · No messages yet` : 'No messages yet'}
         </p>
@@ -243,7 +243,8 @@ function MessagesInner() {
                   : (() => {
                       const mine = item.m.sender._id === user?._id
                       const label = activeRoomData ? roleLabel(activeRoomData, item.m.sender) : ''
-                      return <MessageBubble key={item.key} message={item.m} mine={mine} senderLabel={`${item.m.sender.name}${label ? ` · ${label}` : ''}`} />
+                      const id = item.m.sender.displayId ? ` (${item.m.sender.displayId})` : ''
+                      return <MessageBubble key={item.key} message={item.m} mine={mine} senderLabel={`${item.m.sender.name}${id}${label ? ` · ${label}` : ''}`} />
                     })())
               )}
               {thread.typers.length > 0 && <TypingBubble />}

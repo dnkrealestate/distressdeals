@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useLayoutEffect, useCallback, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -312,14 +312,33 @@ function EmptyState({ onClear }: { onClear: () => void }) {
 // as tabs on one shared page — forcedListingType pins this instance to one
 // purpose; when absent (plain /buyer/properties, used by older internal
 // links) the Purpose filter still lets buyers jump to either dedicated page.
-export default function PropertiesListClient({ forcedListingType }: { forcedListingType?: 'sale' | 'rent' }) {
+interface PropertiesListClientProps {
+  forcedListingType?: 'sale' | 'rent'
+  // Server-fetched first page matching the page's default filters (see app/for-sale/page.tsx /
+  // app/for-rent/page.tsx) — purely to seed the initial render so crawlers (and the first paint) see real
+  // listings instead of an empty/loading state. The client still re-fetches on mount exactly as before; this
+  // only changes what's visible before that re-fetch resolves.
+  initialProperties?: Property[]
+  initialTotal?: number
+  initialTotalPages?: number
+}
+
+export default function PropertiesListClient(props: PropertiesListClientProps) {
+  return (
+    <Suspense fallback={null}>
+      <PropertiesListClientInner {...props} />
+    </Suspense>
+  )
+}
+
+function PropertiesListClientInner({ forcedListingType, initialProperties, initialTotal, initialTotalPages }: PropertiesListClientProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
 
-  const [properties, setProperties] = useState<Property[]>([])
-  const [total,      setTotal]      = useState(2400)
-  const [totalPages, setTotalPages] = useState(1)
-  const [loading,    setLoading]    = useState(true)
+  const [properties, setProperties] = useState<Property[]>(initialProperties || [])
+  const [total,      setTotal]      = useState(initialTotal ?? 2400)
+  const [totalPages, setTotalPages] = useState(initialTotalPages ?? 1)
+  const [loading,    setLoading]    = useState(!initialProperties?.length)
   const [view,       setView]       = useState<'grid'|'list'|'map'>('list')
 
   // The List toggle button is hidden below the `sm` breakpoint (see
@@ -558,8 +577,13 @@ export default function PropertiesListClient({ forcedListingType }: { forcedList
         </nav>
 
         <h1 className="heading-md mb-1">
-          Properties for{' '}
-          <span className="grad-text">{filters.listingType === 'rent' ? 'Rent' : 'Sale'}</span>
+          {forcedListingType === 'sale' ? (
+            <>Distressed Property for <span className="grad-text">Sale</span> in Dubai</>
+          ) : forcedListingType === 'rent' ? (
+            <>Property for <span className="grad-text">Rent</span> in Dubai</>
+          ) : (
+            <>Properties for <span className="grad-text">{filters.listingType === 'rent' ? 'Rent' : 'Sale'}</span></>
+          )}
           {filters.area && <span style={{ color: 'var(--text-muted)' }} className="text-xl"> · {filters.area}</span>}
         </h1>
         <p className="muted">

@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form'
 import { Search, UserCog, Ban, CheckCircle2, ChevronLeft, ChevronRight, Plus, X, Pencil, Trash2 } from 'lucide-react'
 import { adminAPI } from '@/lib/api'
 import { formatDate, cn } from '@/lib/utils'
+import { IdTag } from '@/components/shared/UserIdChip'
 import type { User } from '@/types'
 import toast from 'react-hot-toast'
 
@@ -129,7 +130,7 @@ export default function AdminUsersPage() {
             <Search size={14} style={{ color: 'var(--text-muted)' }} />
             <input
               className="bg-transparent outline-none flex-1 text-sm"
-              placeholder="Search name, email…"
+              placeholder="Search name, email, or ID (B-A1)…"
               value={q}
               onChange={e => { setQ(e.target.value); setPage(1) }}
             />
@@ -182,7 +183,7 @@ export default function AdminUsersPage() {
                         <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{ background: 'var(--grad)' }}>
                           {u.name?.[0] || 'U'}
                         </div>
-                        <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>{u.name}</p>
+                        <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>{u.name}<IdTag id={u.displayId} /></p>
                       </div>
                     </td>
                     <td>

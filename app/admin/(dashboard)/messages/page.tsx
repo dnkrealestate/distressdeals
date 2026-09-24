@@ -109,7 +109,7 @@ function RoomListItem({ room, active, onClick, currentUserId }: { room: ChatRoom
   const { agent } = getParties(room)
   const agents = agentParticipants(room)
   const extraAgents = agents.length - (agent ? 1 : 0)
-  const lastSenderName = room.lastMessage?.sender?.name
+  const lastSenderName = room.lastMessage?.type === 'system' ? undefined : room.lastMessage?.sender?.name
 
   return (
     <button
@@ -389,7 +389,7 @@ function AdminMessagesView() {
                     return (
                       <div key={m._id} className="space-y-2.5">
                         {divider}
-                        <MessageBubble message={m} mine={mine} senderLabel={`${m.sender.name}${label ? ` · ${label}` : ''}`} />
+                        <MessageBubble message={m} mine={mine} senderLabel={`${m.sender.name}${m.sender.displayId ? ` (${m.sender.displayId})` : ''}${label ? ` · ${label}` : ''}`} />
                       </div>
                     )
                   })

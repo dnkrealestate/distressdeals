@@ -18,7 +18,7 @@ export default function NewsDetailClient({ item }: { item: NewsItem }) {
   const [related, setRelated] = useState<NewsItem[]>([])
   const [toc, setToc] = useState<TocItem[]>([])
   const contentRef = useRef<HTMLDivElement>(null)
-  const shareUrl = typeof window !== 'undefined' ? window.location.href : `https://distressdeals.ae/news/${item.slug}`
+  const shareUrl = typeof window !== 'undefined' ? window.location.href : `https://www.distressdealsuae.com/news/${item.slug}`
 
   useEffect(() => {
     newsAPI.getAll({ category: item.category, limit: 4 })

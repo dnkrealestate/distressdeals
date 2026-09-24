@@ -9,6 +9,7 @@ import {
 import { useAuthStore } from '@/store/authStore'
 import { adminAPI, propertyAPI, leadAPI } from '@/lib/api'
 import { formatPrice, formatDate, cn } from '@/lib/utils'
+import { IdTag } from '@/components/shared/UserIdChip'
 import type { Property, Lead, LeadSourceReport } from '@/types'
 
 interface DashboardStats {
@@ -150,7 +151,7 @@ export default function AdminDashboard() {
                           {lead.buyer?.name?.[0] || 'B'}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>{lead.buyer?.name || 'Buyer'}</p>
+                          <p className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>{lead.buyer?.name || 'Buyer'}<IdTag id={lead.buyer?.displayId} /></p>
                           <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{(lead.property as any)?.title || 'Property'} · {lead.assignedAgent?.name || 'Unassigned'}</p>
                         </div>
                         <div className="flex flex-col items-end gap-1 flex-shrink-0">

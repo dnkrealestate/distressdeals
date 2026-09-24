@@ -8,7 +8,10 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.distressdealsu
 const STATIC_ROUTES = [
   '', '/for-sale', '/for-rent', '/projects', '/insights', '/blog', '/news',
   '/about', '/areas', '/communities', '/buildings', '/mortgage', '/developers',
-  '/auth/login', '/auth/register', '/seller/register',
+  '/auth/login', '/auth/register', '/seller/register', '/contact',
+  '/distress-sale-dubai', '/distressed-villas-dubai', '/dubai-property-auctions',
+  '/sell-property-fast-dubai', '/free-property-valuation-dubai',
+  '/privacy', '/terms', '/cookies', '/sitemap',
 ]
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -60,7 +63,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   for (const proj of projects) {
     entries.push({
       url: `${SITE_URL}/projects/${proj.slug}`,
-      lastModified: new Date(proj.createdAt),
+      lastModified: proj.updatedAt ? new Date(proj.updatedAt) : new Date(proj.createdAt),
       changeFrequency: 'weekly',
       priority: 0.7,
     })
@@ -74,26 +77,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     })
   }
-  for (const d of developers as { slug: string }[]) {
+  for (const d of developers as { slug: string; updatedAt?: string; createdAt?: string }[]) {
     entries.push({
       url: `${SITE_URL}/developers/${d.slug}`,
-      lastModified: new Date(),
+      lastModified: d.updatedAt || d.createdAt ? new Date(d.updatedAt || d.createdAt!) : new Date(),
       changeFrequency: 'weekly',
       priority: 0.6,
     })
   }
-  for (const c of communities as { slug: string }[]) {
+  for (const c of communities as { slug: string; updatedAt?: string; createdAt?: string }[]) {
     entries.push({
       url: `${SITE_URL}/communities/${c.slug}`,
-      lastModified: new Date(),
+      lastModified: c.updatedAt || c.createdAt ? new Date(c.updatedAt || c.createdAt!) : new Date(),
       changeFrequency: 'weekly',
       priority: 0.6,
     })
   }
-  for (const b of buildings as { slug: string }[]) {
+  for (const b of buildings as { slug: string; updatedAt?: string; createdAt?: string }[]) {
     entries.push({
       url: `${SITE_URL}/buildings/${b.slug}`,
-      lastModified: new Date(),
+      lastModified: b.updatedAt || b.createdAt ? new Date(b.updatedAt || b.createdAt!) : new Date(),
       changeFrequency: 'weekly',
       priority: 0.5,
     })

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { User, Heart, TrendingUp, CalendarClock, LogOut, Bell } from 'lucide-react'
 import Navbar from '@/components/layouts/Navbar'
 import Footer from '@/components/layouts/Footer'
-import { useAuthStore } from '@/store/authStore'
+import { useAuthStore, useAuthHydrated } from '@/store/authStore'
 import { cn } from '@/lib/utils'
 
 const NAV = [
@@ -24,13 +24,16 @@ export default function BuyerAccountLayout({ children }: { children: React.React
   const pathname = usePathname()
   const router = useRouter()
 
+  const hydrated = useAuthHydrated()
+
   useEffect(() => {
+    if (!hydrated) return
     if (!isAuthenticated || !user || user.role !== 'buyer') {
       router.replace('/auth/login')
     }
-  }, [isAuthenticated, user, router])
+  }, [hydrated, isAuthenticated, user, router])
 
-  if (!isAuthenticated || !user || user.role !== 'buyer') return null
+  if (!hydrated || !isAuthenticated || !user || user.role !== 'buyer') return null
 
   return (
     <div className="page">

@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
@@ -59,6 +59,14 @@ function initialViewFromParams(sp: URLSearchParams) {
 // area and radius search, near-me, Street View, traffic/transit/satellite layers,
 // and shareable views.
 export default function MapSearchClient() {
+  return (
+    <Suspense fallback={null}>
+      <MapSearchClientInner />
+    </Suspense>
+  )
+}
+
+function MapSearchClientInner() {
   const searchParams = useSearchParams()
   const engineRef = useRef<MapEngineHandle | null>(null)
 

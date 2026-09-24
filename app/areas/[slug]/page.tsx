@@ -12,7 +12,7 @@ import { formatPrice } from '@/lib/utils'
 import { HOME_ICON_MAP } from '@/lib/homeIcons'
 import type { AreaStats, AreaContentWithStats, Property } from '@/types'
 
-const SITE_URL = 'https://distressdeals.ae'
+const SITE_URL = 'https://www.distressdealsuae.com'
 
 const getArea = cache(async (slug: string): Promise<AreaStats | null> => {
   try {

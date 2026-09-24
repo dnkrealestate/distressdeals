@@ -1,16 +1,13 @@
 import type { Metadata } from 'next'
+import { resolveSeo } from '@/lib/seo'
 import CommunitiesListClient from './CommunitiesListClient'
 
-export const metadata: Metadata = {
-  title: 'Dubai Communities',
-  description: 'Explore Dubai neighbourhoods and sub-communities — real listing counts and prices from our own verified inventory.',
-  alternates: { canonical: '/communities' },
-  openGraph: {
-    title: 'Dubai Communities',
+export async function generateMetadata(): Promise<Metadata> {
+  return resolveSeo('communities', {
+    title: 'Dubai Communities Guide',
     description: 'Explore Dubai neighbourhoods and sub-communities — real listing counts and prices from our own verified inventory.',
-    type: 'website',
-    url: '/communities',
-  },
+    path: '/communities',
+  })
 }
 
 export default function CommunitiesPage() {

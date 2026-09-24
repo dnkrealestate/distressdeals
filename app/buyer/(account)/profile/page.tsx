@@ -10,6 +10,7 @@ import toast from 'react-hot-toast'
 import MyInterests from '@/components/buyer/MyInterests'
 import RecentActivity from '@/components/buyer/RecentActivity'
 import BecomeSeller from '@/components/buyer/BecomeSeller'
+import UserIdChip from '@/components/shared/UserIdChip'
 
 const TABS = ['Profile', 'My Interests', 'Activity', 'Notifications', 'Security'] as const
 type Tab = typeof TABS[number]
@@ -101,6 +102,7 @@ export default function BuyerProfilePage() {
         <div className="flex-1 min-w-0">
           <h2 className="font-semibold text-lg" style={{ color: 'var(--text)' }}>{user?.name}</h2>
           <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>{user?.email}</p>
+          <UserIdChip id={user?.displayId} label={user?.role === 'seller' ? 'Seller ID' : 'Buyer ID'} className="mb-2" />
           <div className="flex items-center gap-2 flex-wrap">
             <span className="badge badge-teal capitalize">{user?.role}</span>
             {user?.isEmailVerified && <span className="badge badge-green">Email Verified</span>}

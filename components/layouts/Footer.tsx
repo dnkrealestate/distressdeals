@@ -16,6 +16,13 @@ const FOOTER_LINKS = {
     { label: 'Rent in Dubai',        href: '/for-rent'                          },
     { label: 'Commercial',           href: '/buyer/properties?type=office'      },
   ],
+  'Distress Sales': [
+    { label: 'Distress Sale Dubai',        href: '/distress-sale-dubai'          },
+    { label: 'Distressed Villas',          href: '/distressed-villas-dubai'      },
+    { label: 'Dubai Property Auctions',    href: '/dubai-property-auctions'      },
+    { label: 'Sell Your Property Fast',    href: '/sell-property-fast-dubai'     },
+    { label: 'Free Property Valuation',    href: '/free-property-valuation-dubai' },
+  ],
   Insights: [
     { label: 'Insights Hub',   href: '/insights'      },
     { label: 'Area Guides',    href: '/areas'          },

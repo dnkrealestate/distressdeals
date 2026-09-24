@@ -1,6 +1,6 @@
 'use client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useAuthStore } from '@/store/authStore'
 import { useThemeStore } from '@/store/themeStore'
 import { getSocket, disconnectSocket } from '@/lib/socket'
@@ -12,10 +12,8 @@ const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 60_000, ret
 export function Providers({ children }: { children: React.ReactNode }) {
   const { token, fetchMe } = useAuthStore()
   const { dark } = useThemeStore()
-  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    setMounted(true)
     if (token) fetchMe()
     captureUtmParams()
   }, [token, fetchMe])
@@ -39,8 +37,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
       document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light')
     }
   }, [dark])
-
-  if (!mounted) return null
 
   return (
     <QueryClientProvider client={qc}>

@@ -13,6 +13,8 @@ export interface User {
   // Chat presence: when they were last connected (only present while they are offline).
   lastSeenAt?: string
   role: UserRole; status: string; isEmailVerified: boolean; isPhoneVerified: boolean
+  // Role-prefixed public ID: S-A1 (seller), B-A1 (buyer), A-A1 (agent). Admins have none.
+  displayId?: string
   favorites: string[]; createdAt: string
   permissions?: AgentPermission[]; agentRole?: string
   notifications?: {
@@ -159,8 +161,26 @@ export interface HomepageContent {
   heroShadeColor2?: string
 }
 
+export interface ContentCard { icon?: string; title: string; body: string; meta?: string }
+export interface ContentSection { heading: string; body?: string; cards?: ContentCard[] }
+export interface ContentPageData {
+  _id?: string
+  pageKey: string
+  heroEyebrow?: string
+  heroTitle: string
+  heroIntro: string
+  stats?: MiniStat[]
+  sections: ContentSection[]
+  ctaTitle?: string
+  ctaBody?: string
+  ctaButtonLabel?: string
+  ctaButtonHref?: string
+}
+
 export interface Project {
   _id: string; title: string; slug: string; referenceId?: string; developer: string; description: string
+  // Search-result overrides for the project page; focusKeyword is what the description was written around.
+  metaTitle?: string; metaDescription?: string; focusKeyword?: string
   coverImage?: string; images: { url: string }[]
   area: string; community?: string; city: string; emirate: string
   priceFrom: number; priceTo?: number; type?: string; bedrooms: string; bathrooms?: string; sizeRange?: string
