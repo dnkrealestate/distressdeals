@@ -131,7 +131,7 @@ export default function SellerRegisterPage() {
           </div>
           <h2 className="heading-lg mb-5 text-white">List Your Property with Confidence</h2>
           <p className="text-sm leading-relaxed mb-8" style={{ color: 'rgba(255,255,255,0.85)' }}>
-            Join thousands of sellers who trust Distress Deals Dubai to find qualified buyers for their properties.
+            Join thousands of sellers who trust Distress Deals UAE to find qualified buyers for their properties.
           </p>
 
           <div className="space-y-4">
@@ -150,7 +150,7 @@ export default function SellerRegisterPage() {
           </div>
         </div>
 
-        <p className="text-xs relative z-10" style={{ color: 'rgba(255,255,255,0.55)' }}>© 2025 Distress Deals Dubai. RERA Licensed.</p>
+        <p className="text-xs relative z-10" style={{ color: 'rgba(255,255,255,0.55)' }}>© 2025 Distress Deals UAE. RERA Licensed.</p>
       </div>
 
       {/* ── Right panel ────────────────────────────────────── */}

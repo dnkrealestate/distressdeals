@@ -5,10 +5,11 @@ import { useForm } from 'react-hook-form'
 import { useDropzone } from 'react-dropzone'
 import {
   Plus, X, Trash2, Pencil, Building2, UploadCloud, Loader2, Star, Globe, Layers,
+  Sparkles, Wand2, AlertTriangle, Image as ImageIcon,
 } from 'lucide-react'
 import { developerAPI, uploadAPI } from '@/lib/api'
 import { formatPrice } from '@/lib/utils'
-import type { Developer, DeveloperWithStats } from '@/types'
+import type { Developer, DeveloperWithStats, DeveloperImport } from '@/types'
 import toast from 'react-hot-toast'
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -24,10 +25,15 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function DeveloperForm({ developer, onClose, onSaved }: { developer: Developer | null; onClose: () => void; onSaved: () => void }) {
   const [logo, setLogo] = useState(developer?.logo || '')
+  const [logoWhite, setLogoWhite] = useState(developer?.logoWhite || '')
   const [uploadingLogo, setUploadingLogo] = useState(false)
+  const [processingUrl, setProcessingUrl] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [importUrl, setImportUrl] = useState(developer?.website || '')
+  const [importing, setImporting] = useState(false)
+  const [imported, setImported] = useState<DeveloperImport | null>(null)
 
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const { register, handleSubmit, setValue, getValues, formState: { errors } } = useForm({
     defaultValues: {
       name:            developer?.name || '',
       website:         developer?.website || '',
@@ -38,6 +44,44 @@ function DeveloperForm({ developer, onClose, onSaved }: { developer: Developer |
     },
   })
 
+  // Reads the developer's site: fills every field, and stores their logo (colour + white WebP).
+  const autoFill = async () => {
+    if (!importUrl.trim()) { toast.error("Enter the developer's website first"); return }
+    const hasText = !!(getValues('description') || '').trim()
+    if (hasText && !confirm('Replace the current details with what the AI finds on the website?')) return
+    setImporting(true)
+    try {
+      const res = await developerAPI.aiImport(importUrl.trim())
+      const d: DeveloperImport = res.data.data
+      setImported(d)
+      setValue('name', d.name, { shouldDirty: true, shouldValidate: true })
+      setValue('website', d.website, { shouldDirty: true })
+      setValue('establishedYear', (d.establishedYear ?? '') as any, { shouldDirty: true })
+      setValue('headquarters', d.headquarters || '', { shouldDirty: true })
+      setValue('description', d.description, { shouldDirty: true })
+      if (d.logo) { setLogo(d.logo); setLogoWhite(d.logoWhite || '') }
+      toast.success(d.logo ? 'Details and logo filled in — review before saving' : 'Details filled in — no logo found, upload one below')
+    } catch (err: any) {
+      toast.error(err?.code === 'ECONNABORTED' ? 'The website took too long to read — try again' : err?.error || 'Could not read that website')
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  // Any logo (a detected alternative, or an upload) → stored colour + white versions.
+  const applyLogoFrom = async (url: string) => {
+    setProcessingUrl(url)
+    try {
+      const res = await developerAPI.processLogo(url, getValues('name'))
+      setLogo(res.data.data.logo)
+      setLogoWhite(res.data.data.logoWhite)
+    } catch (err: any) {
+      toast.error(err?.error || 'Could not use that image as a logo')
+    } finally {
+      setProcessingUrl(null)
+    }
+  }
+
   const onDropLogo = useCallback(async (accepted: File[]) => {
     const file = accepted[0]
     if (!file) return
@@ -45,13 +89,16 @@ function DeveloperForm({ developer, onClose, onSaved }: { developer: Developer |
     try {
       const fd = new FormData(); fd.append('image', file)
       const res = await uploadAPI.image(fd)
-      if (res.data.success) setLogo(res.data.data.url)
-      else toast.error('Upload failed')
+      if (!res.data.success) { toast.error('Upload failed'); return }
+      setLogo(res.data.data.url)
+      // Trim it, knock out any solid background, and make the white version too.
+      await applyLogoFrom(res.data.data.url)
     } catch (err: any) {
       toast.error(err?.error || 'Failed to upload logo')
     } finally {
       setUploadingLogo(false)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   const logoDropzone = useDropzone({
     onDrop: onDropLogo,
@@ -62,7 +109,7 @@ function DeveloperForm({ developer, onClose, onSaved }: { developer: Developer |
   const onSubmit = async (data: any) => {
     setSubmitting(true)
     const payload: any = {
-      name: data.name, logo, description: data.description,
+      name: data.name, logo, logoWhite, description: data.description,
       website: data.website || undefined,
       establishedYear: data.establishedYear ? Number(data.establishedYear) : undefined,
       headquarters: data.headquarters || undefined,
@@ -80,36 +127,103 @@ function DeveloperForm({ developer, onClose, onSaved }: { developer: Developer |
     }
   }
 
+  const duplicate = imported?.existing && imported.existing._id !== developer?._id ? imported.existing : null
+  const busyLogo = uploadingLogo || !!processingUrl
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6" style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}>
       <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.97 }}
-        className="w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]" style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}>
+        className="w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]" style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}>
 
         <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
           <h2 className="font-bold text-sm" style={{ color: 'var(--text)' }}>{developer ? 'Edit' : 'New'} Developer</h2>
           <button type="button" onClick={onClose} className="btn-ghost btn-sm p-2"><X size={14} /></button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto p-6 space-y-4">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          onKeyDown={e => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') e.preventDefault() }}
+          className="flex-1 overflow-y-auto p-6 space-y-5"
+        >
+          {/* ── Auto-fill from website ── */}
+          <div className="rounded-2xl p-4" style={{ background: 'rgba(203,1,1,0.04)', border: '1px solid rgba(203,1,1,0.2)' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <Sparkles size={15} style={{ color: 'var(--teal)' }} />
+              <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Auto-fill from website</p>
+            </div>
+            <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
+              Paste the developer's website. AI reads it and fills in the name, description, year founded and headquarters. It also saves their logo as WebP, in colour and in white.
+            </p>
+            <div className="flex gap-2">
+              <input
+                className="input flex-1" placeholder="e.g. emaar.com" value={importUrl}
+                onChange={e => setImportUrl(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); autoFill() } }}
+              />
+              <button type="button" onClick={autoFill} disabled={importing} className="btn-primary gap-2 flex-shrink-0">
+                {importing ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
+                {importing ? 'Reading website…' : 'Auto-fill'}
+              </button>
+            </div>
+            {importing && <p className="text-[11px] mt-2" style={{ color: 'var(--text-muted)' }}>This usually takes 5–20 seconds.</p>}
+            {imported && !importing && (
+              <p className="text-[11px] mt-2" style={{ color: 'var(--text-muted)' }}>
+                Read {imported.pagesRead.length} page{imported.pagesRead.length === 1 ? '' : 's'} from {imported.website.replace(/^https?:\/\//, '')}.
+                {imported.logoError && !imported.logo && <span style={{ color: '#D97706' }}> No logo could be read ({imported.logoError}). Upload one below.</span>}
+              </p>
+            )}
+            {duplicate && (
+              <p className="text-xs mt-2 flex items-center gap-1.5" style={{ color: '#D97706' }}>
+                <AlertTriangle size={13} /> "{duplicate.name}" is already in your developers list. Edit that one instead of creating a duplicate.
+              </p>
+            )}
+          </div>
+
+          {/* ── Logo: colour + white ── */}
           <Field label="Logo">
-            {logo ? (
-              <div className="relative w-20 h-20 rounded-xl overflow-hidden" style={{ background: 'var(--bg-alt)' }}>
-                <img src={logo} alt="" className="w-full h-full object-cover" />
-                <button type="button" onClick={() => setLogo('')}
-                  className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center text-white" style={{ background: 'rgba(0,0,0,0.6)' }}>
-                  <X size={11} />
-                </button>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <div className="relative h-24 rounded-xl flex items-center justify-center p-3" style={{ background: '#ffffff', border: '1px solid var(--border)' }}>
+                  {logo ? <img src={logo} alt="Logo" className="max-h-full max-w-full object-contain" /> : <ImageIcon size={18} style={{ color: '#94A3B8' }} />}
+                  {busyLogo && <div className="absolute inset-0 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.7)' }}><Loader2 size={16} className="animate-spin" style={{ color: 'var(--teal)' }} /></div>}
+                </div>
+                <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>For light backgrounds</p>
               </div>
-            ) : (
-              <div {...logoDropzone.getRootProps()} className="rounded-xl p-5 text-center cursor-pointer transition-colors w-40"
-                style={{ border: `2px dashed ${logoDropzone.isDragActive ? 'var(--teal)' : 'var(--border)'}`, background: logoDropzone.isDragActive ? 'rgba(203,1,1,0.05)' : 'var(--bg-alt)' }}>
+              <div>
+                <div className="relative h-24 rounded-xl flex items-center justify-center p-3" style={{ background: '#1E293B' }}>
+                  {logoWhite ? <img src={logoWhite} alt="White logo" className="max-h-full max-w-full object-contain" /> : <ImageIcon size={18} style={{ color: '#475569' }} />}
+                </div>
+                <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>White version, for dark backgrounds</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 mt-3 flex-wrap">
+              <div {...logoDropzone.getRootProps()} className="btn-outline btn-sm gap-1.5 cursor-pointer">
                 <input {...logoDropzone.getInputProps()} />
-                {uploadingLogo ? <Loader2 size={16} className="animate-spin mx-auto" style={{ color: 'var(--teal)' }} /> : (
-                  <>
-                    <UploadCloud size={16} style={{ color: 'var(--teal)', margin: '0 auto 4px' }} />
-                    <p className="text-[11px]" style={{ color: 'var(--text)' }}>Upload logo</p>
-                  </>
-                )}
+                <UploadCloud size={13} /> {logo ? 'Upload a different logo' : 'Upload logo'}
+              </div>
+              {logo && (
+                <button type="button" onClick={() => { setLogo(''); setLogoWhite('') }} className="btn-ghost btn-sm gap-1.5" style={{ color: '#FB7185' }}>
+                  <Trash2 size={13} /> Remove
+                </button>
+              )}
+            </div>
+            {imported && imported.logoCandidates.length > 1 && (
+              <div className="mt-3">
+                <p className="text-[11px] mb-1.5" style={{ color: 'var(--text-muted)' }}>Wrong logo? Other images found on the site. Click one to use it:</p>
+                <div className="flex gap-2 flex-wrap">
+                  {imported.logoCandidates.map(url => (
+                    <button
+                      key={url} type="button" onClick={() => applyLogoFrom(url)} disabled={busyLogo}
+                      className="w-24 h-14 rounded-lg flex items-center justify-center p-1.5 transition-opacity hover:opacity-80 disabled:opacity-40"
+                      style={{ background: 'repeating-conic-gradient(#64748b 0% 25%, #94a3b8 0% 50%) 50% / 12px 12px', border: `1px solid ${processingUrl === url ? 'var(--teal)' : 'var(--border)'}` }}
+                      title={url}
+                    >
+                      {processingUrl === url
+                        ? <Loader2 size={14} className="animate-spin" style={{ color: 'var(--teal)' }} />
+                        : <img src={url} alt="" className="max-h-full max-w-full object-contain" referrerPolicy="no-referrer" />}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </Field>
@@ -133,7 +247,7 @@ function DeveloperForm({ developer, onClose, onSaved }: { developer: Developer |
           </Field>
 
           <Field label="Description">
-            <textarea className="input" rows={4} placeholder="Short profile shown on the developer's page" {...register('description')} />
+            <textarea className="input" rows={7} placeholder="Short profile shown on the developer's page" {...register('description')} />
           </Field>
 
           <label className="flex items-center gap-2 text-xs cursor-pointer" style={{ color: 'var(--text-mid)' }}>
@@ -141,7 +255,7 @@ function DeveloperForm({ developer, onClose, onSaved }: { developer: Developer |
             Feature this developer
           </label>
 
-          <button type="submit" disabled={submitting || uploadingLogo} className="btn-primary w-full justify-center">
+          <button type="submit" disabled={submitting || busyLogo || importing} className="btn-primary w-full justify-center">
             {submitting ? 'Saving…' : developer ? 'Save Changes' : 'Create'}
           </button>
         </form>
@@ -198,7 +312,7 @@ export default function AdminDevelopersPage() {
             {developers.map(dev => (
               <div key={dev._id} className="card p-4 flex items-center gap-4">
                 <div className="w-14 h-14 rounded-xl flex-shrink-0 overflow-hidden flex items-center justify-center" style={{ background: 'var(--bg-alt)' }}>
-                  {dev.logo ? <img src={dev.logo} alt="" className="w-full h-full object-cover" /> : <Building2 size={20} style={{ color: 'var(--teal)', opacity: 0.5 }} />}
+                  {dev.logo ? <img src={dev.logo} alt="" className="w-full h-full object-contain p-1.5" /> : <Building2 size={20} style={{ color: 'var(--teal)', opacity: 0.5 }} />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate flex items-center gap-1.5" style={{ color: 'var(--text)' }}>

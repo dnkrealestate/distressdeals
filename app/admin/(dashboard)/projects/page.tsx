@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form'
 import { useDropzone } from 'react-dropzone'
 import {
   Plus, X, Trash2, Pencil, Building2, UploadCloud, Loader2, Star, Eye, QrCode,
-  BarChart3, MessageCircleHeart, Share2, Map as MapIcon, Crosshair,
+  BarChart3, MessageCircleHeart, Share2, Map as MapIcon, Crosshair, ChevronLeft, ChevronRight, GripVertical,
   Image as ImagePlaceholder, Video as VideoIcon, LayoutGrid as MasterPlanIcon,
 } from 'lucide-react'
 import { projectAPI, uploadAPI, developerAPI } from '@/lib/api'
@@ -131,6 +131,7 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
   const [blocks, setBlocks] = useState<Block[]>(() => htmlToBlocks(project?.description || ''))
   const [seo, setSeo] = useState<ProjectSeo>({
     metaTitle: project?.metaTitle || '', metaDescription: project?.metaDescription || '', focusKeyword: project?.focusKeyword || '',
+    keywords: project?.seoKeywords || [],
   })
   const [submitting, setSubmitting] = useState(false)
   const [developers, setDevelopers] = useState<Developer[]>([])
@@ -277,10 +278,10 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
     },
   })
 
-  // Same Nominatim-label parsing as the Property wizard's location search.
+  // Google picks carry area/emirate directly; OpenStreetMap ones are parsed from the label, as in the Property wizard.
   const onLocationSelect = (r: GeocodeResult) => {
     const area = r.area || r.label.split(',')[0].trim()
-    const emirate = UAE_EMIRATES.find(e => r.label.includes(e))
+    const emirate = UAE_EMIRATES.find(e => e === r.emirate) || UAE_EMIRATES.find(e => r.label.includes(e))
     setValue('area', area, { shouldDirty: true, shouldValidate: true })
     setValue('lat', r.lat as any, { shouldDirty: true })
     setValue('lng', r.lng as any, { shouldDirty: true })
@@ -366,6 +367,14 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
   })
 
   const removeGalleryImage = (i: number) => setGallery(g => g.filter((_, idx) => idx !== i))
+  // Gallery order is the order visitors see on the project page — drag a thumbnail, or use its arrows, to move it.
+  const moveGalleryImage = (from: number, to: number) => setGallery(g => {
+    if (to < 0 || to >= g.length || from === to) return g
+    const next = [...g]; const [item] = next.splice(from, 1); next.splice(to, 0, item)
+    return next
+  })
+  const [dragFrom, setDragFrom] = useState<number | null>(null)
+  const [dragOver, setDragOver] = useState<number | null>(null)
 
   const onSubmit = async (data: any) => {
     setSubmitting(true)
@@ -399,6 +408,7 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
       metaTitle: seo.metaTitle.trim(),
       metaDescription: seo.metaDescription.trim(),
       focusKeyword: seo.focusKeyword.trim(),
+      seoKeywords: seo.keywords,
     }
 
     try {
@@ -771,17 +781,51 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
                       )}
                     </div>
                     {gallery.length > 0 && (
-                      <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mt-3">
-                        {gallery.map((url, i) => (
-                          <div key={i} className="relative aspect-square rounded-lg overflow-hidden" style={{ background: 'var(--bg-alt)' }}>
-                            <img src={url} alt="" className="w-full h-full object-cover" />
-                            <button type="button" onClick={() => removeGalleryImage(i)}
-                              className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center text-white" style={{ background: 'rgba(0,0,0,0.6)' }}>
-                              <X size={11} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
+                      <>
+                        <p className="text-[11px] mt-3" style={{ color: 'var(--text-muted)' }}>
+                          Drag the photos (or use the arrows) to set the order they appear in on the project page.
+                        </p>
+                        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-2">
+                          {gallery.map((url, i) => (
+                            <div
+                              key={url}
+                              draggable
+                              onDragStart={e => { setDragFrom(i); e.dataTransfer.effectAllowed = 'move' }}
+                              onDragOver={e => { e.preventDefault(); if (dragOver !== i) setDragOver(i) }}
+                              onDragLeave={() => setDragOver(o => (o === i ? null : o))}
+                              onDrop={e => { e.preventDefault(); if (dragFrom !== null) moveGalleryImage(dragFrom, i); setDragFrom(null); setDragOver(null) }}
+                              onDragEnd={() => { setDragFrom(null); setDragOver(null) }}
+                              className="group relative aspect-square rounded-lg overflow-hidden cursor-grab active:cursor-grabbing transition-all"
+                              style={{
+                                background: 'var(--bg-alt)',
+                                opacity: dragFrom === i ? 0.4 : 1,
+                                outline: dragOver === i && dragFrom !== i ? '2px solid var(--teal)' : 'none',
+                                outlineOffset: 2,
+                              }}
+                            >
+                              <img src={url} alt="" className="w-full h-full object-cover pointer-events-none" />
+                              <span className="absolute top-1 left-1 min-w-5 h-5 px-1.5 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{ background: 'rgba(0,0,0,0.6)' }}>
+                                {i + 1}
+                              </span>
+                              <button type="button" onClick={() => removeGalleryImage(i)} title="Remove"
+                                className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center text-white" style={{ background: 'rgba(0,0,0,0.6)' }}>
+                                <X size={11} />
+                              </button>
+                              <div className="absolute bottom-0 inset-x-0 flex items-center justify-between p-1" style={{ background: 'linear-gradient(transparent, rgba(0,0,0,0.55))' }}>
+                                <button type="button" onClick={() => moveGalleryImage(i, i - 1)} disabled={i === 0} title="Move earlier"
+                                  className="w-6 h-6 rounded-full flex items-center justify-center text-white disabled:opacity-30" style={{ background: 'rgba(0,0,0,0.5)' }}>
+                                  <ChevronLeft size={13} />
+                                </button>
+                                <GripVertical size={13} className="text-white opacity-70" />
+                                <button type="button" onClick={() => moveGalleryImage(i, i + 1)} disabled={i === gallery.length - 1} title="Move later"
+                                  className="w-6 h-6 rounded-full flex items-center justify-center text-white disabled:opacity-30" style={{ background: 'rgba(0,0,0,0.5)' }}>
+                                  <ChevronRight size={13} />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
                     )}
                   </Field>
                 </div>

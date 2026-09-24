@@ -13,7 +13,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.distressdealsu
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: { default: 'Distress Sale Dubai | Distressed Property Deals UAE', template: '%s | Distress Deals Dubai' },
+  title: { default: 'Distress Sale Dubai | Distressed Property Deals UAE', template: '%s | Distress Deals UAE' },
   description: "Dubai's centralized real estate platform. Every listing verified, one dedicated agent from first message to keys-in-hand — buy, sell, or rent with confidence.",
   // Google Search Console site-ownership verification (renders <meta name="google-site-verification">).
   verification: { google: 'KrXeALfeYBTVJyLMYrcTeL2aTOpRbWPWuhkg_-JR79k' },
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   alternates: { canonical: '/' },
   openGraph: {
     type: 'website', locale: 'en_AE', url: '/',
-    siteName: 'Distress Deals Dubai',
+    siteName: 'Distress Deals UAE',
     images: [{ url: '/opengraph-image', width: 1200, height: 630 }],
   },
   twitter: {
@@ -37,7 +37,7 @@ export const viewport: Viewport = { themeColor: '#CB0101' }
 const organizationJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'RealEstateAgent',
-  name: 'Distress Deals Dubai',
+  name: 'Distress Deals UAE',
   url: SITE_URL,
   logo: `${SITE_URL}/logo.webp`,
   image: `${SITE_URL}/logo.webp`,

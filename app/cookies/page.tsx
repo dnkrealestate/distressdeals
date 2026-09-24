@@ -5,8 +5,8 @@ import { resolveSeo } from '@/lib/seo'
 
 export async function generateMetadata(): Promise<Metadata> {
   return resolveSeo('cookies', {
-    title: 'Cookie Policy | Distress Deals Dubai',
-    description: 'How Distress Deals Dubai uses cookies, local storage, and analytics tools on our website.',
+    title: 'Cookie Policy | Distress Deals UAE',
+    description: 'How Distress Deals UAE uses cookies, local storage, and analytics tools on our website.',
     path: '/cookies',
   })
 }

@@ -15,18 +15,21 @@ import { chatAPI } from '@/lib/api'
 import { getSocket } from '@/lib/socket'
 import { cn } from '@/lib/utils'
 import type { AgentPermission } from '@/types'
+import { can, canAnyContent, isFullAccess as fullAccess, PATH_MODULE, ROLE_LABEL, STAFF_ROLES, staffHome } from '@/lib/modules'
 
-// `permission: null` = visible to any staff/agent. `'ADMIN_ONLY'` = admin/super_admin only,
-// regardless of permissions (matches backend routes restricted with restrictTo, not requirePermission).
-const NAV: { href: string; icon: any; label: string; permission: AgentPermission | 'ADMIN_ONLY' | null }[] = [
-  { href: '/admin/dashboard',  icon: LayoutDashboard, label: 'Overview',  permission: null                 },
+// `permission`: a module key; `'OPS'` = admins and agents (not editors — Overview and Messages are agent tools);
+// `'ANY_CONTENT'` = anyone holding at least one website-content module; `'ADMIN_ONLY'` = admin/super_admin only
+// (matches backend routes restricted with restrictTo, not requirePermission).
+type NavPermission = AgentPermission | 'OPS' | 'ANY_CONTENT' | 'ADMIN_ONLY'
+const NAV: { href: string; icon: any; label: string; permission: NavPermission }[] = [
+  { href: '/admin/dashboard',  icon: LayoutDashboard, label: 'Overview',  permission: 'OPS'                },
   { href: '/admin/properties', icon: Home,             label: 'Listings', permission: 'approve_listings'   },
   { href: '/admin/leads',      icon: TrendingUp,       label: 'Leads',    permission: 'manage_leads'       },
   { href: '/admin/mortgage',   icon: Wallet,            label: 'Mortgage', permission: 'manage_leads'       },
-  { href: '/admin/messages',   icon: MessageSquare,     label: 'Messages', permission: null                 },
+  { href: '/admin/messages',   icon: MessageSquare,     label: 'Messages', permission: 'OPS'                },
   { href: '/admin/agents',     icon: Users,             label: 'Agents',   permission: 'manage_agents'      },
   { href: '/admin/meetings',   icon: CalendarDays,     label: 'Meetings', permission: 'schedule_meetings'  },
-  { href: '/admin/settings',   icon: SettingsIcon,      label: 'Settings', permission: 'manage_content'     },
+  { href: '/admin/settings',   icon: SettingsIcon,      label: 'Settings', permission: 'ANY_CONTENT'        },
   { href: '/admin/users',      icon: UserCog,           label: 'Users',    permission: 'ADMIN_ONLY'         },
 ]
 
@@ -37,9 +40,9 @@ const MOBILE_PRIMARY_HREFS = ['/admin/dashboard', '/admin/properties', '/admin/l
 
 // Sub-sections consolidated under the "Settings" hub — visiting any of these
 // keeps the Settings nav item highlighted even though they're no longer top-level links.
-const SETTINGS_SUB_PATHS = ['/admin/content', '/admin/homepage', '/admin/seo', '/admin/projects', '/admin/developers', '/admin/areas', '/admin/communities', '/admin/buildings']
+const SETTINGS_SUB_PATHS = ['/admin/settings', '/admin/content', '/admin/homepage', '/admin/seo', '/admin/projects', '/admin/developers', '/admin/areas', '/admin/communities', '/admin/buildings']
 
-const ALLOWED_ROLES = ['admin', 'super_admin', 'agent']
+const ALLOWED_ROLES = STAFF_ROLES
 
 function ThemeToggle() {
   const { dark, toggle } = useThemeStore()
@@ -90,23 +93,35 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => { setMoreOpen(false) }, [pathname])
 
+  // Editors have no Overview or Messages — send them to their home (Settings) instead of an empty page.
+  useEffect(() => {
+    if (hydrated && user?.role === 'editor' && (pathname === '/admin/dashboard' || pathname?.startsWith('/admin/messages'))) {
+      router.replace(staffHome(user))
+    }
+  }, [hydrated, user, pathname, router])
+
   if (!hydrated || !isAuthenticated || !user || !ALLOWED_ROLES.includes(user.role)) return null
 
-  const isFullAccess = user.role === 'admin' || user.role === 'super_admin'
+  const isFullAccess = fullAccess(user)
   const visibleNav = NAV.filter(n => {
     if (isFullAccess) return true
     if (n.permission === 'ADMIN_ONLY') return false
-    if (n.permission === null) return true
-    return (user.permissions || []).includes(n.permission)
+    if (n.permission === 'OPS') return user.role === 'agent'
+    if (n.permission === 'ANY_CONTENT') return canAnyContent(user)
+    return can(user, n.permission)
   })
+  // A page belonging to a module this person doesn't have (reached by typing the address) — the API refuses it too.
+  const blockedModule = !isFullAccess && PATH_MODULE.some(([p, key]) => (pathname === p || pathname?.startsWith(p + '/')) && !can(user, key))
 
   const isActive = (href: string) => {
     if (pathname === href || pathname?.startsWith(href + '/')) return true
     if (href === '/admin/settings') return SETTINGS_SUB_PATHS.some(p => pathname === p || pathname?.startsWith(p + '/'))
     return false
   }
-  const mobilePrimaryNav = visibleNav.filter(n => MOBILE_PRIMARY_HREFS.includes(n.href))
-  const mobileMoreNav = visibleNav.filter(n => !MOBILE_PRIMARY_HREFS.includes(n.href))
+  const primaryMatches = visibleNav.filter(n => MOBILE_PRIMARY_HREFS.includes(n.href))
+  // Editors have none of the usual primary tabs — give them their own sections as tabs instead.
+  const mobilePrimaryNav = primaryMatches.length ? primaryMatches : visibleNav.slice(0, 4)
+  const mobileMoreNav = visibleNav.filter(n => !mobilePrimaryNav.includes(n))
 
   return (
     <div className="flex flex-col lg:flex-row h-screen overflow-hidden" style={{ background: 'var(--bg)' }}>
@@ -155,7 +170,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
             <div className="min-w-0">
               <p className="text-xs font-semibold truncate" style={{ color: 'var(--text)' }}>{user?.name}</p>
-              <p className="text-xs truncate capitalize" style={{ color: 'var(--text-muted)' }}>{user?.role?.replace('_', ' ')}</p>
+              <p className="text-xs truncate capitalize" style={{ color: 'var(--text-muted)' }}>{ROLE_LABEL[user.role] || user.role}{user.displayId ? ' · ' + user.displayId : ''}</p>
             </div>
           </div>
           <button onClick={() => logout()} className="sidebar-link w-full" style={{ color: '#FB7185' }}>
@@ -185,7 +200,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* ── Main ───────────────────────────────────────────── */}
       <main className="flex-1 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto pb-20 lg:pb-0">
-          {children}
+          {blockedModule ? (
+            <div className="flex flex-col items-center justify-center text-center py-24 px-6">
+              <ShieldCheck size={28} style={{ color: 'var(--text-muted)', opacity: 0.5 }} className="mb-3" />
+              <p className="text-sm font-semibold mb-1" style={{ color: 'var(--text)' }}>You don't have access to this section</p>
+              <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>Ask an admin to add this module to your account.</p>
+              <Link href={staffHome(user)} className="btn-primary btn-sm">Go to my dashboard</Link>
+            </div>
+          ) : children}
         </div>
       </main>
 
@@ -234,7 +256,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </div>
                 <div>
                   <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{user?.name}</p>
-                  <p className="text-xs capitalize" style={{ color: 'var(--text-muted)' }}>{user?.role?.replace('_', ' ')}</p>
+                  <p className="text-xs capitalize" style={{ color: 'var(--text-muted)' }}>{ROLE_LABEL[user.role] || user.role}{user.displayId ? ' · ' + user.displayId : ''}</p>
                 </div>
               </div>
               <button onClick={() => setMoreOpen(false)} className="btn-ghost btn-sm p-2"><X size={15} /></button>

@@ -182,7 +182,7 @@ export default function PropertyCard({
               </div>
             </div>
 
-            <h3 className="font-semibold text-[1.3rem] line-clamp-1 mb-1.5 leading-snug transition-colors group-hover:text-[var(--teal)]" style={{ color: 'var(--text)' }}>
+            <h3 className="font-semibold text-base sm:text-[1.1rem] line-clamp-1 mb-1.5 leading-snug transition-colors group-hover:text-[var(--teal)]" style={{ color: 'var(--text)' }}>
               {p.title}
             </h3>
 
@@ -325,7 +325,7 @@ export default function PropertyCard({
 
           {/* Title */}
           <h3
-            className="font-semibold text-sm line-clamp-2 mb-2 leading-snug transition-colors group-hover:text-[var(--teal)]"
+            className="font-semibold text-[0.95rem] line-clamp-2 mb-2 leading-snug transition-colors group-hover:text-[var(--teal)]"
             style={{ color: 'var(--text)' }}
           >
             {p.title}

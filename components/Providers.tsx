@@ -6,6 +6,8 @@ import { useThemeStore } from '@/store/themeStore'
 import { getSocket, disconnectSocket } from '@/lib/socket'
 import { captureUtmParams } from '@/lib/utm'
 import { useCompareStore } from '@/store/compareStore'
+import { useFavoritesStore } from '@/store/favoritesStore'
+import { useProjectCompareStore } from '@/store/projectCompareStore'
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 60_000, retry: 1 } } })
 
@@ -26,9 +28,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
     else disconnectSocket()
   }, [token])
 
-  // Signed in: bring the saved compare list back (and keep it in sync from here on).
+  useEffect(() => { useProjectCompareStore.persist.rehydrate() }, [])
+
+  // Signed in: bring the saved compare list and favourites back (so hearts show filled on every page).
   useEffect(() => {
-    if (token) useCompareStore.getState().loadFromServer()
+    if (!token) return
+    useCompareStore.getState().loadFromServer()
+    useFavoritesStore.getState().fetchFavorites()
   }, [token])
 
   // Apply the persisted theme to <html data-theme="..."> so the CSS variables switch.

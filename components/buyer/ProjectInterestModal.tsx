@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Send, CheckCircle2, Loader2 } from 'lucide-react'
 import { leadAPI } from '@/lib/api'
@@ -40,7 +41,10 @@ export default function ProjectInterestModal({
     setTimeout(() => setSent(false), 300)
   }
 
-  return (
+  // Rendered into <body>, not where it's used: on project cards the modal would otherwise sit inside the card's <a>,
+  // and cancelling clicks there (to stop the card navigating) also cancelled the Send button — the form never sent.
+  if (typeof document === 'undefined') return null
+  return createPortal(
     <AnimatePresence>
       {open && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4" onClick={e => e.stopPropagation()}>
@@ -54,7 +58,7 @@ export default function ProjectInterestModal({
             transition={{ duration: 0.18 }}
             className="relative w-full max-w-md rounded-2xl overflow-hidden"
             style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
-            onClick={e => { e.preventDefault(); e.stopPropagation() }}
+            onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--border-soft)' }}>
               <div className="min-w-0">
@@ -97,6 +101,7 @@ export default function ProjectInterestModal({
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   )
 }

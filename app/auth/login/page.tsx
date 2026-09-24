@@ -26,7 +26,8 @@ export default function LoginPage() {
   const goToRoleHome = () => {
     const role = useAuthStore.getState().user?.role
     router.push(
-      role === 'admin' || role === 'super_admin' || role === 'agent' ? '/admin/dashboard'
+      role === 'editor' ? '/admin/settings'
+      : role === 'admin' || role === 'super_admin' || role === 'agent' ? '/admin/dashboard'
       : role === 'seller' ? '/seller/listings'
       : '/buyer/properties'
     )
@@ -86,7 +87,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <p className="text-xs relative z-10" style={{ color: 'rgba(255,255,255,0.55)' }}>© 2025 Distress Deals Dubai. RERA Licensed.</p>
+        <p className="text-xs relative z-10" style={{ color: 'rgba(255,255,255,0.55)' }}>© 2025 Distress Deals UAE. RERA Licensed.</p>
       </div>
 
       {/* ── Right panel ────────────────────────────────────── */}

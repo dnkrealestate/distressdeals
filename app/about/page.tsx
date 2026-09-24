@@ -8,8 +8,8 @@ import { PAGE_KEY, FALLBACK_CONTENT } from './fallbackContent'
 
 export async function generateMetadata(): Promise<Metadata> {
   return resolveSeo(PAGE_KEY, {
-    title: 'About Distress Deals Dubai | Verified Distressed Sales',
-    description: 'How Distress Deals Dubai sources verified distressed and below-market property across the UAE — one dedicated agent from first enquiry to handover.',
+    title: 'About Distress Deals UAE | Verified Distressed Sales',
+    description: 'How Distress Deals UAE sources verified distressed and below-market property across the UAE — one dedicated agent from first enquiry to handover.',
     path: '/about',
   })
 }

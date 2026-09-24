@@ -5,8 +5,8 @@ import { resolveSeo } from '@/lib/seo'
 
 export async function generateMetadata(): Promise<Metadata> {
   return resolveSeo('privacy', {
-    title: 'Privacy Policy | Distress Deals Dubai',
-    description: 'How Distress Deals Dubai collects, uses, and protects your personal information across our website and mobile app.',
+    title: 'Privacy Policy | Distress Deals UAE',
+    description: 'How Distress Deals UAE collects, uses, and protects your personal information across our website and mobile app.',
     path: '/privacy',
   })
 }
@@ -25,7 +25,7 @@ export default function PrivacyPage() {
 
           <div className="rich-content" style={{ color: 'var(--text-mid)' }}>
             <p>
-              Distress Deals Dubai ("we", "us", "our") operates distressdealsuae.com and the Distress Deals
+              Distress Deals UAE ("we", "us", "our") operates distressdealsuae.com and the Distress Deals
               mobile app (together, the "Platform"). This policy explains what personal information we collect,
               why we collect it, and the choices you have. By using the Platform, you agree to the collection
               and use of information as described here.

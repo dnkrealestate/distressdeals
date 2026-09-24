@@ -6,31 +6,67 @@ import { Search, UserCog, Ban, CheckCircle2, ChevronLeft, ChevronRight, Plus, X,
 import { adminAPI } from '@/lib/api'
 import { formatDate, cn } from '@/lib/utils'
 import { IdTag } from '@/components/shared/UserIdChip'
-import type { User } from '@/types'
+import type { User, AgentPermission } from '@/types'
+import { useAuthStore } from '@/store/authStore'
+import { OPERATION_MODULES, CONTENT_MODULES, CONTENT_KEYS, ROLE_LABEL } from '@/lib/modules'
+import ModulePicker from '@/components/admin/ModulePicker'
 import toast from 'react-hot-toast'
 
 const ROLE_TABS = [
-  { value: '',       label: 'All'    },
-  { value: 'buyer',  label: 'Buyers' },
-  { value: 'seller', label: 'Sellers'},
+  { value: '',                  label: 'All'     },
+  { value: 'buyer',             label: 'Buyers'  },
+  { value: 'seller',            label: 'Sellers' },
+  { value: 'agent',             label: 'Agents'  },
+  { value: 'editor',            label: 'Editors' },
+  { value: 'admin,super_admin', label: 'Admins'  },
 ]
 
-const ROLE_OPTIONS = ['buyer', 'seller', 'admin', 'super_admin']
+const ROLE_OPTIONS = ['buyer', 'seller', 'agent', 'editor', 'admin', 'super_admin']
+const ROLE_HELP: Record<string, string> = {
+  buyer:       'Browses and enquires about listings.',
+  seller:      'Lists their own properties for sale or rent.',
+  agent:       'Handles leads and listings. Choose the modules they can use below. Languages, targets and team are set on the Agents page.',
+  editor:      'Manages website content only. Choose exactly which sections they can edit below.',
+  admin:       'Full access to every module.',
+  super_admin: 'Full access, plus managing other admins.',
+}
+
+// Agents saved before modules were split may hold the "all content" umbrella — show it as every content module ticked.
+const expandUmbrella = (perms: AgentPermission[] = []): AgentPermission[] =>
+  perms.includes('manage_content') ? [...new Set([...perms.filter(p => p !== 'manage_content'), ...CONTENT_KEYS])] : perms
 
 interface UserFormValues { name: string; email: string; password?: string; phone?: string; role: string }
 
 function UserFormModal({ user, onClose, onSaved }: { user: User | null; onClose: () => void; onSaved: () => void }) {
   const isEdit = !!user
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<UserFormValues>({
+  const me = useAuthStore(s => s.user)
+  const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<UserFormValues>({
     defaultValues: {
       name: user?.name || '', email: user?.email || '', password: '',
       phone: user?.phone || '', role: user?.role || 'buyer',
     },
   })
+  const role = watch('role')
+  const [modules, setModules] = useState<AgentPermission[]>(() => (user ? expandUmbrella(user.permissions) : []))
+  // A new agent starts with the same basics the Agents page gives them; editors can only keep content modules.
+  useEffect(() => {
+    if (!isEdit && role === 'agent' && modules.length === 0) setModules(['manage_leads', 'schedule_meetings'])
+    if (role === 'editor') setModules(m => m.filter(k => CONTENT_KEYS.includes(k)))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [role])
+
+  const showModules = role === 'agent' || role === 'editor'
+  const groups = role === 'editor'
+    ? [{ title: 'Website content', modules: CONTENT_MODULES }]
+    : [{ title: 'Operations', modules: OPERATION_MODULES }, { title: 'Website content', modules: CONTENT_MODULES }]
+  // Only super admins can create or promote admins (the server enforces this too).
+  const roleOptions = ROLE_OPTIONS.filter(r => me?.role === 'super_admin' || !['admin', 'super_admin'].includes(r) || r === user?.role)
 
   const onSubmit = async (data: UserFormValues) => {
+    if (data.role === 'editor' && modules.length === 0) { toast.error('Choose at least one module for this editor'); return }
     const payload: any = { name: data.name, email: data.email, phone: data.phone, role: data.role }
     if (data.password) payload.password = data.password
+    if (showModules) payload.permissions = modules
 
     try {
       if (isEdit) await adminAPI.updateUser(user!._id, payload)
@@ -46,29 +82,49 @@ function UserFormModal({ user, onClose, onSaved }: { user: User | null; onClose:
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}>
       <motion.div initial={{ opacity: 0, scale: 0.94, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.94 }}
-        className="w-full max-w-md rounded-3xl overflow-hidden shadow-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-        <div className="flex items-center justify-between p-6" style={{ borderBottom: '1px solid var(--border)' }}>
-          <h2 className="font-bold text-sm" style={{ color: 'var(--text)' }}>{isEdit ? 'Edit User' : 'New User'}</h2>
+        className={cn('w-full rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh]', showModules ? 'max-w-2xl' : 'max-w-md')}
+        style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+        <div className="flex items-center justify-between p-6 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
+          <div className="flex items-center gap-1">
+            <h2 className="font-bold text-sm" style={{ color: 'var(--text)' }}>{isEdit ? 'Edit User' : 'New User'}</h2>
+            <IdTag id={user?.displayId} />
+          </div>
           <button onClick={onClose} className="btn-ghost btn-sm p-2"><X size={14} /></button>
         </div>
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-3">
-          <input className="input" placeholder="Full name" {...register('name', { required: true })} />
-          {errors.name && <p className="text-xs" style={{ color: '#FB7185' }}>Name is required</p>}
+        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-3 overflow-y-auto">
+          <div className={cn('grid gap-3', showModules && 'sm:grid-cols-2')}>
+            <div>
+              <input className="input" placeholder="Full name" {...register('name', { required: true })} />
+              {errors.name && <p className="text-xs mt-1" style={{ color: '#FB7185' }}>Name is required</p>}
+            </div>
+            <div>
+              <input className="input" type="email" placeholder="Email" {...register('email', { required: true })} />
+              {errors.email && <p className="text-xs mt-1" style={{ color: '#FB7185' }}>Email is required</p>}
+            </div>
+            <div>
+              <input className="input" type="password" placeholder={isEdit ? 'New password (leave blank to keep)' : 'Password'} {...register('password', { required: !isEdit, minLength: 6 })} />
+              {errors.password && <p className="text-xs mt-1" style={{ color: '#FB7185' }}>Password is required (min 6 characters)</p>}
+            </div>
+            <input className="input" placeholder="Phone (optional)" {...register('phone')} />
+          </div>
 
-          <input className="input" type="email" placeholder="Email" {...register('email', { required: true })} />
-          {errors.email && <p className="text-xs" style={{ color: '#FB7185' }}>Email is required</p>}
+          <div>
+            <label className="text-xs font-medium mb-1.5 block" style={{ color: 'var(--text-mid)' }}>Role</label>
+            <select className="select-field" {...register('role')}>
+              {roleOptions.map(r => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
+            </select>
+            <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>{ROLE_HELP[role]}</p>
+            {isEdit && user?.role === 'agent' && role !== 'agent' && (
+              <p className="text-xs mt-1.5" style={{ color: '#D97706' }}>Their open leads will be reassigned to another available agent.</p>
+            )}
+          </div>
 
-          <input className="input" type="password" placeholder={isEdit ? 'New password (leave blank to keep current)' : 'Password'} {...register('password', { required: !isEdit, minLength: 6 })} />
-          {errors.password && <p className="text-xs" style={{ color: '#FB7185' }}>Password is required (min 6 characters)</p>}
-
-          <input className="input" placeholder="Phone (optional)" {...register('phone')} />
-
-          <select className="select-field" {...register('role')}>
-            {ROLE_OPTIONS.map(r => <option key={r} value={r}>{r.replace('_', ' ')}</option>)}
-          </select>
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            To add agents with CRM permissions, use the Agents page instead.
-          </p>
+          {showModules && (
+            <div className="pt-3" style={{ borderTop: '1px solid var(--border-soft)' }}>
+              <p className="text-xs font-semibold mb-3" style={{ color: 'var(--text)' }}>Modules this {ROLE_LABEL[role].toLowerCase()} can see and use</p>
+              <ModulePicker groups={groups} value={modules} onChange={setModules} />
+            </div>
+          )}
 
           <button type="submit" disabled={isSubmitting} className="btn-primary w-full justify-center mt-2">
             {isSubmitting ? 'Saving…' : isEdit ? 'Save Changes' : 'Create User'}
@@ -77,6 +133,14 @@ function UserFormModal({ user, onClose, onSaved }: { user: User | null; onClose:
       </motion.div>
     </div>
   )
+}
+
+// Staff roles show how many modules they hold; admins have everything.
+function accessSummary(u: User): string | null {
+  if (u.role === 'admin' || u.role === 'super_admin') return 'All modules'
+  if (u.role !== 'agent' && u.role !== 'editor') return null
+  const n = expandUmbrella(u.permissions).length
+  return n === 0 ? 'No modules' : `${n} module${n === 1 ? '' : 's'}`
 }
 
 export default function AdminUsersPage() {
@@ -123,14 +187,14 @@ export default function AdminUsersPage() {
       <header className="flex items-center justify-between px-7 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
         <div>
           <h1 className="text-lg font-bold" style={{ color: 'var(--text)' }}>Users</h1>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Buyers and sellers on the platform</p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Customers and staff. Add agents and editors here and choose which modules each one can use.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="input-glass w-64">
             <Search size={14} style={{ color: 'var(--text-muted)' }} />
             <input
               className="bg-transparent outline-none flex-1 text-sm"
-              placeholder="Search name, email, or ID (B-A1)…"
+              placeholder="Search name, email, or ID (B-A1, E-A1)…"
               value={q}
               onChange={e => { setQ(e.target.value); setPage(1) }}
             />
@@ -190,7 +254,10 @@ export default function AdminUsersPage() {
                       <p className="text-xs" style={{ color: 'var(--text)' }}>{u.email}</p>
                       <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{u.phone || '—'}</p>
                     </td>
-                    <td><span className="badge badge-gray capitalize">{u.role}</span></td>
+                    <td>
+                      <span className={cn('badge', u.role === 'editor' ? 'badge-teal' : 'badge-gray')}>{ROLE_LABEL[u.role] || u.role}</span>
+                      {accessSummary(u) && <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>{accessSummary(u)}</p>}
+                    </td>
                     <td>
                       <span className={cn('badge', u.status === 'suspended' ? 'badge-red' : 'badge-green')}>{u.status}</span>
                     </td>

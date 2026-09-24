@@ -27,7 +27,8 @@ export default function RegisterPage() {
   const goToRoleHome = () => {
     const role = useAuthStore.getState().user?.role
     router.push(
-      role === 'admin' || role === 'super_admin' || role === 'agent' ? '/admin/dashboard'
+      role === 'editor' ? '/admin/settings'
+      : role === 'admin' || role === 'super_admin' || role === 'agent' ? '/admin/dashboard'
       : role === 'seller' ? '/seller/listings'
       : '/buyer/properties'
     )
@@ -87,7 +88,7 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        <p className="text-xs relative z-10" style={{ color: 'rgba(255,255,255,0.55)' }}>© 2025 Distress Deals Dubai. RERA Licensed.</p>
+        <p className="text-xs relative z-10" style={{ color: 'rgba(255,255,255,0.55)' }}>© 2025 Distress Deals UAE. RERA Licensed.</p>
       </div>
 
       {/* ── Right panel ────────────────────────────────────── */}
@@ -95,7 +96,7 @@ export default function RegisterPage() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="w-full max-w-md">
 
           <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--text)' }}>Create Account</h1>
-          <p className="muted mb-7">Join Distress Deals Dubai in seconds</p>
+          <p className="muted mb-7">Join Distress Deals UAE in seconds</p>
 
           {/* Social login */}
           <div className="grid grid-cols-1 gap-2.5 mb-6">

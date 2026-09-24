@@ -5,7 +5,7 @@ export const PAGE_KEY = 'about'
 export const FALLBACK_CONTENT: ContentPageData = {
   pageKey: PAGE_KEY,
   heroEyebrow: 'About Distress Deals',
-  heroTitle: 'About Distress Deals Dubai',
+  heroTitle: 'About Distress Deals UAE',
   heroIntro: "We're Dubai's most transparent real estate platform — connecting buyers, sellers, and investors with verified properties, managed deals, and zero hidden surprises.",
   stats: [
     { value: '12,000+', label: 'Happy Clients' },

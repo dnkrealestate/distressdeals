@@ -15,11 +15,13 @@ import Navbar from '@/components/layouts/Navbar'
 import Footer from '@/components/layouts/Footer'
 import PropertyCard from '@/components/buyer/PropertyCard'
 import RecentlyViewedCard from '@/components/buyer/RecentlyViewedCard'
+import ProjectCard from '@/components/buyer/ProjectCard'
+import ProjectCompareBar from '@/components/buyer/ProjectCompareBar'
 import SearchBar from '@/components/buyer/SearchBar'
 import { PropertyFilterBar, Pill, FilterDropdown, DropdownOption, TYPES } from '@/components/buyer/PropertyFilterBar'
-import { propertyAPI, savedSearchAPI } from '@/lib/api'
+import { propertyAPI, savedSearchAPI, projectAPI } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
-import type { Property, PropertyFilters } from '@/types'
+import type { Property, PropertyFilters, Project } from '@/types'
 import type { MapBounds } from '@/lib/googleMaps'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
@@ -307,6 +309,51 @@ function EmptyState({ onClear }: { onClear: () => void }) {
   )
 }
 
+/* ─── PROPERTIES + NEW PROJECTS IN ONE LIST ─────────────────── */
+// On the Buy page, off-plan projects sit in the same list as resale listings. Projects only come in residential
+// types and never for rent, and they can't be matched on bedrooms/size/availability — skip them for those searches.
+const PROJECTS_PER_PAGE = 4
+const PROJECT_TYPES = ['apartment', 'villa', 'townhouse', 'penthouse', 'studio']
+
+function projectsApply(f: PropertyFilters, forced?: 'sale' | 'rent'): boolean {
+  if (forced === 'rent' || f.listingType === 'rent') return false
+  if (f.category && f.category !== 'residential') return false
+  if (f.type && !PROJECT_TYPES.includes(f.type)) return false
+  return !f.bedrooms && !f.bathrooms && !f.sizeMin && !f.sizeMax && !f.rentalStatus && !f.availableWithin
+}
+
+const PROJECT_STATUS_FOR: Record<string, string> = { ready: 'ready', off_plan: 'upcoming,under_construction' }
+
+const COMPLETION_TABS = [
+  { v: '', l: 'All' },
+  { v: 'ready', l: 'Ready' },
+  { v: 'off_plan', l: 'Off-Plan' },
+]
+
+type ListItem = { kind: 'property'; item: Property; key: string } | { kind: 'project'; item: Project; key: string }
+
+// Price/newest sorts keep their order across both kinds; otherwise one project after every three listings.
+function mixListings(properties: Property[], projects: Project[], sortBy: string): ListItem[] {
+  const props: ListItem[] = properties.map((p, i) => ({ kind: 'property', item: p, key: p?._id || `p${i}` }))
+  const projs: ListItem[] = projects.map(p => ({ kind: 'project', item: p, key: `proj-${p._id}` }))
+  if (!projs.length) return props
+  const price = (x: ListItem) => x.kind === 'property' ? x.item.price : x.item.priceFrom
+  const created = (x: ListItem) => new Date(x.item.createdAt).getTime()
+  if (sortBy === 'price_asc' || sortBy === 'price_desc' || sortBy === 'newest') {
+    const key = sortBy === 'newest' ? (x: ListItem) => -created(x) : sortBy === 'price_asc' ? price : (x: ListItem) => -price(x)
+    // Stable merge: properties keep the server's order among themselves.
+    const out: ListItem[] = []; let i = 0, j = 0
+    while (i < props.length || j < projs.length) {
+      if (j >= projs.length || (i < props.length && key(props[i]) <= key(projs[j]))) out.push(props[i++]); else out.push(projs[j++])
+    }
+    return out
+  }
+  const out: ListItem[] = []; let j = 0
+  props.forEach((p, i) => { out.push(p); if ((i + 1) % 3 === 0 && j < projs.length) out.push(projs[j++]) })
+  while (j < projs.length) out.push(projs[j++])
+  return out
+}
+
 /* ─── MAIN PAGE ─────────────────────────────────────────────── */
 // Buy and Rent each live at their own URL (/for-sale, /for-rent) rather than
 // as tabs on one shared page — forcedListingType pins this instance to one
@@ -338,6 +385,9 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
   const [properties, setProperties] = useState<Property[]>(initialProperties || [])
   const [total,      setTotal]      = useState(initialTotal ?? 2400)
   const [totalPages, setTotalPages] = useState(initialTotalPages ?? 1)
+  const [projects, setProjects] = useState<Project[]>([])
+  const [projectTotal, setProjectTotal] = useState(0)
+  const [projectPages, setProjectPages] = useState(0)
   const [loading,    setLoading]    = useState(!initialProperties?.length)
   const [view,       setView]       = useState<'grid'|'list'|'map'>('list')
 
@@ -369,6 +419,7 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
     priceMax:    Number(searchParams.get('priceMax')) || 0,
     rentalStatus:   searchParams.get('rentalStatus') || '',
     availableWithin: Number(searchParams.get('availableWithin')) || 0,
+    completion:  searchParams.get('completion')  || '',
     sortBy:      searchParams.get('sortBy')      || 'recommended',
     page:        Number(searchParams.get('page')) || 1,
     limit:       12,
@@ -394,6 +445,32 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
 
   useEffect(() => { fetchProperties() }, [fetchProperties])
 
+  // New projects matching the same search, a few per page, mixed into the list below.
+  useEffect(() => {
+    if (!projectsApply(filters, forcedListingType)) { setProjects([]); setProjectTotal(0); setProjectPages(0); return }
+    let cancelled = false
+    const params: Record<string, any> = { page: filters.page || 1, limit: PROJECTS_PER_PAGE }
+    if (filters.area) params.area = filters.area
+    if (filters.community) params.community = filters.community
+    if (filters.type) params.type = filters.type
+    if (filters.q) params.q = filters.q
+    if (filters.priceMin) params.priceMin = filters.priceMin
+    if (filters.priceMax) params.priceMax = filters.priceMax
+    if (filters.completion) params.status = PROJECT_STATUS_FOR[filters.completion]
+    projectAPI.getAll(params)
+      .then(r => {
+        if (cancelled || !r.data.success) return
+        setProjects(r.data.data.data || [])
+        setProjectTotal(r.data.data.total || 0)
+        setProjectPages(r.data.data.totalPages || 0)
+      })
+      .catch(() => { if (!cancelled) { setProjects([]); setProjectTotal(0); setProjectPages(0) } })
+    return () => { cancelled = true }
+  }, [filters, forcedListingType])
+
+  const listItems = mixListings(properties, projects, filters.sortBy || 'recommended')
+  const pageCount = Math.max(totalPages, projectPages)
+
   // PropertyFinder-style "Apartments 1,234 · Villas 567 …" counts row —
   // reflects every active filter EXCEPT the type filter itself (that's the
   // whole point: each pill shows how many results picking THAT type would
@@ -406,10 +483,28 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
       const { type, page, limit, sortBy, ...rest } = filters as any
       const clean: any = {}
       Object.entries(rest).forEach(([k, v]) => { if (v) clean[k] = v })
-      const res = await propertyAPI.getTypeStats(clean)
+      // New projects are in the same list, so their types count too (same search, minus the type itself) — without
+      // this the Off-Plan tab, which is mostly projects, would have no type pills at all.
+      const withProjects = projectsApply({ ...filters, type: '' }, forcedListingType)
+      const pParams: Record<string, any> = {}
+      if (withProjects) {
+        if (filters.area) pParams.area = filters.area
+        if (filters.q) pParams.q = filters.q
+        if (filters.priceMin) pParams.priceMin = filters.priceMin
+        if (filters.priceMax) pParams.priceMax = filters.priceMax
+        if (filters.completion) pParams.status = PROJECT_STATUS_FOR[filters.completion]
+      }
+      const [res, pRes] = await Promise.all([
+        propertyAPI.getTypeStats(clean),
+        withProjects ? projectAPI.getTypeStats(pParams).catch(() => null) : Promise.resolve(null),
+      ])
       if (res.data.success) {
-        setTypeStats(res.data.data.stats)
-        setTypeStatsTotal(res.data.data.total)
+        const merged = new Map<string, number>()
+        const add = (list: { type: string; count: number }[] = []) => list.forEach(s => merged.set(s.type, (merged.get(s.type) || 0) + s.count))
+        add(res.data.data.stats)
+        if (pRes?.data.success) add(pRes.data.data.stats)
+        setTypeStats(Array.from(merged, ([type, count]) => ({ type, count })))
+        setTypeStatsTotal(res.data.data.total + (pRes?.data.success ? pRes.data.data.total : 0))
       }
     } catch {
       // Non-critical — the counts row just stays empty if this fails.
@@ -466,6 +561,7 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
       priceMax:    Number(searchParams.get('priceMax')) || 0,
       rentalStatus:   searchParams.get('rentalStatus') || '',
       availableWithin: Number(searchParams.get('availableWithin')) || 0,
+      completion:  searchParams.get('completion')  || '',
       page: 1,
     }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -563,6 +659,7 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
   return (
     <div className="page">
       <Navbar />
+      <ProjectCompareBar />
 
       {/* ── Breadcrumb + heading — sit above the search box, PropertyFinder-style ── */}
       <div className="wrap pt-8">
@@ -587,7 +684,7 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
           {filters.area && <span style={{ color: 'var(--text-muted)' }} className="text-xl"> · {filters.area}</span>}
         </h1>
         <p className="muted">
-          {loading ? 'Loading…' : `${total.toLocaleString()} properties found`}
+          {loading ? 'Loading…' : `${total.toLocaleString()} ${total === 1 ? 'property' : 'properties'}${projectTotal ? ` · ${projectTotal} new ${projectTotal === 1 ? 'project' : 'projects'}` : ''} found`}
         </p>
       </div>
 
@@ -739,6 +836,24 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
 
           {/* ── Center: Properties list ─────────────────────── */}
           <div className="flex-1 min-w-0">
+            {forcedListingType !== 'rent' && filters.listingType !== 'rent' && (
+              <div className="flex items-center gap-1 p-1 rounded-xl mb-5 w-full sm:w-auto sm:inline-flex" role="tablist" aria-label="Completion status"
+                style={{ background: 'var(--bg-alt)', border: '1px solid var(--border)' }}>
+                {COMPLETION_TABS.map(t => {
+                  const active = (filters.completion || '') === t.v
+                  return (
+                    <button key={t.v || 'all'} role="tab" aria-selected={active}
+                      onClick={() => setFilter('completion', t.v)}
+                      className="flex-1 sm:flex-none px-5 py-2 rounded-lg text-sm font-semibold transition-all"
+                      style={active
+                        ? { background: 'var(--surface)', color: 'var(--teal)', boxShadow: '0 1px 4px rgba(15,23,42,0.10)' }
+                        : { color: 'var(--text-muted)' }}>
+                      {t.l}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
             {view === 'map' ? (
               <PropertiesMapView
                 properties={mapProperties}
@@ -751,25 +866,27 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
                   <PropertyCard key={i} property={undefined} loading layout={view === 'grid' ? 'grid' : 'row'} />
                 ))}
               </div>
-            ) : properties.length === 0 ? (
+            ) : listItems.length === 0 ? (
               <EmptyState onClear={clearFilters} />
             ) : (
               <>
                 <div className={cn(view === 'grid' ? 'grid gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3' : 'flex flex-col gap-4')}>
-                  {properties.map((p, i) => (
-                    <motion.div key={p?._id || i}
+                  {listItems.map((entry, i) => (
+                    <motion.div key={entry.key}
                       initial={{ opacity: 0, y: 16 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.04 }}>
-                      <PropertyCard property={p} loading={!p} layout={view === 'grid' ? 'grid' : 'row'} />
+                      {entry.kind === 'project'
+                        ? <ProjectCard project={entry.item} layout={view === 'grid' ? 'grid' : 'row'} markAsProject />
+                        : <PropertyCard property={entry.item} loading={!entry.item} layout={view === 'grid' ? 'grid' : 'row'} />}
                     </motion.div>
                   ))}
                 </div>
 
                 {/* Pagination */}
-                {totalPages > 1 && (
+                {pageCount > 1 && (
                   <div className="flex items-center justify-center gap-2 mt-10">
-                    {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => i + 1).map(p => (
+                    {Array.from({ length: Math.min(pageCount, 7) }, (_, i) => i + 1).map(p => (
                       <button
                         key={p}
                         onClick={() => setFilter('page', p)}
@@ -783,11 +900,12 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
                         {p}
                       </button>
                     ))}
-                    {totalPages > 7 && <span className="text-sm" style={{ color: 'var(--text-muted)' }}>…{totalPages}</span>}
+                    {pageCount > 7 && <span className="text-sm" style={{ color: 'var(--text-muted)' }}>…{pageCount}</span>}
                   </div>
                 )}
               </>
             )}
+
           </div>
 
           {/* ── Right: Sidebar (ads + buying behavior) ────── */}

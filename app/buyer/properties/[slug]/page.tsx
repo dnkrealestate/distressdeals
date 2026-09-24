@@ -23,8 +23,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   if (!property) return { title: 'Property Not Found' }
 
   const action = property.listingType === 'sale' ? 'for Sale' : 'for Rent'
-  const title = `${bedroomsLabel(property)} ${property.type?.replace('_', ' ')} ${action} in ${property.location.area}, Dubai`
-  const description = `${bedroomsLabel(property)} ${property.type} ${action.toLowerCase()} in ${property.location.area} — ${property.amenities.floorArea.toLocaleString()} sqft, ${property.amenities.bathrooms} bathrooms. Listed at ${property.price.toLocaleString()} AED. Verified listing, managed end-to-end by Distress Deals Dubai.`
+  const title = property.metaTitle?.trim() || `${bedroomsLabel(property)} ${property.type?.replace('_', ' ')} ${action} in ${property.location.area}, Dubai`
+  const description = property.metaDescription?.trim() || `${bedroomsLabel(property)} ${property.type} ${action.toLowerCase()} in ${property.location.area} — ${property.amenities.floorArea.toLocaleString()} sqft, ${property.amenities.bathrooms} bathrooms. Listed at ${property.price.toLocaleString()} AED. Verified listing, managed end-to-end by Distress Deals UAE.`
   const images = property.images?.length > 0 ? [{ url: property.images[0].url }] : undefined
 
   return {
@@ -47,6 +47,7 @@ export default async function PropertyDetailPage({ params }: { params: { slug: s
     '@type': 'RealEstateListing',
     name: property.title,
     description: property.description.replace(/<[^>]*>/g, '').slice(0, 300),
+    ...(property.seoKeywords?.length && { keywords: [property.focusKeyword, ...property.seoKeywords].filter(Boolean).join(', ') }),
     url: `${SITE_URL}/buyer/properties/${property.slug}`,
     datePosted: property.createdAt,
     image: property.images?.map(i => i.url),

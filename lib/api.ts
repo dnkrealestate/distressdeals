@@ -108,7 +108,8 @@ export const propertyAPI = {
   trackShare:   (id: string) => api.post(`/properties/${id}/share`),
   getAnalytics: (id: string) => api.get(`/properties/${id}/analytics`),
   uploadImages: (id: string, data: FormData) => api.post(`/properties/${id}/images`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
-  aiDescription: (data: any) => api.post('/properties/ai-description', data),
+  // AI drafting can take 10-40s (a draft plus up to two revision passes) — well past the default 15s timeout.
+  aiDescription: (data: any) => api.post('/properties/ai-description', data, { timeout: 90000 }),
   aiSearch: (query: string) => api.post('/properties/ai-search', { query }),
 }
 
@@ -128,6 +129,8 @@ export const userAPI = {
 export const favAPI = {
   getAll:  () => api.get('/users/favorites'),
   toggle:  (propertyId: string) => api.post(`/users/favorites/${propertyId}`),
+  getProjects:   () => api.get('/users/favorite-projects'),
+  toggleProject: (projectId: string) => api.post(`/users/favorite-projects/${projectId}`),
 }
 
 // ── Leads ───────────────────────────────────────────
@@ -253,9 +256,10 @@ export const projectAPI = {
   getDeveloperBySlug: (slug: string) => api.get(`/projects/developers/${slug}`),
   getAreas: () => api.get('/projects/areas'),
   getStatusStats: (params?: any) => api.get('/projects/status-stats', { params }),
+  getTypeStats:   (params?: any) => api.get('/projects/type-stats', { params }),
   trackShare: (id: string) => api.post(`/projects/${id}/share`),
   getAnalytics: (id: string) => api.get(`/projects/${id}/analytics`),
-  aiDescription: (data: any) => api.post('/projects/ai-description', data),
+  aiDescription: (data: any) => api.post('/projects/ai-description', data, { timeout: 90000 }),
 }
 
 // ── Developers (real, admin-managed records) ──────────
@@ -265,6 +269,10 @@ export const developerAPI = {
   create:     (data: any) => api.post('/developers', data),
   update:     (id: string, data: any) => api.put(`/developers/${id}`, data),
   delete:     (id: string) => api.delete(`/developers/${id}`),
+  // Reads the developer's website and drafts the profile + logo — several pages and an AI call, so allow time.
+  aiImport:   (url: string) => api.post('/developers/ai-import', { url }, { timeout: 90000 }),
+  // Any logo URL → stored colour + white WebP versions.
+  processLogo: (url: string, name?: string) => api.post('/developers/process-logo', { url, name }, { timeout: 60000 }),
 }
 
 // ── Area Content (admin-managed area-insights copy) ──

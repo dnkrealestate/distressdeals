@@ -6,8 +6,8 @@ import { resolveSeo } from '@/lib/seo'
 
 export async function generateMetadata(): Promise<Metadata> {
   return resolveSeo('sitemap', {
-    title: 'Sitemap | Distress Deals Dubai',
-    description: 'Every section of Distress Deals Dubai in one place — buy, rent, off-plan projects, area guides, and more.',
+    title: 'Sitemap | Distress Deals UAE',
+    description: 'Every section of Distress Deals UAE in one place — buy, rent, off-plan projects, area guides, and more.',
     path: '/sitemap',
   })
 }
@@ -77,7 +77,7 @@ export default function SitemapPage() {
         <div className="wrap" style={{ maxWidth: 900 }}>
           <p className="eyebrow mb-3">Site Map</p>
           <h1 className="heading-xl mb-3">Find Your Way Around</h1>
-          <p className="muted mb-12">Every section of Distress Deals Dubai, in one place.</p>
+          <p className="muted mb-12">Every section of Distress Deals UAE, in one place.</p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {GROUPS.map(group => (

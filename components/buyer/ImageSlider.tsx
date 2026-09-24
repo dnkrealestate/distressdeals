@@ -5,6 +5,15 @@ import Image from 'next/image'
 import { Building2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+const MAX_DOTS = 5
+
+// Indexes of the dots to show: a window of MAX_DOTS kept around the current photo.
+function dotWindow(idx: number, count: number): number[] {
+  const n = Math.min(count, MAX_DOTS)
+  const start = Math.min(Math.max(0, idx - Math.floor(n / 2)), count - n)
+  return Array.from({ length: n }, (_, i) => start + i)
+}
+
 export default function ImageSlider({
   images, alt, sizes, rounded,
 }: { images?: { url: string }[]; alt: string; sizes: string; rounded?: boolean }) {
@@ -56,15 +65,21 @@ export default function ImageSlider({
           >
             <ChevronRight size={14} className="text-white" />
           </button>
-          <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex gap-1 z-10">
-            {list.map((_, i) => (
+          {/* At most 5 dots, sliding with the current photo — a gallery of 25 would otherwise be a long strip. */}
+          <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex items-center gap-1 z-10">
+            {dotWindow(idx, list.length).map(i => (
               <span
                 key={i}
                 className="rounded-full transition-all"
-                style={{ width: i === idx ? 14 : 5, height: 5, background: i === idx ? '#fff' : 'rgba(255,255,255,0.5)' }}
+                style={{ width: i === idx ? 14 : 5, height: 5, background: i === idx ? '#fff' : 'rgba(255,255,255,0.55)', boxShadow: '0 0 2px rgba(0,0,0,0.3)' }}
               />
             ))}
           </div>
+          {list.length > MAX_DOTS && (
+            <span className="absolute bottom-2 left-3 z-10 text-[10px] font-semibold text-white px-1.5 py-0.5 rounded-md" style={{ background: 'rgba(0,0,0,0.45)' }}>
+              {idx + 1} / {list.length}
+            </span>
+          )}
         </>
       )}
     </>

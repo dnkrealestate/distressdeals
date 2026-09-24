@@ -25,6 +25,7 @@ import RentalBadge from '@/components/buyer/RentalBadge'
 import { rentalLabel } from '@/lib/rental'
 import LeadModal from '../../LeadModal'
 import { propertyAPI } from '@/lib/api'
+import { COMPANY_PHONE_DISPLAY, telHref, whatsappHref } from '@/lib/contact'
 import { addRecentlyViewed } from '@/lib/recentlyViewed'
 import { AMENITY_META, AMENITY_GROUPS } from '@/lib/amenities'
 import { useFavoritesStore } from '@/store/favoritesStore'
@@ -89,7 +90,6 @@ export default function PropertyDetailClient({ property }: { property: Property 
   const [descOverflows, setDescOverflows] = useState(false)
   const descRef = useRef<HTMLDivElement>(null)
   const DESC_COLLAPSED_HEIGHT = 260
-  const [showStickyBar, setShowStickyBar] = useState(false)
 
   const { isAuthenticated }             = useAuthStore()
   const { toggleFavorite, isFavorite }  = useFavoritesStore()
@@ -126,9 +126,6 @@ export default function PropertyDetailClient({ property }: { property: Property 
       // offset — square off its top corners only for that flush-with-the-
       // navbar state, not while it's still sitting inline in the page.
       setTabStuck((tabNavRef.current?.getBoundingClientRect().top ?? Infinity) <= TAB_STICKY_TOP)
-      // Bottom contact bar: only once scrolling is actually underway, so it
-      // doesn't just duplicate the CTA card sitting right there at the top.
-      setShowStickyBar(window.scrollY > 480)
     }
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
@@ -186,7 +183,6 @@ export default function PropertyDetailClient({ property }: { property: Property 
   const inCmp   = isInCompare(property._id)
   const features = Object.entries(property.features || {}).filter(([, v]) => v)
   const agent = property.agent
-  const agentPhone = agent?.phone?.replace(/[^\d]/g, '')
   const coords = property.location.coordinates
 
   const submitReport = async () => {
@@ -205,6 +201,8 @@ export default function PropertyDetailClient({ property }: { property: Property 
   }
 
   const shareUrl = typeof window !== 'undefined' ? window.location.href : `https://www.distressdealsuae.com/buyer/properties/${property.slug}`
+  // Buyers always reach the company line — it routes them to the right agent.
+  const whatsappLink = whatsappHref(`Hi, I'm interested in "${property.title}"${property.referenceId ? ` (Ref ${property.referenceId})` : ''}: ${shareUrl}`)
 
   const share = async () => {
     propertyAPI.trackShare(property._id).catch(() => {})
@@ -669,20 +667,15 @@ export default function PropertyDetailClient({ property }: { property: Property 
                 Express Interest
               </button>
 
-              {agentPhone && (
-                <a href={`https://wa.me/${agentPhone}`} target="_blank" rel="noopener noreferrer"
-                  className="btn-outline w-full py-3.5 mb-3 gap-2">
-                  <MessageCircle size={16} style={{ color: 'var(--green)' }} />
-                  WhatsApp {agent?.name?.split(' ')[0] || 'Agent'}
-                </a>
-              )}
+              <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="btn-outline w-full py-3.5 mb-3 gap-2">
+                <MessageCircle size={16} style={{ color: 'var(--green)' }} />
+                WhatsApp Us
+              </a>
 
-              {agent?.phone && (
-                <a href={`tel:${agent.phone}`} className="btn-outline w-full py-3.5 gap-2">
-                  <Phone size={16} style={{ color: TEAL }} />
-                  Call Agent
-                </a>
-              )}
+              <a href={telHref} className="btn-outline w-full py-3.5 gap-2">
+                <Phone size={16} style={{ color: TEAL }} />
+                Call {COMPANY_PHONE_DISPLAY}
+              </a>
 
               <div className="divider my-5" />
 
@@ -876,11 +869,10 @@ export default function PropertyDetailClient({ property }: { property: Property 
       </div>
 
       {/* ── Sticky bottom contact bar ──────────────────── */}
-      <AnimatePresence>
-        {showStickyBar && (
-          <motion.div
-            initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }}
-            transition={{ duration: 0.25, ease: 'easeOut' }}
+      {/* Always there, so a buyer can call, WhatsApp, share or enquire from anywhere on the page. */}
+      <motion.div
+            initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.25, ease: 'easeOut', delay: 0.3 }}
             className="fixed bottom-0 inset-x-0 z-40"
             style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)', boxShadow: '0 -4px 20px rgba(0,0,0,0.10)', paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
           >
@@ -889,24 +881,21 @@ export default function PropertyDetailClient({ property }: { property: Property 
                 <p className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>{property.title}</p>
                 <p className="text-sm font-bold grad-text">{formatPrice(property.price)}{rentSuffix(property)}</p>
               </div>
-              {agent?.phone && (
-                <a href={`tel:${agent.phone}`} className="btn-outline p-3 flex-shrink-0" aria-label="Call agent">
-                  <Phone size={17} style={{ color: TEAL }} />
-                </a>
-              )}
-              {agentPhone && (
-                <a href={`https://wa.me/${agentPhone}`} target="_blank" rel="noopener noreferrer" className="btn-outline p-3 flex-shrink-0" aria-label="WhatsApp agent">
-                  <MessageCircle size={17} style={{ color: 'var(--green)' }} />
-                </a>
-              )}
+              <a href={telHref} className="btn-outline p-3 flex-shrink-0" aria-label={`Call ${COMPANY_PHONE_DISPLAY}`} title={`Call ${COMPANY_PHONE_DISPLAY}`}>
+                <Phone size={17} style={{ color: TEAL }} />
+              </a>
+              <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="btn-outline p-3 flex-shrink-0" aria-label="WhatsApp us" title="WhatsApp us">
+                <MessageCircle size={17} style={{ color: 'var(--green)' }} />
+              </a>
+              <button onClick={share} className="btn-outline p-3 flex-shrink-0" aria-label="Share this property" title="Share">
+                <Share2 size={17} style={{ color: TEAL }} />
+              </button>
               <button onClick={() => setLeadOpen(true)} className="btn-primary flex-1 sm:flex-initial py-3 px-6">
                 <Send size={15} />
                 Express Interest
               </button>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      </motion.div>
 
       {/* ── Lightbox ──────────────── */}
       <AnimatePresence>
@@ -985,6 +974,8 @@ export default function PropertyDetailClient({ property }: { property: Property 
       </AnimatePresence>
 
       <Footer />
+      {/* Room for the fixed contact bar, so it never covers the end of the footer. */}
+      <div aria-hidden className="h-24" />
     </div>
   )
 }

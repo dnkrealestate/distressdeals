@@ -6,8 +6,9 @@ import { useForm } from 'react-hook-form'
 import { ShieldCheck, Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import toast from 'react-hot-toast'
+import { STAFF_ROLES, staffHome } from '@/lib/modules'
 
-const ALLOWED_ROLES = ['admin', 'super_admin', 'agent']
+const ALLOWED_ROLES = STAFF_ROLES
 
 interface FormValues { email: string; password: string }
 
@@ -29,7 +30,7 @@ export default function AdminLoginPage() {
         return
       }
       toast.success('Welcome back!')
-      router.push('/admin/dashboard')
+      router.push(staffHome(useAuthStore.getState().user))
     } catch (err: any) {
       toast.error(err?.error || 'Invalid email or password')
     } finally {

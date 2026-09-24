@@ -1,17 +1,23 @@
+'use client'
 import Link from 'next/link'
 import {
   FileText, LayoutTemplate, Search, Building2, Landmark, MapPin, Layers,
   Info, Sparkles, ChevronRight,
 } from 'lucide-react'
+import { useAuthStore } from '@/store/authStore'
+import { can } from '@/lib/modules'
+import type { AgentPermission } from '@/types'
 
 interface SettingsCard {
   href: string
   icon: any
   title: string
   description: string
+  module: AgentPermission
 }
 
 function CardGrid({ title, cards }: { title: string; cards: SettingsCard[] }) {
+  if (!cards.length) return null
   return (
     <div>
       <h2 className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--text-muted)' }}>{title}</h2>
@@ -39,26 +45,29 @@ function CardGrid({ title, cards }: { title: string; cards: SettingsCard[] }) {
 }
 
 const PAGE_CONTENT_CARDS: SettingsCard[] = [
-  { href: '/admin/settings/content-pages/about', icon: Info, title: 'About Page', description: 'Mission, values, milestones, and leadership shown on /about' },
-  { href: '/admin/settings/content-pages/distress-sale-dubai', icon: Sparkles, title: 'Distress Sale Dubai', description: 'The main distress-sale guide landing page' },
-  { href: '/admin/settings/content-pages/distressed-villas-dubai', icon: Sparkles, title: 'Distressed Villas Dubai', description: 'Villa-specific distress sale landing page' },
-  { href: '/admin/settings/content-pages/dubai-property-auctions', icon: Sparkles, title: 'Dubai Property Auctions', description: 'Auctions vs. negotiated distress sale landing page' },
-  { href: '/admin/settings/content-pages/sell-property-fast-dubai', icon: Sparkles, title: 'Sell Property Fast', description: 'Fast-sale landing page for sellers' },
-  { href: '/admin/settings/content-pages/free-property-valuation-dubai', icon: Sparkles, title: 'Free Property Valuation', description: 'Free valuation request landing page' },
+  { href: '/admin/settings/content-pages/about', icon: Info, title: 'About Page', description: 'Mission, values, milestones, and leadership shown on /about', module: 'manage_pages' },
+  { href: '/admin/settings/content-pages/distress-sale-dubai', icon: Sparkles, title: 'Distress Sale Dubai', description: 'The main distress-sale guide landing page', module: 'manage_pages' },
+  { href: '/admin/settings/content-pages/distressed-villas-dubai', icon: Sparkles, title: 'Distressed Villas Dubai', description: 'Villa-specific distress sale landing page', module: 'manage_pages' },
+  { href: '/admin/settings/content-pages/dubai-property-auctions', icon: Sparkles, title: 'Dubai Property Auctions', description: 'Auctions vs. negotiated distress sale landing page', module: 'manage_pages' },
+  { href: '/admin/settings/content-pages/sell-property-fast-dubai', icon: Sparkles, title: 'Sell Property Fast', description: 'Fast-sale landing page for sellers', module: 'manage_pages' },
+  { href: '/admin/settings/content-pages/free-property-valuation-dubai', icon: Sparkles, title: 'Free Property Valuation', description: 'Free valuation request landing page', module: 'manage_pages' },
 ]
 
 const SITE_STRUCTURE_CARDS: SettingsCard[] = [
-  { href: '/admin/content', icon: FileText, title: 'Content', description: 'Blog posts, news articles, and the editorial calendar' },
-  { href: '/admin/homepage', icon: LayoutTemplate, title: 'Homepage', description: 'Hero, stats, and "why choose us" sections' },
-  { href: '/admin/seo', icon: Search, title: 'SEO', description: 'Titles, descriptions, and keywords for every page' },
-  { href: '/admin/projects', icon: Building2, title: 'Projects', description: 'Off-plan & new development listings' },
-  { href: '/admin/developers', icon: Landmark, title: 'Developers', description: 'Developer profiles used across off-plan projects' },
-  { href: '/admin/areas', icon: MapPin, title: 'Areas', description: "Insights copy shown on each area's public page" },
-  { href: '/admin/communities', icon: Layers, title: 'Communities', description: 'Sub-neighbourhoods and standalone communities' },
-  { href: '/admin/buildings', icon: Building2, title: 'Buildings', description: 'Building/tower-level info pages' },
+  { href: '/admin/content', icon: FileText, title: 'Content', description: 'Blog posts, news articles, and the editorial calendar', module: 'manage_blog' },
+  { href: '/admin/homepage', icon: LayoutTemplate, title: 'Homepage', description: 'Hero, stats, and "why choose us" sections', module: 'manage_homepage' },
+  { href: '/admin/seo', icon: Search, title: 'SEO', description: 'Titles, descriptions, and keywords for every page', module: 'manage_seo' },
+  { href: '/admin/projects', icon: Building2, title: 'Projects', description: 'Off-plan & new development listings', module: 'manage_projects' },
+  { href: '/admin/developers', icon: Landmark, title: 'Developers', description: 'Developer profiles used across off-plan projects', module: 'manage_developers' },
+  { href: '/admin/areas', icon: MapPin, title: 'Areas', description: "Insights copy shown on each area's public page", module: 'manage_areas' },
+  { href: '/admin/communities', icon: Layers, title: 'Communities', description: 'Sub-neighbourhoods and standalone communities', module: 'manage_communities' },
+  { href: '/admin/buildings', icon: Building2, title: 'Buildings', description: 'Building/tower-level info pages', module: 'manage_buildings' },
 ]
 
 export default function AdminSettingsPage() {
+  const user = useAuthStore(s => s.user)
+  const pageCards = PAGE_CONTENT_CARDS.filter(c => can(user, c.module))
+  const structureCards = SITE_STRUCTURE_CARDS.filter(c => can(user, c.module))
   return (
     <div>
       <header className="px-7 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
@@ -67,8 +76,11 @@ export default function AdminSettingsPage() {
       </header>
 
       <div className="p-7 space-y-8">
-        <CardGrid title="Page Content" cards={PAGE_CONTENT_CARDS} />
-        <CardGrid title="Site Structure" cards={SITE_STRUCTURE_CARDS} />
+        <CardGrid title="Page Content" cards={pageCards} />
+        <CardGrid title="Site Structure" cards={structureCards} />
+        {!pageCards.length && !structureCards.length && (
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No sections are assigned to your account yet. Ask an admin to add modules for you.</p>
+        )}
       </div>
     </div>
   )

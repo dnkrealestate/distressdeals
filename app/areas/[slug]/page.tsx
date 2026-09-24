@@ -52,7 +52,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   const title = `Properties for Sale & Rent in ${area.area}, Dubai`
   const description = content?.overview
     ? content.overview.slice(0, 155)
-    : `${area.count} verified listing${area.count === 1 ? '' : 's'} in ${area.area} — average price ${formatPrice(Math.round(area.avgPrice))}. Every listing verified, managed end-to-end by Distress Deals Dubai.`
+    : `${area.count} verified listing${area.count === 1 ? '' : 's'} in ${area.area} — average price ${formatPrice(Math.round(area.avgPrice))}. Every listing verified, managed end-to-end by Distress Deals UAE.`
 
   return {
     title,

@@ -238,6 +238,7 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
     user?.role === 'admin' || user?.role === 'super_admin' ? '/admin/dashboard'
     : user?.role === 'seller'                               ? '/seller/listings'
     : user?.role === 'agent'                                ? '/admin/dashboard'
+    : user?.role === 'editor'                               ? '/admin/settings'
     : '/buyer/profile'
 
   // "Profile" has to point at wherever THIS role's profile page actually lives — the buyer account area

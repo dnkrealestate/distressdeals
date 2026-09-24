@@ -101,7 +101,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: { value
         suppressContentEditableWarning
         onInput={emit}
         onBlur={emit}
-        className="input rte-editor"
+        className="input rte-editor rich-content"
         style={{ minHeight: 220, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}
         data-placeholder={placeholder}
       />

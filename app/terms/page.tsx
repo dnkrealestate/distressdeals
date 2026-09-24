@@ -5,8 +5,8 @@ import { resolveSeo } from '@/lib/seo'
 
 export async function generateMetadata(): Promise<Metadata> {
   return resolveSeo('terms', {
-    title: 'Terms of Service | Distress Deals Dubai',
-    description: 'The terms that govern your use of the Distress Deals Dubai website and mobile app.',
+    title: 'Terms of Service | Distress Deals UAE',
+    description: 'The terms that govern your use of the Distress Deals UAE website and mobile app.',
     path: '/terms',
   })
 }
@@ -26,13 +26,13 @@ export default function TermsPage() {
           <div className="rich-content" style={{ color: 'var(--text-mid)' }}>
             <p>
               These Terms of Service ("Terms") govern your access to and use of distressdealsuae.com and the
-              Distress Deals mobile app (together, the "Platform"), operated by Distress Deals Dubai ("we",
+              Distress Deals mobile app (together, the "Platform"), operated by Distress Deals UAE ("we",
               "us"). By creating an account or otherwise using the Platform, you agree to these Terms.
             </p>
 
             <h2 className="heading-md mt-10 mb-4">1. What We Do</h2>
             <p>
-              Distress Deals Dubai is a centralized real estate platform. When you express interest in a
+              Distress Deals UAE is a centralized real estate platform. When you express interest in a
               property or project, your enquiry is routed to one dedicated in-house agent who manages it from
               first message through to handover. We are not an open marketplace where multiple agents compete
               for the same buyer — every enquiry has a single point of contact on our side.
@@ -75,7 +75,7 @@ export default function TermsPage() {
 
             <h2 className="heading-md mt-10 mb-4">6. Intermediary Role &amp; Disclaimer</h2>
             <p>
-              Distress Deals Dubai facilitates introductions between buyers, sellers, and our agents; we are not
+              Distress Deals UAE facilitates introductions between buyers, sellers, and our agents; we are not
               a party to any resulting sale, purchase, or lease agreement unless expressly stated in a separate
               written agreement. Any calculators, market estimates, or valuation tools on the Platform (including
               the mortgage and rental yield calculator) are provided for general guidance only and are not
@@ -86,14 +86,14 @@ export default function TermsPage() {
             <h2 className="heading-md mt-10 mb-4">7. Intellectual Property</h2>
             <p>
               All content on the Platform — branding, design, text, and software — is owned by or licensed to
-              Distress Deals Dubai and may not be copied or reused without permission, other than the property
+              Distress Deals UAE and may not be copied or reused without permission, other than the property
               photos and details you submit as a seller, which you retain ownership of and grant us a license to
               display on the Platform for the purpose of marketing your listing.
             </p>
 
             <h2 className="heading-md mt-10 mb-4">8. Limitation of Liability</h2>
             <p>
-              To the fullest extent permitted by law, Distress Deals Dubai is not liable for indirect,
+              To the fullest extent permitted by law, Distress Deals UAE is not liable for indirect,
               incidental, or consequential damages arising from your use of the Platform, or from any
               transaction between users, beyond the extent of our own direct involvement.
             </p>

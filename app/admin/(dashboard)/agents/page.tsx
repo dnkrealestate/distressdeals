@@ -9,15 +9,13 @@ import { cn, formatDate, formatPrice } from '@/lib/utils'
 import { IdTag } from '@/components/shared/UserIdChip'
 import type { Agent, AgentPermission, Lead, AgentPerformance } from '@/types'
 import toast from 'react-hot-toast'
+import { OPERATION_MODULES, CONTENT_MODULES } from '@/lib/modules'
 
+// Every module an agent can hold (lib/modules.ts), plus the legacy umbrella that covers all website content.
 const ALL_PERMISSIONS: { value: AgentPermission; label: string }[] = [
-  { value: 'approve_listings', label: 'Approve Listings' },
-  { value: 'manage_leads',     label: 'Manage Leads'     },
-  { value: 'schedule_meetings',label: 'Schedule Meetings'},
-  { value: 'view_analytics',   label: 'View Analytics'   },
-  { value: 'manage_content',   label: 'Manage Content'   },
-  { value: 'manage_agents',    label: 'Manage Agents'    },
-  { value: 'export_data',      label: 'Export Data'      },
+  ...OPERATION_MODULES.map(m => ({ value: m.key, label: m.label })),
+  { value: 'manage_content', label: 'All website content' },
+  ...CONTENT_MODULES.map(m => ({ value: m.key, label: m.label })),
 ]
 
 const ROLES = ['agent', 'senior_agent', 'team_leader', 'manager']

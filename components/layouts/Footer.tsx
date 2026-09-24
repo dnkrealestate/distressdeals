@@ -3,9 +3,10 @@
 import Link from 'next/link'
 import {
   Instagram, Linkedin, Youtube, Facebook, Apple, Play,
-  Building2, Shield,
+  Building2, Shield, Phone, MessageCircle,
 } from 'lucide-react'
 import { Logo } from '@/components/shared/Logo'
+import { COMPANY_PHONE_DISPLAY, telHref, whatsappHref } from '@/lib/contact'
 
 const FOOTER_LINKS = {
   Properties: [
@@ -63,14 +64,15 @@ const playStoreHref = 'https://play.google.com/store/apps/details?id=com.distres
 function StoreBadge({ href, Icon, eyebrow, title, comingSoon }: { href: string | null; Icon: any; eyebrow: string; title: string; comingSoon?: boolean }) {
   const content = (
     <>
-      <Icon size={22} className="flex-shrink-0" />
-      <div className="text-left leading-tight">
+      <Icon size={20} className="flex-shrink-0" />
+      <div className="text-left leading-tight whitespace-nowrap">
         <div className="text-[9px] uppercase tracking-wide opacity-70">{comingSoon ? 'Coming soon on' : eyebrow}</div>
         <div className="text-sm font-semibold">{title}</div>
       </div>
     </>
   )
-  const className = 'flex items-center gap-2.5 px-4 py-2.5 rounded-xl transition-all duration-200'
+  // Side by side in one row — each badge sizes to its label.
+  const className = 'inline-flex items-center gap-2 px-3.5 py-2 rounded-xl transition-all duration-200 flex-shrink-0'
   const style = { background: '#111', color: '#fff', border: '1px solid rgba(255,255,255,0.08)', opacity: comingSoon ? 0.6 : 1, cursor: comingSoon ? 'default' : 'pointer' }
 
   if (!href) return <div className={className} style={style}>{content}</div>
@@ -101,6 +103,17 @@ export default function Footer() {
               Dubai's premier real estate platform — connecting buyers, sellers, and investors with
               verified properties across the UAE.
             </p>
+
+            {/* Call / WhatsApp */}
+            {/* <div className="space-y-2 mb-6">
+              <a href={telHref} className="flex items-center gap-2 text-sm font-semibold hover:opacity-80" style={{ color: 'var(--text)' }}>
+                <Phone size={15} style={{ color: '#CB0101' }} /> {COMPANY_PHONE_DISPLAY}
+              </a>
+              <a href={whatsappHref('Hi, I have a question about a property on Distress Deals UAE.')} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-2 text-sm hover:opacity-80" style={{ color: 'var(--text-muted)' }}>
+                <MessageCircle size={15} style={{ color: 'var(--green)' }} /> Chat with us on WhatsApp
+              </a>
+            </div> */}
 
             {/* Socials */}
             <div className="flex items-center gap-2.5 mb-6">
@@ -173,7 +186,7 @@ export default function Footer() {
             <p className="text-sm leading-relaxed mb-5" style={{ color: 'var(--text-muted)' }}>
               Search, save, and message sellers on the go — download the Distress Deals app.
             </p>
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-row flex-wrap sm:flex-nowrap gap-2.5">
               <StoreBadge href={appStoreHref} Icon={Apple} eyebrow="Download on the" title="App Store" comingSoon={!appStoreHref} />
               <StoreBadge href={playStoreHref} Icon={Play} eyebrow="Get it on" title="Google Play" />
             </div>
@@ -187,7 +200,7 @@ export default function Footer() {
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-xs flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
             <Building2 size={12} />
-            © {year} Distress Deals Dubai. All rights reserved.
+            © {year} Distress Deals UAE. All rights reserved.
           </p>
           <div className="flex items-center gap-5">
             {['Privacy', 'Terms', 'Cookies', 'Sitemap'].map(l => (

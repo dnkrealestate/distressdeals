@@ -27,6 +27,9 @@ export interface GeocodeResult {
   // pins). Absent whenever Nominatim doesn't have that level of detail.
   road?: string
   area?: string
+  // Set for Google Places picks: the place's own name (building, tower, project) and its emirate.
+  name?: string
+  emirate?: string
 }
 
 // Pulls a road+house-number "address" and a suburb-level "area" out of

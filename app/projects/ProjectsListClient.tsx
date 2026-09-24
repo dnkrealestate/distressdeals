@@ -7,6 +7,7 @@ import { motion } from 'framer-motion'
 import { Search, ChevronRight, MapPin, Building2, Globe2, ChevronDown, X, LayoutList, Grid3X3, TrendingUp, Sparkles, CalendarClock, Wallet, Home } from 'lucide-react'
 
 import Navbar from '@/components/layouts/Navbar'
+import ProjectCompareBar from '@/components/buyer/ProjectCompareBar'
 import Footer from '@/components/layouts/Footer'
 import ProjectCard from '@/components/buyer/ProjectCard'
 import { projectAPI } from '@/lib/api'
@@ -270,6 +271,7 @@ function ProjectsListClientInner() {
   return (
     <div className="page overflow-x-hidden">
       <Navbar />
+      <ProjectCompareBar />
 
       {/* ── Breadcrumb + heading ─────────────────────────── */}
       <div className="wrap pt-5">

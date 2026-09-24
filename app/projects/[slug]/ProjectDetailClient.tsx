@@ -6,13 +6,14 @@ import Image from 'next/image'
 import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  ArrowLeft, MapPin, CalendarClock, Wallet, BedDouble, Bath, Home, ShieldCheck, Phone, Building2, MessageCircleHeart, Share2,
+  ArrowLeft, MapPin, CalendarClock, Wallet, BedDouble, Bath, Home, ShieldCheck, Phone, Building2, MessageCircleHeart, MessageCircle, Share2,
   TrainFront, GraduationCap, ShoppingBag, Landmark as LandmarkIcon, Plane, Search, Loader2, Navigation, Maximize2, Tag, Clock, X,
 } from 'lucide-react'
 import Navbar from '@/components/layouts/Navbar'
 import Footer from '@/components/layouts/Footer'
 import ProjectInterestModal from '@/components/buyer/ProjectInterestModal'
 import { projectAPI } from '@/lib/api'
+import { COMPANY_PHONE_DISPLAY, telHref, whatsappHref } from '@/lib/contact'
 import { formatPrice, cn, timeAgo } from '@/lib/utils'
 import { AMENITY_META } from '@/lib/amenities'
 import { haversineKm, formatDistanceKm, geocodePlace, type GeocodeResult } from '@/lib/distance'
@@ -302,6 +303,9 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
 
   const handover = [project.handoverQuarter, project.handoverYear].filter(Boolean).join(' ') || 'TBA'
 
+  const pageUrl = typeof window !== 'undefined' ? window.location.href : `https://www.distressdealsuae.com/projects/${project.slug}`
+  const whatsappLink = whatsappHref(`Hi, I'm interested in the "${project.title}" project by ${project.developer}: ${pageUrl}`)
+
   const share = async () => {
     projectAPI.trackShare(project._id).catch(() => {})
     const shareUrl = typeof window !== 'undefined' ? window.location.href : `https://distressdealsuae.com/projects/${project.slug}`
@@ -358,7 +362,7 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
             <Link href={`/developers/${project.developer.toLowerCase().trim().replace(/\s+/g, '-')}`} className="inline-flex items-center gap-2 mb-1 group">
               {project.developerLogo && (
                 <span className="w-6 h-6 rounded-md overflow-hidden flex-shrink-0" style={{ background: 'var(--bg-alt)' }}>
-                  <Image src={project.developerLogo} alt={project.developer} width={24} height={24} className="object-cover w-full h-full" />
+                  <Image src={project.developerLogo} alt={project.developer} width={24} height={24} className="object-contain w-full h-full p-0.5" />
                 </span>
               )}
               <span className="text-sm font-semibold group-hover:underline" style={{ color: 'var(--teal)' }}>{project.developer}</span>
@@ -530,8 +534,11 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                 <button onClick={() => setInterestOpen(true)} className="btn-primary w-full py-4 text-base mb-3">
                   <MessageCircleHeart size={16} /> I'm Interested
                 </button>
-                <a href="tel:+97144000000" className="btn-outline w-full py-3.5 mb-3 gap-2">
-                  <Phone size={16} style={{ color: 'var(--teal)' }} /> Call Our Team
+                <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="btn-outline w-full py-3.5 mb-3 gap-2">
+                  <MessageCircle size={16} style={{ color: 'var(--green)' }} /> WhatsApp Us
+                </a>
+                <a href={telHref} className="btn-outline w-full py-3.5 mb-3 gap-2">
+                  <Phone size={16} style={{ color: 'var(--teal)' }} /> Call {COMPANY_PHONE_DISPLAY}
                 </a>
                 <button onClick={share} className="btn-ghost w-full py-3.5 gap-2">
                   <Share2 size={16} /> Share
@@ -581,8 +588,11 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                 <p className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>{project.title}</p>
                 <p className="text-sm font-bold grad-text">{formatPrice(project.priceFrom)}</p>
               </div>
-              <a href="tel:+97144000000" className="btn-outline p-3 flex-shrink-0" aria-label="Call our team">
+              <a href={telHref} className="btn-outline p-3 flex-shrink-0" aria-label={`Call ${COMPANY_PHONE_DISPLAY}`} title={`Call ${COMPANY_PHONE_DISPLAY}`}>
                 <Phone size={17} style={{ color: 'var(--teal)' }} />
+              </a>
+              <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="btn-outline p-3 flex-shrink-0" aria-label="WhatsApp us" title="WhatsApp us">
+                <MessageCircle size={17} style={{ color: 'var(--green)' }} />
               </a>
               <button onClick={share} className="btn-outline p-3 flex-shrink-0" aria-label="Share">
                 <Share2 size={17} style={{ color: 'var(--text-mid)' }} />

@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   const post = await getPost(params.slug)
   if (!post) return { title: 'Article Not Found' }
 
-  // The root layout's title template ("%s | Distress Deals Dubai") already
+  // The root layout's title template ("%s | Distress Deals UAE") already
   // appends the brand suffix — return the bare post title, not a pre-suffixed one.
   const title = post.title
   const description = post.excerpt
@@ -48,8 +48,8 @@ export default async function BlogDetailPage({ params }: { params: { slug: strin
     image: post.coverImage ? [post.coverImage] : undefined,
     datePublished: post.publishedAt || post.createdAt,
     dateModified: post.publishedAt || post.createdAt,
-    author: { '@type': 'Organization', name: post.author?.name || 'Distress Deals Dubai' },
-    publisher: { '@type': 'Organization', name: 'Distress Deals Dubai' },
+    author: { '@type': 'Organization', name: post.author?.name || 'Distress Deals UAE' },
+    publisher: { '@type': 'Organization', name: 'Distress Deals UAE' },
     mainEntityOfPage: { '@type': 'WebPage', '@id': `https://www.distressdealsuae.com/blog/${post.slug}` },
   }
 

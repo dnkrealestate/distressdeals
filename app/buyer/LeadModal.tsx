@@ -40,8 +40,8 @@ export default function LeadModal({ property, onClose }: Props) {
       })
       setOutcome({ ...res.data.meta, email: data.email })
       setSubmitted(true)
-    } catch {
-      toast.error('Failed to submit. Please try again.')
+    } catch (err: any) {
+      toast.error(err?.error || 'Failed to submit. Please try again.')
     } finally {
       setLoading(false)
     }

@@ -43,8 +43,8 @@ export default async function NewsDetailPage({ params }: { params: { slug: strin
     image: item.coverImage ? [item.coverImage] : undefined,
     datePublished: item.publishedAt || item.createdAt,
     dateModified: item.publishedAt || item.createdAt,
-    author: { '@type': 'Organization', name: 'Distress Deals Dubai' },
-    publisher: { '@type': 'Organization', name: 'Distress Deals Dubai' },
+    author: { '@type': 'Organization', name: 'Distress Deals UAE' },
+    publisher: { '@type': 'Organization', name: 'Distress Deals UAE' },
     mainEntityOfPage: { '@type': 'WebPage', '@id': `https://www.distressdealsuae.com/news/${item.slug}` },
   }
 

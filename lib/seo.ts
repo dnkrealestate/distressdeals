@@ -22,7 +22,9 @@ export async function resolveSeo(pageKey: string, defaults: SeoDefaults): Promis
     : undefined
 
   return {
-    title,
+    // The root layout's title template appends " | Distress Deals UAE" — skip it when the title already names the
+    // brand, so it never shows twice.
+    title: /distress\s*deals/i.test(title) ? { absolute: title } : title,
     description,
     ...(keywords?.length ? { keywords } : {}),
     alternates: { canonical: defaults.path },

@@ -793,7 +793,7 @@ export default function HomeClient({ content }: { content: HomepageContent }) {
               className="mb-10 max-w-md mx-auto relative z-10 text-base leading-relaxed"
               style={{ color: 'rgba(255,255,255,0.82)' }}
             >
-              Join over 12,000 satisfied clients who found their dream home through Distress Deals Dubai.
+              Join over 12,000 satisfied clients who found their dream home through Distress Deals UAE.
             </p>
             <div className="flex flex-wrap justify-center gap-4 relative z-10">
               <Link

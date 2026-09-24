@@ -1,4 +1,4 @@
-export type UserRole = 'buyer' | 'seller' | 'agent' | 'admin' | 'super_admin'
+export type UserRole = 'buyer' | 'seller' | 'agent' | 'editor' | 'admin' | 'super_admin'
 export type PropertyType = 'apartment' | 'villa' | 'townhouse' | 'penthouse' | 'studio' | 'office' | 'retail' | 'warehouse' | 'plot' | 'commercial_villa' | 'other'
 export type PropertyCategory = 'residential' | 'commercial' | 'plot'
 export type ListingType = 'sale' | 'rent'
@@ -6,14 +6,18 @@ export type RentFrequency = 'yearly' | 'monthly'
 export type SellerUrgency = 'this_month' | 'within_2_months' | 'flexible'
 export type PropertyStatus = 'pending' | 'under_review' | 'approved' | 'rejected' | 'published' | 'sold' | 'withdrawn' | 'draft'
 export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'touring' | 'negotiating' | 'deal_closed' | 'deal_lost' | 'cancelled'
-export type AgentPermission = 'approve_listings' | 'manage_leads' | 'schedule_meetings' | 'view_analytics' | 'manage_content' | 'manage_agents' | 'export_data'
+export type AgentPermission =
+  | 'approve_listings' | 'manage_leads' | 'schedule_meetings' | 'view_analytics' | 'manage_agents' | 'export_data'
+  | 'manage_content'
+  | 'manage_blog' | 'manage_homepage' | 'manage_seo' | 'manage_pages' | 'manage_projects'
+  | 'manage_developers' | 'manage_areas' | 'manage_communities' | 'manage_buildings'
 
 export interface User {
   _id: string; name: string; email: string; phone?: string; avatar?: string
   // Chat presence: when they were last connected (only present while they are offline).
   lastSeenAt?: string
   role: UserRole; status: string; isEmailVerified: boolean; isPhoneVerified: boolean
-  // Role-prefixed public ID: S-A1 (seller), B-A1 (buyer), A-A1 (agent). Admins have none.
+  // Role-prefixed public ID: S-A1 (seller), B-A1 (buyer), A-A1 (agent), E-A1 (editor), AD-A1 (admin).
   displayId?: string
   favorites: string[]; createdAt: string
   permissions?: AgentPermission[]; agentRole?: string
@@ -62,6 +66,8 @@ export interface Property {
   financingAvailable?: boolean
   financingInstitutionNames?: string
   titleAr?: string; descriptionAr?: string
+  // Search-result overrides for the listing page, the keyword the copy was written around, and secondary keywords.
+  metaTitle?: string; metaDescription?: string; focusKeyword?: string; seoKeywords?: string[]
   developer?: string; projectName?: string; permitNumber?: string; permitQrImage?: string
   images: PropertyImage[]
   videos?: { platform: 'youtube' | 'vimeo' | 'dailymotion' | '3d_view'; url: string; title?: string }[]
@@ -180,7 +186,7 @@ export interface ContentPageData {
 export interface Project {
   _id: string; title: string; slug: string; referenceId?: string; developer: string; description: string
   // Search-result overrides for the project page; focusKeyword is what the description was written around.
-  metaTitle?: string; metaDescription?: string; focusKeyword?: string
+  metaTitle?: string; metaDescription?: string; focusKeyword?: string; seoKeywords?: string[]
   coverImage?: string; images: { url: string }[]
   area: string; community?: string; city: string; emirate: string
   priceFrom: number; priceTo?: number; type?: string; bedrooms: string; bathrooms?: string; sizeRange?: string
@@ -188,6 +194,8 @@ export interface Project {
   status: 'upcoming' | 'under_construction' | 'ready' | 'sold_out'
   isFeatured: boolean; views: number; createdAt: string
   developerLogo?: string
+  // White version for the dark developer badge on project cards.
+  developerLogoWhite?: string
   coordinates?: { lat: number; lng: number }
   amenities?: Record<string, boolean>
   floorPlans?: { label: string; image: string; bedrooms?: string; size?: string; price?: number }[]
@@ -198,8 +206,18 @@ export interface Project {
 
 export interface Developer {
   _id: string; name: string; slug: string; logo?: string; description?: string
+  // All-white version of the logo (transparent background) for dark backgrounds.
+  logoWhite?: string
   website?: string; establishedYear?: number; headquarters?: string; isFeatured: boolean
   createdAt: string
+}
+
+// What "Auto-fill from website" returns — a draft for the form, not a saved developer.
+export interface DeveloperImport {
+  name: string; description: string; website: string; establishedYear?: number; headquarters?: string
+  logo?: string; logoWhite?: string; isLightLogo?: boolean
+  logoCandidates: string[]; logoError?: string; pagesRead: string[]
+  existing: { _id: string; name: string } | null
 }
 
 export interface DeveloperWithStats extends Developer {

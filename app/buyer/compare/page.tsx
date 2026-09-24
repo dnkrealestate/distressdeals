@@ -1,165 +1,153 @@
 'use client'
 import Link from 'next/link'
 import Image from 'next/image'
-import { motion } from 'framer-motion'
-import { X, Plus, Bed, Bath, Maximize2, Car, MapPin, CheckCircle2, XCircle, ArrowRight } from 'lucide-react'
+import { X, Plus, MapPin, CheckCircle2, Minus, ArrowRight, GitCompare, Building2 } from 'lucide-react'
 import Navbar from '@/components/layouts/Navbar'
 import Footer from '@/components/layouts/Footer'
 import { useCompareStore } from '@/store/compareStore'
-import { formatPrice, formatArea, cn, rentSuffix } from '@/lib/utils'
+import { formatPrice, formatArea, rentSuffix } from '@/lib/utils'
 import { rentalLabel } from '@/lib/rental'
 
-const SPECS = [
-  { label: 'Price',        key: (p: any) => `${formatPrice(p.price)}${rentSuffix(p)}`                 },
-  { label: 'Type',         key: (p: any) => p.type                                                   },
-  { label: 'Listing',      key: (p: any) => p.listingType                                            },
-  { label: 'Bedrooms',     key: (p: any) => p.amenities?.bedrooms || 'Studio'                        },
-  { label: 'Bathrooms',    key: (p: any) => p.amenities?.bathrooms                                   },
-  { label: 'Floor Area',   key: (p: any) => `${formatArea(p.amenities?.floorArea)} sqft`             },
-  { label: 'Price/sqft',   key: (p: any) => p.pricePerSqft ? `AED ${Math.round(p.pricePerSqft).toLocaleString()}` : '—' },
-  { label: 'Parking',      key: (p: any) => p.amenities?.parkingSpaces                               },
-  { label: 'Furnishing',   key: (p: any) => p.furnishing?.replace('_',' ')                           },
-  { label: 'Completion',   key: (p: any) => p.listingType === 'rent' ? undefined : p.completion?.replace('_',' ') },
-  { label: 'Availability', key: (p: any) => p.listingType === 'rent' ? rentalLabel(p) : undefined      },
-  { label: 'Area',         key: (p: any) => p.location?.area                                         },
-  { label: 'Emirate',      key: (p: any) => p.location?.emirate                                      },
+const cap = (s?: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '')
+
+const SPECS: { label: string; value: (p: any) => React.ReactNode }[] = [
+  { label: 'Price',        value: p => `${formatPrice(p.price)}${rentSuffix(p)}` },
+  { label: 'Type',         value: p => cap(p.type) },
+  { label: 'Listing',      value: p => (p.listingType === 'rent' ? 'For Rent' : 'For Sale') },
+  { label: 'Bedrooms',     value: p => (p.amenities?.bedrooms ? `${p.amenities.bedrooms} Bed` : 'Studio') },
+  { label: 'Bathrooms',    value: p => (p.amenities?.bathrooms ? `${p.amenities.bathrooms} Bath` : undefined) },
+  { label: 'Floor Area',   value: p => (p.amenities?.floorArea ? `${formatArea(p.amenities.floorArea)} sqft` : undefined) },
+  { label: 'Price / sqft', value: p => (p.pricePerSqft ? `AED ${Math.round(p.pricePerSqft).toLocaleString()}` : undefined) },
+  { label: 'Parking',      value: p => p.amenities?.parkingSpaces },
+  { label: 'Furnishing',   value: p => cap(p.furnishing?.replace('_', ' ')) },
+  { label: 'Completion',   value: p => (p.listingType === 'rent' ? undefined : p.completion === 'off_plan' ? 'Off-Plan' : 'Ready') },
+  { label: 'Availability', value: p => (p.listingType === 'rent' ? rentalLabel(p) : undefined) },
+  { label: 'Area',         value: p => p.location?.area },
+  { label: 'Emirate',      value: p => p.location?.emirate },
 ]
 
-const FEATURES = ['pool','gym','concierge','security24h','childrenPlay','bbqArea','sauna','smartHome','centralAC','coveredParking','maidRoom','petsAllowed']
+const FEATURES = ['pool', 'gym', 'concierge', 'security24h', 'childrenPlay', 'bbqArea', 'sauna', 'smartHome', 'centralAC', 'coveredParking', 'maidRoom', 'petsAllowed']
+const featureLabel = (f: string) => cap(f.replace(/([A-Z])/g, ' $1').replace(/(\d+)h/, ' $1h').trim().toLowerCase())
+
+const muted = { color: 'var(--text-muted)' }
+const cellBorder = { borderLeft: '1px solid var(--border-soft)' }
 
 export default function ComparePage() {
   const { compareList, removeFromCompare, clearCompare } = useCompareStore()
 
-  if (compareList.length === 0) return (
-    <div className="page">
-      <Navbar />
-      <div className="wrap py-24 text-center min-h-screen">
-        <div className="w-20 h-20 rounded-3xl glass-gold flex items-center justify-center mx-auto mb-6">
-          <Plus size={32} className="text-gold-400 rotate-45" />
-        </div>
-        <h2 className="heading-md text-white mb-3">Nothing to Compare</h2>
-        <p className="muted mb-8 max-w-sm mx-auto">Add up to 2 properties using the compare button on any listing to see them side by side.</p>
-        <Link href="/buyer/properties" className="btn-gold">Browse Properties <ArrowRight size={15} /></Link>
-      </div>
-      <Footer />
-    </div>
-  )
-
-  const cols = [...compareList]
-  while (cols.length < 2) cols.push(null as any)
+  const cols: any[] = [...compareList]
+  while (cols.length < 2) cols.push(null)
+  const grid = { gridTemplateColumns: `minmax(110px, 180px) repeat(${cols.length}, minmax(180px, 1fr))` }
 
   return (
     <div className="page">
       <Navbar />
-      <div className="wrap py-10 pb-20">
-        <div className="flex items-center justify-between mb-8">
+      <div className="wrap py-10 pb-20 min-h-[70vh]">
+        <div className="flex items-end justify-between gap-3 flex-wrap mb-7">
           <div>
-            <h1 className="heading-md mb-1">Compare <span className="gold-text">Properties</span></h1>
-            <p className="muted">Side-by-side comparison of your selected properties</p>
+            <h1 className="heading-md mb-1">Compare <span className="grad-text">Properties</span></h1>
+            <p className="muted text-sm">Side-by-side comparison of your selected properties</p>
           </div>
           {compareList.length > 0 && (
-            <button onClick={clearCompare} className="btn-ghost btn-sm gap-2 text-red-400 border-red-500/20 hover:bg-red-500/8">
-              <X size={14} /> Clear All
+            <button onClick={clearCompare} className="btn-ghost btn-sm gap-1.5" style={{ color: '#E11D48' }}>
+              <X size={13} /> Clear all
             </button>
           )}
         </div>
 
-        <div className="glass rounded-3xl overflow-hidden">
-          {/* Property headers */}
-          <div className="grid grid-cols-3 border-b border-white/5">
-            <div className="p-5 border-r border-white/5">
-              <p className="text-xs text-white/30 uppercase tracking-widest">Comparing</p>
+        {compareList.length === 0 ? (
+          <div className="card p-12 text-center">
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5" style={{ background: 'rgba(203,1,1,0.08)', border: '1px solid rgba(203,1,1,0.18)' }}>
+              <GitCompare size={26} style={{ color: 'var(--teal)' }} />
             </div>
-            {cols.map((p, i) => (
-              <div key={i} className={cn('p-4', i === 0 && 'border-r border-white/5')}>
-                {p ? (
-                  <div className="relative">
-                    <button onClick={() => removeFromCompare(p._id)}
-                      className="absolute -top-1 -right-1 w-6 h-6 rounded-full glass flex items-center justify-center text-white/40 hover:text-red-400 transition-colors z-10">
-                      <X size={11} />
-                    </button>
-                    <div className="relative h-36 rounded-xl overflow-hidden mb-3 bg-onyx-800">
-                      {p.images?.[0]?.url ? (
-                        <Image src={p.images[0].url} alt={p.title} fill className="object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-white/10 text-3xl">🏙️</div>
-                      )}
-                    </div>
-                    <h3 className="font-semibold text-sm text-white line-clamp-2 mb-1">{p.title}</h3>
-                    <p className="text-xs text-white/40 flex items-center gap-1">
-                      <MapPin size={10} className="text-gold-400" />{p.location.area}
-                    </p>
-                    <p className="text-lg font-bold text-gold-300 mt-2">{formatPrice(p.price)}{rentSuffix(p)}</p>
-                  </div>
-                ) : (
-                  <Link href="/buyer/properties"
-                    className="h-full flex flex-col items-center justify-center py-10 text-center border-2 border-dashed border-white/10 rounded-xl hover:border-gold-500/30 transition-colors group">
-                    <div className="w-10 h-10 rounded-xl glass-gold flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-                      <Plus size={18} className="text-gold-400" />
-                    </div>
-                    <p className="text-xs text-white/35 group-hover:text-white/60 transition-colors">Add Property</p>
-                  </Link>
-                )}
-              </div>
-            ))}
+            <h2 className="text-lg font-semibold mb-2" style={{ color: 'var(--text)' }}>Nothing to compare yet</h2>
+            <p className="muted text-sm mb-6 max-w-sm mx-auto">Add up to 2 properties using the compare button on any listing to see them side by side.</p>
+            <Link href="/for-sale" className="btn-primary">Browse Properties <ArrowRight size={14} /></Link>
           </div>
-
-          {/* Specs rows */}
-          <div>
-            {SPECS.map((spec, si) => (
-              <div key={spec.label} className={cn('grid grid-cols-3', si % 2 === 0 ? '' : 'bg-white/[0.015]')}>
-                <div className="px-5 py-3 border-r border-white/5 flex items-center">
-                  <p className="text-xs text-white/35 font-medium">{spec.label}</p>
+        ) : (
+          <div className="card overflow-x-auto p-0">
+            <div className="min-w-fit">
+              {/* Property headers */}
+              <div className="grid" style={{ ...grid, borderBottom: '1px solid var(--border)' }}>
+                <div className="p-4 flex items-end">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider" style={muted}>Comparing</p>
                 </div>
                 {cols.map((p, i) => (
-                  <div key={i} className={cn('px-5 py-3 flex items-center', i === 0 && 'border-r border-white/5')}>
-                    <p className="text-sm text-white/75 capitalize">{p ? spec.key(p) : '—'}</p>
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-
-          {/* Features comparison */}
-          <div className="border-t border-white/5">
-            <div className="grid grid-cols-3 bg-white/[0.02]">
-              <div className="px-5 py-4 border-r border-white/5">
-                <p className="text-xs text-white/30 uppercase tracking-widest font-medium">Features</p>
-              </div>
-              {cols.map((_, i) => <div key={i} className={cn('py-4', i === 0 && 'border-r border-white/5')} />)}
-            </div>
-            {FEATURES.map((feat, fi) => (
-              <div key={feat} className={cn('grid grid-cols-3', fi % 2 === 0 ? '' : 'bg-white/[0.015]')}>
-                <div className="px-5 py-3 border-r border-white/5">
-                  <p className="text-xs text-white/35 capitalize">{feat.replace(/([A-Z])/g,' $1').trim()}</p>
-                </div>
-                {cols.map((p, i) => (
-                  <div key={i} className={cn('px-5 py-3 flex items-center', i === 0 && 'border-r border-white/5')}>
+                  <div key={p?._id || `empty-${i}`} className="p-4" style={cellBorder}>
                     {p ? (
-                      p.features?.[feat]
-                        ? <CheckCircle2 size={16} className="text-emerald-400" />
-                        : <XCircle size={16} className="text-white/15" />
-                    ) : <span className="text-white/15">—</span>}
+                      <div className="relative">
+                        <button onClick={() => removeFromCompare(p._id)} aria-label="Remove"
+                          className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full flex items-center justify-center"
+                          style={{ background: 'rgba(255,255,255,0.95)', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+                          <X size={13} style={{ color: '#334155' }} />
+                        </button>
+                        <Link href={`/buyer/properties/${p.slug || p._id}`} className="block">
+                          <div className="relative h-36 rounded-xl overflow-hidden mb-3" style={{ background: 'var(--bg-alt)' }}>
+                            {p.images?.[0]?.url
+                              ? <Image src={p.images[0].url} alt={p.title} fill sizes="320px" className="object-cover" />
+                              : <Building2 size={28} className="absolute inset-0 m-auto" style={{ color: 'var(--text-muted)', opacity: 0.4 }} />}
+                          </div>
+                          <h3 className="font-semibold text-[0.95rem] leading-snug line-clamp-2 mb-1 hover:text-[var(--teal)]" style={{ color: 'var(--text)' }}>{p.title}</h3>
+                        </Link>
+                        <p className="text-xs flex items-center gap-1" style={{ color: 'var(--text-mid)' }}>
+                          <MapPin size={11} style={{ color: 'var(--teal)' }} />{p.location?.area}
+                        </p>
+                        <p className="text-lg font-bold grad-text mt-1.5">{formatPrice(p.price)}{rentSuffix(p)}</p>
+                      </div>
+                    ) : (
+                      <Link href="/for-sale" className="h-full min-h-[220px] flex flex-col items-center justify-center rounded-xl text-center transition-colors hover:bg-[var(--bg-alt)]"
+                        style={{ border: '2px dashed var(--border)' }}>
+                        <Plus size={20} style={{ color: 'var(--teal)' }} />
+                        <p className="text-xs mt-2" style={muted}>Add a property</p>
+                      </Link>
+                    )}
                   </div>
                 ))}
               </div>
-            ))}
-          </div>
 
-          {/* CTA row */}
-          <div className="grid grid-cols-3 border-t border-white/5 bg-white/[0.02]">
-            <div className="px-5 py-5 border-r border-white/5" />
-            {cols.map((p, i) => (
-              <div key={i} className={cn('px-4 py-5', i === 0 && 'border-r border-white/5')}>
-                {p && (
-                  <Link href={`/buyer/properties/${p.slug || p._id}`} className="btn-gold w-full text-xs py-2.5">
-                    View Property <ArrowRight size={13} />
-                  </Link>
-                )}
+              {/* Specs */}
+              {SPECS.map((spec, si) => (
+                <div key={spec.label} className="grid" style={{ ...grid, background: si % 2 ? 'var(--bg-alt)' : undefined }}>
+                  <div className="px-4 py-3 text-xs font-medium" style={muted}>{spec.label}</div>
+                  {cols.map((p, i) => (
+                    <div key={i} className="px-4 py-3 text-sm font-semibold" style={{ ...cellBorder, color: 'var(--text)' }}>
+                      {p ? (spec.value(p) ?? <span style={{ ...muted, fontWeight: 400 }}>—</span>) : ''}
+                    </div>
+                  ))}
+                </div>
+              ))}
+
+              {/* Features */}
+              <div className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider" style={{ ...muted, borderTop: '1px solid var(--border)' }}>Features</div>
+              {FEATURES.map((feat, fi) => (
+                <div key={feat} className="grid" style={{ ...grid, background: fi % 2 ? undefined : 'var(--bg-alt)' }}>
+                  <div className="px-4 py-2.5 text-xs" style={{ color: 'var(--text-mid)' }}>{featureLabel(feat)}</div>
+                  {cols.map((p, i) => (
+                    <div key={i} className="px-4 py-2.5" style={cellBorder}>
+                      {p && (p.features?.[feat]
+                        ? <CheckCircle2 size={16} style={{ color: '#16A34A' }} />
+                        : <Minus size={16} style={{ ...muted, opacity: 0.5 }} />)}
+                    </div>
+                  ))}
+                </div>
+              ))}
+
+              {/* CTA */}
+              <div className="grid" style={{ ...grid, borderTop: '1px solid var(--border)' }}>
+                <div />
+                {cols.map((p, i) => (
+                  <div key={i} className="p-4" style={cellBorder}>
+                    {p && (
+                      <Link href={`/buyer/properties/${p.slug || p._id}`} className="btn-primary btn-sm w-full justify-center">
+                        View Property <ArrowRight size={13} />
+                      </Link>
+                    )}
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
       <Footer />
     </div>

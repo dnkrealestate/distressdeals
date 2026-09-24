@@ -63,6 +63,82 @@ export function loadGoogleMaps(): Promise<void> {
   return loaderPromise
 }
 
+// ── Place search ────────────────────────────────────────────────────────
+// Google Places autocomplete (the classic JS service — "Places API (New)" isn't enabled on this key). Unlike
+// OpenStreetMap it knows buildings, towers and off-plan project names, not just streets and districts.
+export interface PlaceSuggestion { placeId: string; main: string; secondary: string }
+export interface PlaceDetails {
+  name: string; label: string; lat: number; lng: number
+  area?: string; road?: string; emirate?: string
+}
+
+let placesPromise: Promise<any> | null = null
+function loadPlaces(): Promise<any> {
+  if (!GOOGLE_MAPS_API_KEY) return Promise.reject(new Error('no key'))
+  if (authFailed) return Promise.reject(new Error('Google Maps key rejected'))
+  placesPromise ??= loadGoogleMaps()
+    .then(() => (window as any).google.maps.importLibrary('places'))
+    .catch(err => { placesPromise = null; throw err })
+  return placesPromise
+}
+
+// One token per search → pick, so Google bills the keystrokes and the details lookup as a single session.
+export async function newPlacesSession(): Promise<any> {
+  const places = await loadPlaces()
+  return new places.AutocompleteSessionToken()
+}
+
+export async function searchPlaces(input: string, sessionToken?: any): Promise<PlaceSuggestion[]> {
+  const places = await loadPlaces()
+  const service = new places.AutocompleteService()
+  return new Promise((resolve, reject) => {
+    service.getPlacePredictions(
+      { input, sessionToken, componentRestrictions: { country: 'ae' }, language: 'en' },
+      (preds: any[] | null, status: string) => {
+        if (status === 'ZERO_RESULTS') return resolve([])
+        if (status !== 'OK' || !preds) return reject(new Error(status))
+        resolve(preds.map(p => ({
+          placeId: p.place_id,
+          main: p.structured_formatting?.main_text || p.description,
+          secondary: p.structured_formatting?.secondary_text || '',
+        })))
+      },
+    )
+  })
+}
+
+export async function getPlaceDetails(placeId: string, sessionToken?: any): Promise<PlaceDetails> {
+  const places = await loadPlaces()
+  const service = new places.PlacesService(document.createElement('div'))
+  return new Promise((resolve, reject) => {
+    service.getDetails(
+      { placeId, sessionToken, language: 'en', fields: ['name', 'formatted_address', 'geometry', 'address_components'] },
+      (d: any, status: string) => {
+        if (status !== 'OK' || !d?.geometry?.location) return reject(new Error(status))
+        const comp = (...types: string[]) => {
+          for (const t of types) {
+            const c = (d.address_components || []).find((x: any) => x.types.includes(t))
+            if (c) return c.long_name as string
+          }
+        }
+        resolve({
+          name: d.name,
+          label: d.formatted_address?.startsWith(d.name) ? d.formatted_address : `${d.name}, ${d.formatted_address}`,
+          lat: d.geometry.location.lat(),
+          lng: d.geometry.location.lng(),
+          // Dubai districts (Dubai Marina, Business Bay…) come back as sublocality/neighborhood — or occasionally as a
+          // bare "political" component, which is taken before falling back to the city.
+          area: comp('neighborhood', 'sublocality_level_1', 'sublocality')
+            || (d.address_components || []).find((x: any) => x.types.length === 1 && x.types[0] === 'political')?.long_name
+            || comp('locality'),
+          road: [comp('street_number'), comp('route')].filter(Boolean).join(' ') || undefined,
+          emirate: comp('administrative_area_level_1', 'locality'),
+        })
+      },
+    )
+  })
+}
+
 export type MapStatus = 'loading' | 'ready' | 'missing-key' | 'error'
 
 // Loads the Maps script and reports where it got to. `onReady` runs once,

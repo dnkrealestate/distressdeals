@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og'
 
 export const runtime = 'edge'
-export const alt = 'Distress Deals Dubai — Verified distressed and below-market property across the UAE'
+export const alt = 'Distress Deals UAE — Verified distressed and below-market property across the UAE'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 

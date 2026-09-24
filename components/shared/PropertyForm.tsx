@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic'
 import { useForm } from 'react-hook-form'
 import { useDropzone } from 'react-dropzone'
 import {
-  UploadCloud, X, ImageIcon, Loader2, Sparkles, QrCode, Crosshair,
+  UploadCloud, X, ImageIcon, Loader2, QrCode, Crosshair,
   Home, Building2, Tag, KeyRound, Plus, Image as ImagePlaceholder, Video as VideoIcon,
 } from 'lucide-react'
 import { propertyAPI, projectAPI, uploadAPI } from '@/lib/api'
@@ -15,6 +15,8 @@ import { reverseGeocode, type GeocodeResult } from '@/lib/distance'
 import { LocationSearch } from './LocationSearch'
 import StepIndicator from './StepIndicator'
 import RichTextEditor from './RichTextEditor'
+import AiWriterCard, { type Tone, type Length, type WriterInput } from '@/components/admin/seo/AiWriterCard'
+import SeoAppearancePanel, { type SeoFields, includesCI } from '@/components/admin/seo/SeoAppearancePanel'
 import type { Property, Project, RentalStatus } from '@/types'
 import RentalAvailabilityFields from '@/components/shared/RentalAvailabilityFields'
 import { toDateInput, rentalStatusOf } from '@/lib/rental'
@@ -30,8 +32,9 @@ const LocationPickerMap = dynamic(() => import('./LocationPickerMap'), {
 // photos) get filled in before a listing can be approved and published.
 // Sellers never see this form; they only use SellerListingForm.
 //
-// Laid out as a 3-step wizard (Details / Amenities / Uploads), mirroring the
-// Bayut Profolio "Add Property" flow. All three steps stay mounted in the
+// Laid out as a 4-step wizard (Details / Amenities / Uploads / Description) — Description last so the AI
+// writer can draw on everything entered before it. Otherwise mirrors the
+// Bayut Profolio "Add Property" flow. All steps stay mounted in the
 // DOM (just visually hidden) so react-hook-form keeps every field's value
 // across step navigation — only one <form>/onSubmit for the whole wizard.
 
@@ -246,6 +249,13 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
   // so nothing tells React to re-paint them; a `key` bump forces it.
   const [locationVersion, setLocationVersion] = useState(0)
 
+  const [seo, setSeo] = useState<SeoFields>({
+    metaTitle: property?.metaTitle || '', metaDescription: property?.metaDescription || '',
+    focusKeyword: property?.focusKeyword || '', keywords: property?.seoKeywords || [],
+  })
+  const [tone, setTone] = useState<Tone>('professional')
+  const [length, setLength] = useState<Length>('standard')
+  const [writeTitle, setWriteTitle] = useState(true)
   const [aiDrafting, setAiDrafting] = useState(false)
   const [permitQrImage, setPermitQrImage] = useState(property?.permitQrImage || '')
   const [uploadingQr, setUploadingQr] = useState(false)
@@ -397,30 +407,65 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
   }
   const removeVideo = (i: number) => setVideos(v => v.filter((_, idx) => idx !== i))
 
-  // Drafts from whatever's already filled in (title/type/location/amenities)
-  // — the agent still reviews and edits before saving, this never publishes on its own.
-  const draftWithAI = async () => {
+  const typeLabel = [...RESIDENTIAL_TYPES, ...COMMERCIAL_TYPES].find(t => t.value === type)?.label || type
+  const featureLabels = () => Object.entries(features).filter(([, on]) => on)
+    .map(([key]) => AMENITY_GROUPS.flatMap(g => g.items).find(f => f.key === key)?.label || key)
+
+  // Everything filled in across the earlier steps, as the AI writer's facts. Unit number and street address are
+  // deliberately left out — they never belong in public copy.
+  const getFacts = () => {
     const v = getValues()
-    if (!v.title || !v.area) {
-      toast.error('Fill in the title and area first')
-      return
+    const nearby = [
+      v.nearbySchools && `Schools: ${v.nearbySchools}`,
+      v.nearbyHospitals && `Hospitals: ${v.nearbyHospitals}`,
+      v.nearbyShoppingMalls && `Shopping: ${v.nearbyShoppingMalls}`,
+      v.nearbyPublicTransport && `Public transport: ${v.nearbyPublicTransport}`,
+      v.distanceFromAirport && `Airport: ${v.distanceFromAirport} km away`,
+      v.otherNearbyPlaces && `Other: ${v.otherNearbyPlaces}`,
+    ].filter(Boolean) as string[]
+    const availability = listingType !== 'rent' ? undefined
+      : rentalStatus === 'available_now' ? 'available now'
+      : rentalStatus === 'occupied' ? `currently tenanted${availableFrom ? `, available from ${availableFrom}` : ''}`
+      : availableFrom ? `available from ${availableFrom}` : 'available soon'
+    return {
+      currentTitle: v.title || undefined,
+      category, type: typeLabel, listingType, rentFrequency: property?.rentFrequency,
+      price: v.price, furnishing,
+      completion, expectedCompletion: completion === 'off_plan' ? expectedCompletionDate || undefined : undefined,
+      offPlanSaleType: completion === 'off_plan' ? offPlanSaleType : undefined,
+      ownership: ownershipStatus,
+      financing: financingAvailable ? `available${v.financingInstitutionNames ? ` via ${v.financingInstitutionNames}` : ''}` : undefined,
+      developer: v.developer, projectName: v.projectName,
+      area: v.area, community: v.community, city: v.city, emirate: v.emirate,
+      bedrooms: v.bedrooms, bathrooms: v.bathrooms, parkingSpaces: v.parkingSpaces, balconies: v.balconies,
+      floorArea: v.floorArea, plotArea: v.plotArea, floor: v.floor, totalFloors: v.totalFloors, yearBuilt: v.yearBuilt,
+      view: v.view, petPolicy: v.petPolicy, otherRooms: v.otherRooms, otherFacilities: v.otherFacilities,
+      nearby, features: featureLabels(), availability,
     }
+  }
+
+  // Writes the title (optional), description and SEO fields from the facts above — the agent still reviews and
+  // edits before saving; nothing is saved or published by this.
+  const generateWithAI = async () => {
+    const facts = getFacts()
+    const hasCopy = !!description.replace(/<[^>]*>/g, '').trim() || (writeTitle && !!facts.currentTitle)
+    if (hasCopy && !confirm(`Replace the current ${writeTitle ? 'title and description' : 'description'} with a new AI draft?`)) return
     setAiDrafting(true)
     try {
-      const res = await propertyAPI.aiDescription({
-        title: v.title, type, listingType,
-        area: v.area, city: v.city,
-        bedrooms: v.bedrooms, bathrooms: v.bathrooms, floorArea: v.floorArea,
-        furnishing,
-        features: Object.entries(features).filter(([, on]) => on)
-          .map(([key]) => AMENITY_GROUPS.flatMap(g => g.items).find(f => f.key === key)?.label || key),
+      const res = await propertyAPI.aiDescription({ ...facts, focusKeyword: seo.focusKeyword.trim() || undefined, tone, length, writeTitle })
+      const d = res.data.data
+      setDescription(d.html)
+      setDescriptionError(false)
+      if (writeTitle && d.title) setValue('title', d.title, { shouldDirty: true, shouldValidate: true })
+      setSeo({
+        focusKeyword: seo.focusKeyword.trim() || d.focusKeyword || '',
+        metaTitle: d.metaTitle || seo.metaTitle,
+        metaDescription: d.metaDescription || seo.metaDescription,
+        keywords: d.keywords?.length ? d.keywords : seo.keywords,
       })
-      if (res.data.success && res.data.data.description) {
-        setDescription(res.data.data.description.replace(/\n/g, '<br/>'))
-        setDescriptionError(false)
-      }
+      toast.success('Draft ready — review it before saving')
     } catch (err: any) {
-      toast.error(err?.error || 'Failed to draft description')
+      toast.error(err?.code === 'ECONNABORTED' ? 'The AI took too long to respond — please try again' : err?.error || 'Could not generate with AI')
     } finally {
       setAiDrafting(false)
     }
@@ -428,7 +473,7 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
 
   const onSubmit = async (data: FormValues) => {
     const plainText = description.replace(/<[^>]*>/g, '').trim()
-    if (!plainText) { setDescriptionError(true); setStep(1); return }
+    if (!plainText) { setDescriptionError(true); setStep(4); toast.error('Add a description (or generate one with AI)'); return }
     setDescriptionError(false)
     if (listingType === 'rent' && rentalStatus !== 'available_now' && !availableFrom) {
       setAvailableFromError(true); setStep(1)
@@ -480,6 +525,10 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
       },
       features,
       videos,
+      metaTitle: seo.metaTitle.trim(),
+      metaDescription: seo.metaDescription.trim(),
+      focusKeyword: seo.focusKeyword.trim(),
+      seoKeywords: seo.keywords,
     }
 
     try {
@@ -511,12 +560,42 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
     }
   }
 
-  const goNext = () => setStep(s => (s < 3 ? (s + 1) as 1 | 2 | 3 : s))
-  const goPrev = () => setStep(s => (s > 1 ? (s - 1) as 1 | 2 | 3 : s))
+  const goNext = () => setStep(s => Math.min(s + 1, 4))
+  const goPrev = () => setStep(s => Math.max(s - 1, 1))
+
+  // Title is the only required field on the last step; everything else required lives in Details.
+  const onInvalid = (errs: Record<string, unknown>) => {
+    const onlyTitle = Object.keys(errs).every(k => k === 'title')
+    setStep(onlyTitle ? 4 : 1)
+    toast.error(onlyTitle ? 'Add a listing title (or generate one with AI)' : 'Fill in the required fields in Details first')
+  }
+
+  const aiInputs: WriterInput[] = (() => {
+    const v = getValues()
+    const featureCount = Object.values(features).filter(Boolean).length
+    const nearbyCount = [v.nearbySchools, v.nearbyHospitals, v.nearbyShoppingMalls, v.nearbyPublicTransport, v.distanceFromAirport, v.otherNearbyPlaces].filter(Boolean).length
+    return [
+      { label: `${typeLabel} for ${listingType}`, ok: true, step: 1 },
+      { label: 'Location', ok: !!v.area, step: 1 },
+      { label: 'Price', ok: Number(v.price) > 0, step: 1 },
+      { label: 'Size', ok: Number(v.floorArea) > 0, step: 1 },
+      { label: 'Bedrooms & baths', ok: v.bedrooms !== undefined && String(v.bedrooms) !== '' && !!v.bathrooms, step: 1 },
+      { label: 'Developer / project', ok: !!(v.developer || v.projectName), step: 1 },
+      { label: 'View', ok: !!v.view, step: 2 },
+      { label: featureCount ? `${featureCount} feature${featureCount > 1 ? 's' : ''}` : 'Features', ok: featureCount > 0, step: 2 },
+      { label: nearbyCount ? `${nearbyCount} nearby place${nearbyCount > 1 ? 's' : ''}` : 'Nearby places', ok: nearbyCount > 0, step: 2 },
+    ]
+  })()
+  const areaValue = watch('area') || ''
+  const autoTitle = `${Number(watch('bedrooms')) ? `${watch('bedrooms')} Bedroom ` : ''}${typeLabel} for ${listingType === 'rent' ? 'Rent' : 'Sale'}${areaValue ? ` in ${areaValue}` : ''}, Dubai`
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="max-w-3xl">
-      <StepIndicator step={step} onJump={setStep} />
+    <form
+      onSubmit={handleSubmit(onSubmit, onInvalid)}
+      onKeyDown={e => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') e.preventDefault() }}
+      className="max-w-3xl"
+    >
+      <StepIndicator step={step} onJump={setStep} labels={['Details', 'Amenities', 'Uploads', 'Description']} />
 
       {/* ── Step 1 — Details ─────────────────────────────────────── */}
       <div className={cn('space-y-5', step !== 1 && 'hidden')}>
@@ -669,34 +748,6 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
                 <input className="input" placeholder="e.g. 71466785292" {...register('permitNumber')} />
               </Field>
             </div>
-            <Field label="Title *">
-              <input className="input" placeholder="e.g. Sky Residences Penthouse — Burj Khalifa View" {...register('title', { required: true })} />
-              {errors.title && <p className="text-xs mt-1" style={{ color: '#FB7185' }}>Title is required</p>}
-              <CharCount value={titleValue} max={150} />
-            </Field>
-            <Field label="Title (Arabic)">
-              <input className="input" dir="rtl" {...register('titleAr')} />
-              <CharCount value={titleArValue} max={150} />
-            </Field>
-            <Field label="Description *">
-              <div className="flex justify-end mb-1.5">
-                <button type="button" onClick={draftWithAI} disabled={aiDrafting} className="btn-ghost btn-sm gap-1.5 text-xs" style={{ color: '#A855F7' }}>
-                  {aiDrafting ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
-                  Draft with AI
-                </button>
-              </div>
-              <RichTextEditor
-                value={description}
-                onChange={html => { setDescription(html); if (html.replace(/<[^>]*>/g, '').trim()) setDescriptionError(false) }}
-                placeholder={'e.g.\nFully Furnished\nClosed Kitchen\nBalcony\n\nLocated in the heart of Business Bay...'}
-              />
-              {descriptionError && <p className="text-xs mt-1" style={{ color: '#FB7185' }}>Description is required</p>}
-            </Field>
-            <Field label="Description (Arabic)">
-              <textarea className="input" dir="rtl" rows={4} value={descriptionAr} onChange={e => setDescriptionAr(e.target.value)} />
-              <CharCount value={descriptionAr} max={2000} />
-            </Field>
-
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Field label="All Inclusive Price (AED) *">
                 <input className="input" type="number" placeholder="0" {...register('price', { required: true, min: 1 })} />
@@ -929,6 +980,63 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
             </>
           )}
         </div>
+
+        <div className="flex items-center justify-between">
+          <button type="button" onClick={goPrev} className="btn-ghost">Previous</button>
+          <button type="button" onClick={goNext} className="btn-primary">Next</button>
+        </div>
+      </div>
+
+      {/* ── Step 4 — Title, Description & SEO (last, so the AI can use everything entered before it) ── */}
+      <div className={cn('space-y-5', step !== 4 && 'hidden')}>
+        <AiWriterCard
+          subtitle="Writes the listing title, an SEO-optimised description, search title, meta description and related keywords from what you entered in the earlier steps. It uses only those facts and never mentions the unit number or street address."
+          inputs={aiInputs} onJump={setStep}
+          focusKeyword={seo.focusKeyword} onFocusKeywordChange={v => setSeo(s => ({ ...s, focusKeyword: v }))}
+          keywordPlaceholder={`e.g. ${Number(watch('bedrooms')) ? `${watch('bedrooms')} bedroom ` : ''}${typeLabel.toLowerCase()} for ${listingType} in ${areaValue || 'Dubai Marina'}`}
+          tone={tone} onTone={setTone} length={length} onLength={setLength}
+          generating={aiDrafting} hasContent={!!description.replace(/<[^>]*>/g, '').trim()} onGenerate={generateWithAI}
+          extraOptions={
+            <label className="flex items-center gap-2 text-xs cursor-pointer" style={{ color: 'var(--text-mid)' }}>
+              <input type="checkbox" checked={writeTitle} onChange={e => setWriteTitle(e.target.checked)} />
+              Also write the listing title
+            </label>
+          }
+        />
+
+        <div className="card p-6">
+          <h2 className="font-bold text-sm mb-5" style={{ color: 'var(--text)' }}>Title &amp; Description</h2>
+          <div className="space-y-4">
+            <Field label="Title *">
+              <input className="input" placeholder="e.g. Sky Residences Penthouse — Burj Khalifa View" {...register('title', { required: true })} />
+              {errors.title && <p className="text-xs mt-1" style={{ color: '#FB7185' }}>Title is required</p>}
+              <CharCount value={titleValue} max={150} />
+            </Field>
+            <Field label="Title (Arabic)">
+              <input className="input" dir="rtl" {...register('titleAr')} />
+              <CharCount value={titleArValue} max={150} />
+            </Field>
+            <Field label="Description *">
+              <RichTextEditor
+                value={description}
+                onChange={html => { setDescription(html); if (html.replace(/<[^>]*>/g, '').trim()) setDescriptionError(false) }}
+                placeholder={'e.g.\nFully Furnished\nClosed Kitchen\nBalcony\n\nLocated in the heart of Business Bay...'}
+              />
+              {descriptionError && <p className="text-xs mt-1" style={{ color: '#FB7185' }}>Description is required</p>}
+            </Field>
+            <Field label="Description (Arabic)">
+              <textarea className="input" dir="rtl" rows={4} value={descriptionAr} onChange={e => setDescriptionAr(e.target.value)} />
+              <CharCount value={descriptionAr} max={2000} />
+            </Field>
+          </div>
+        </div>
+
+        <SeoAppearancePanel
+          html={description} seo={seo} onSeoChange={setSeo}
+          fallbackTitle={autoTitle}
+          urlPath={`buyer/properties/${property?.slug || 'your-listing'}`}
+          extraChecks={[{ label: 'Keyword in listing title', ok: includesCI(titleValue, seo.focusKeyword.trim()) }]}
+        />
 
         <div className="flex items-center justify-between">
           <button type="button" onClick={goPrev} className="btn-ghost">Previous</button>
