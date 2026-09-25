@@ -290,7 +290,7 @@ function ProjectsListClientInner() {
       </div>
 
       {/* ── Modern floating filter card ──────────────────── */}
-      <div className="wrap pt-6 pb-2 sticky top-20 z-30">
+      <div className="wrap pt-6 pb-2 lg:sticky lg:top-20 z-30">
         <div
           className="rounded-3xl p-4 sm:p-5"
           style={{
@@ -320,7 +320,7 @@ function ProjectsListClientInner() {
 
           {/* Status pills + Area/Developer selects */}
           <div className="flex flex-wrap items-center gap-2.5 justify-between">
-            <div className="flex items-center gap-1.5 flex-wrap">
+            <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto -mx-1 px-1 pb-0.5 sm:pb-0" style={{ scrollbarWidth: 'none' }}>
               <StatusPill active={!filters.status} onClick={() => setFilter('status', '')}>
                 All <span style={{ opacity: 0.7 }}>· {statusStatsTotal.toLocaleString()}</span>
               </StatusPill>
@@ -335,14 +335,14 @@ function ProjectsListClientInner() {
               })}
             </div>
 
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:items-center sm:w-auto sm:flex-shrink-0">
               {/* Emirate */}
-              <div className="relative">
+              <div className="relative min-w-0">
                 <Globe2 size={13} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--teal)', pointerEvents: 'none' }} />
                 <select
                   value={filters.emirate}
                   onChange={e => setFilter('emirate', e.target.value)}
-                  className="select-field h-10 pl-8 pr-8 text-xs rounded-xl"
+                  className="select-field h-10 pl-8 pr-8 text-xs rounded-xl w-full sm:w-auto"
                   style={{ color: filters.emirate ? 'var(--text)' : 'var(--text-muted)' }}
                 >
                   <option value="">Any Emirate</option>
@@ -352,12 +352,12 @@ function ProjectsListClientInner() {
               </div>
 
               {/* Area */}
-              <div className="relative">
+              <div className="relative min-w-0">
                 <MapPin size={13} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--teal)', pointerEvents: 'none' }} />
                 <select
                   value={filters.area}
                   onChange={e => setFilter('area', e.target.value)}
-                  className="select-field h-10 pl-8 pr-8 text-xs rounded-xl"
+                  className="select-field h-10 pl-8 pr-8 text-xs rounded-xl w-full sm:w-auto"
                   style={{ color: filters.area ? 'var(--text)' : 'var(--text-muted)' }}
                 >
                   <option value="">Any Area</option>
@@ -367,12 +367,12 @@ function ProjectsListClientInner() {
               </div>
 
               {/* Developer */}
-              <div className="relative">
+              <div className="relative min-w-0">
                 <Building2 size={13} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--teal)', pointerEvents: 'none' }} />
                 <select
                   value={filters.developer}
                   onChange={e => setFilter('developer', e.target.value)}
-                  className="select-field h-10 pl-8 pr-8 text-xs rounded-xl"
+                  className="select-field h-10 pl-8 pr-8 text-xs rounded-xl w-full sm:w-auto"
                   style={{ color: filters.developer ? 'var(--text)' : 'var(--text-muted)' }}
                 >
                   <option value="">Any Developer</option>
@@ -382,6 +382,7 @@ function ProjectsListClientInner() {
               </div>
 
               {/* View toggle */}
+              <div className="flex items-center gap-2">
               <div className="flex rounded-lg overflow-hidden flex-shrink-0" style={{ border: '1px solid var(--border)' }}>
                 {(['list', 'grid'] as const).map(v => (
                   <button
@@ -408,18 +409,19 @@ function ProjectsListClientInner() {
                   Clear
                 </button>
               )}
+              </div>
             </div>
           </div>
 
           {/* Handover + budget + type — what off-plan buyers actually decide on */}
-          <div className="flex flex-wrap items-center gap-2.5 mt-3 pt-3" style={{ borderTop: '1px solid var(--border-soft)' }}>
-            <div className="relative">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-2.5 mt-3 pt-3" style={{ borderTop: '1px solid var(--border-soft)' }}>
+            <div className="relative min-w-0">
               <CalendarClock size={13} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--teal)', pointerEvents: 'none' }} />
               <select
                 value={filters.handover}
                 onChange={e => setFilter('handover', e.target.value)}
                 aria-label="Handover year"
-                className="select-field h-10 pl-8 pr-8 text-xs rounded-xl"
+                className="select-field h-10 pl-8 pr-8 text-xs rounded-xl w-full sm:w-auto"
                 style={{ color: filters.handover ? 'var(--text)' : 'var(--text-muted)' }}
               >
                 {HANDOVER_CHOICES.map(h => <option key={h.k} value={h.k}>{h.l}</option>)}
@@ -430,19 +432,19 @@ function ProjectsListClientInner() {
               <ChevronDown size={11} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
             </div>
 
-            <div className="flex items-center gap-1" role="group" aria-label="Handover quarter">
+            <div className="col-span-2 order-last sm:order-none flex items-center justify-between sm:justify-start gap-1" role="group" aria-label="Handover quarter">
               {QUARTERS.map(q => (
                 <StatusPill key={q} active={filters.quarter === q} onClick={() => setFilter('quarter', filters.quarter === q ? '' : q)}>{q}</StatusPill>
               ))}
             </div>
 
-            <div className="relative">
+            <div className="relative min-w-0">
               <Wallet size={13} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--teal)', pointerEvents: 'none' }} />
               <select
                 value={`${filters.priceMin}-${filters.priceMax}`}
                 onChange={e => { const [a, b] = e.target.value.split('-').map(Number); setFilters(f => ({ ...f, priceMin: a, priceMax: b, page: 1 })) }}
                 aria-label="Starting price"
-                className="select-field h-10 pl-8 pr-8 text-xs rounded-xl"
+                className="select-field h-10 pl-8 pr-8 text-xs rounded-xl w-full sm:w-auto"
                 style={{ color: filters.priceMin || filters.priceMax ? 'var(--text)' : 'var(--text-muted)' }}
               >
                 {PRICE_CHOICES.map(pc => <option key={pc.l} value={`${pc.min}-${pc.max}`}>{pc.min || pc.max ? `AED ${pc.l}` : pc.l}</option>)}
@@ -453,13 +455,13 @@ function ProjectsListClientInner() {
               <ChevronDown size={11} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
             </div>
 
-            <div className="relative">
+            <div className="relative min-w-0">
               <Home size={13} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--teal)', pointerEvents: 'none' }} />
               <select
                 value={filters.type}
                 onChange={e => setFilter('type', e.target.value)}
                 aria-label="Unit type"
-                className="select-field h-10 pl-8 pr-8 text-xs rounded-xl"
+                className="select-field h-10 pl-8 pr-8 text-xs rounded-xl w-full sm:w-auto"
                 style={{ color: filters.type ? 'var(--text)' : 'var(--text-muted)' }}
               >
                 <option value="">Any type</option>

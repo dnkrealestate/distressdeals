@@ -73,6 +73,8 @@ function MapSearchClientInner() {
   // ── Search state ───────────────────────────────────────────────────────
   const [filters, setFilters] = useState<PropertyFilters>(() => filtersFromParams(searchParams))
   const [query, setQuery] = useState(() => searchParams.get('q') || '')
+  // ?only=project:<slug> / property:<slug> — opened from a detail page's "Map View": just that listing.
+  const [only, setOnly] = useState(() => searchParams.get('only') || '')
   const [area, setArea] = useState<SearchArea>(() => decodeAreaFromUrl(searchParams))
   const [radiusKm, setRadiusKm] = useState(() => {
     const a = decodeAreaFromUrl(searchParams)
@@ -134,17 +136,20 @@ function MapSearchClientInner() {
   const setFilter = (key: keyof PropertyFilters, val: any) => setFilters(f => ({ ...f, [key]: val }))
   const activeCount = [filters.type, filters.area, filters.bedrooms, filters.priceMin, filters.rentalStatus, filters.availableWithin].filter(Boolean).length
 
+  const [onlyKind, onlySlug] = only.split(':')
   const backHref =
+    only ? (onlyKind === 'project' ? `/projects/${onlySlug}` : `/buyer/properties/${onlySlug}`) :
     filters.listingType === 'rent' ? '/for-rent' :
     filters.listingType === 'sale' ? '/for-sale' :
     '/buyer/properties'
 
   // ── Fetching ───────────────────────────────────────────────────────────
   const baseParams = useCallback(() => {
+    if (only) return { only }
     const clean: any = {}
     Object.entries(filters).forEach(([k, v]) => { if (v) clean[k] = v })
     return { ...clean, ...areaToParams(area) }
-  }, [filters, area])
+  }, [filters, area, only])
 
   const fetchPins = useCallback(async (opts: { bounds?: MapBounds; fit?: boolean } = {}) => {
     const id = ++requestId.current
@@ -179,6 +184,17 @@ function MapSearchClientInner() {
     const t = setTimeout(() => fetchPins({ bounds: padBounds(viewport.bounds, 0.5) }), 400)
     return () => clearTimeout(t)
   }, [viewport, capped, fetchedBounds, fetchPins])
+
+  // Single-listing view: open its card straight away.
+  useEffect(() => {
+    if (only && pins.length === 1) setSelectedId(pins[0].id)
+  }, [only, pins])
+
+  const showAllListings = () => {
+    setOnly('')
+    setSelectedId(null)
+    window.history.replaceState(null, '', '/map-search')
+  }
 
   // Drop a selection whose pin is no longer in the result set.
   useEffect(() => {
@@ -544,6 +560,16 @@ function MapSearchClientInner() {
               initialView={initialView}
               fitSignal={fitSignal}
             />
+
+            {only && !loading && (
+              <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 rounded-full pl-4 pr-1.5 py-1.5 shadow-lg max-w-[calc(100%-1.5rem)]"
+                style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                <span className="text-xs truncate" style={{ color: 'var(--text-mid)' }}>
+                  {pins[0] ? <>Showing <strong style={{ color: 'var(--text)' }}>{pins[0].title}</strong></> : 'This listing has no map location yet'}
+                </span>
+                <button onClick={showAllListings} className="btn-primary btn-sm whitespace-nowrap flex-shrink-0">Show all listings</button>
+              </div>
+            )}
 
             {streetViewOpen ? (
               <button

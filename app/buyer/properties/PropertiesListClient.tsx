@@ -22,6 +22,7 @@ import { PropertyFilterBar, Pill, FilterDropdown, DropdownOption, TYPES } from '
 import { propertyAPI, savedSearchAPI, projectAPI } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import type { Property, PropertyFilters, Project } from '@/types'
+import type { MapPin } from '@/lib/mapPins'
 import type { MapBounds } from '@/lib/googleMaps'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
@@ -401,7 +402,7 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
     mq.addEventListener('change', apply)
     return () => mq.removeEventListener('change', apply)
   }, [])
-  const [mapProperties, setMapProperties] = useState<Property[]>([])
+  const [mapPins, setMapPins] = useState<MapPin[]>([])
   const [mapLoading,    setMapLoading]    = useState(false)
 
   const [filters, setFilters] = useState<PropertyFilters>({
@@ -576,8 +577,9 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
       const clean: any = {}
       Object.entries(filters).forEach(([k, v]) => { if (v && k !== 'page' && k !== 'limit') clean[k] = v })
       if (bounds) Object.assign(clean, bounds)
-      const res = await propertyAPI.getAll({ ...clean, limit: 200 })
-      if (res.data.success) setMapProperties(res.data.data.data)
+      // Map pins include the new projects matching the same search, like the list does.
+      const res = await propertyAPI.getMapPins(clean)
+      if (res.data.success) setMapPins(res.data.data.pins)
     } catch {
       toast.error('Failed to load map listings')
     } finally {
@@ -856,7 +858,7 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
             )}
             {view === 'map' ? (
               <PropertiesMapView
-                properties={mapProperties}
+                pins={mapPins}
                 searching={mapLoading}
                 onSearchThisArea={bounds => fetchMapProperties(bounds)}
               />

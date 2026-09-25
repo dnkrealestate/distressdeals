@@ -10,7 +10,8 @@ import {
 } from 'lucide-react'
 import { propertyAPI, projectAPI, uploadAPI } from '@/lib/api'
 import { cn, formatPrice } from '@/lib/utils'
-import { UAE_EMIRATES, DUBAI_COMMUNITIES } from '@/lib/constants'
+import { UAE_EMIRATES } from '@/lib/constants'
+import CommunitySelect, { useCommunities, matchCommunity } from './CommunitySelect'
 import { reverseGeocode, type GeocodeResult } from '@/lib/distance'
 import { LocationSearch } from './LocationSearch'
 import StepIndicator from './StepIndicator'
@@ -322,8 +323,12 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
   // is the Area, and whichever UAE_EMIRATES name appears anywhere in the
   // label (if any) becomes the Emirate. Falls back to leaving Emirate as-is
   // when the label doesn't clearly name one (still fills Area + coordinates).
+  const communities = useCommunities()
+
   const onLocationSelect = (r: GeocodeResult) => {
     const area = r.area || r.label.split(',')[0].trim()
+    const community = matchCommunity(communities, r.name, r.area)
+    if (community && !getValues('community')) setValue('community', community.name, { shouldDirty: true })
     const emirate = UAE_EMIRATES.find(e => r.label.includes(e))
     setValue('area', area, { shouldDirty: true, shouldTouch: true, shouldValidate: true })
     setValue('address', r.road || r.label, { shouldDirty: true, shouldTouch: true, shouldValidate: true })
@@ -672,10 +677,7 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
                 {errors.area && <p className="text-xs mt-1" style={{ color: '#FB7185' }}>Location is required</p>}
               </Field>
               <Field label="Community">
-                <select className="select-field" {...register('community')}>
-                  <option value="">— None —</option>
-                  {DUBAI_COMMUNITIES.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
+                <CommunitySelect key={`community-${locationVersion}`} field={register('community')} value={watch('community')} emirate={watch('emirate')} list={communities} />
               </Field>
               <Field label="Emirate">
                 <select key={`emirate-${locationVersion}`} className="select-field" {...register('emirate')}>

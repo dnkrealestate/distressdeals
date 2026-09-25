@@ -1,11 +1,15 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import { useDropzone } from 'react-dropzone'
 import {
-  Plus, X, Trash2, Pencil, Layers, UploadCloud, Loader2, Star,
+  Plus, X, Trash2, Pencil, Layers, UploadCloud, Loader2, Star, Sparkles, Search, MapPin,
 } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
+import { LocationSearch } from '@/components/shared/LocationSearch'
+import { UAE_EMIRATES } from '@/lib/constants'
+import type { GeocodeResult } from '@/lib/distance'
 import { communityContentAPI, propertyAPI, uploadAPI } from '@/lib/api'
 import { formatPrice } from '@/lib/utils'
 import { HOME_ICON_MAP, HOME_ICON_OPTIONS } from '@/lib/homeIcons'
@@ -31,7 +35,7 @@ function IconPicker({ value, onChange }: { value: string; onChange: (v: string) 
 
 // ══════════════════════════ Form ══════════════════════════
 
-function CommunityContentForm({ community, onClose, onSaved }: { community: CommunityContentWithStats | null; onClose: () => void; onSaved: () => void }) {
+function CommunityContentForm({ community, initialName, onClose, onSaved }: { community: CommunityContentWithStats | null; initialName?: string; onClose: () => void; onSaved: () => void }) {
   const isEdit = !!community
   const [availableAreas, setAvailableAreas] = useState<string[]>([])
   const [heroImage, setHeroImage] = useState(community?.heroImage || '')
@@ -39,10 +43,47 @@ function CommunityContentForm({ community, onClose, onSaved }: { community: Comm
   const [highlights, setHighlights] = useState<string[]>(community?.highlights?.map(h => h.label) || [])
   const [amenities, setAmenities] = useState<{ icon: string; label: string }[]>(community?.amenities || [])
   const [submitting, setSubmitting] = useState(false)
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | undefined>(community?.coordinates)
+  const [address, setAddress] = useState(community?.address || '')
+  const [aiBusy, setAiBusy] = useState(false)
 
-  const { register, handleSubmit, formState: { errors } } = useForm({
-    defaultValues: { name: community?.name || '', area: community?.area || '', overview: community?.overview || '', isFeatured: community?.isFeatured || false },
+  const { register, handleSubmit, setValue, getValues, formState: { errors } } = useForm({
+    defaultValues: {
+      name: community?.name || initialName || '', area: community?.area || '', emirate: community?.emirate || 'Dubai',
+      overview: community?.overview || '', isFeatured: community?.isFeatured || false,
+    },
   })
+
+  // Step 1 — pick the place on Google Maps: fills the name, emirate, parent area and map pin.
+  const onPlace = (r: GeocodeResult) => {
+    if (!isEdit) setValue('name', r.name || r.label.split(',')[0].trim(), { shouldValidate: true })
+    const emirate = UAE_EMIRATES.find(e => e === r.emirate) || UAE_EMIRATES.find(e => r.label.includes(e))
+    if (emirate) setValue('emirate', emirate)
+    if (r.area && r.area.toLowerCase() !== (r.name || '').toLowerCase() && !getValues('area')) setValue('area', r.area)
+    setCoords({ lat: r.lat, lng: r.lng })
+    setAddress(r.label)
+  }
+
+  // Step 2 — let the AI write the profile from the name + location.
+  const fillWithAI = async () => {
+    const name = (isEdit ? community!.name : getValues('name')).trim()
+    if (!name) { toast.error('Search the community or type its name first'); return }
+    setAiBusy(true)
+    try {
+      const res = await communityContentAPI.aiFill({ name, area: getValues('area') || undefined, emirate: getValues('emirate'), address: address || undefined, coordinates: coords })
+      const d = res.data.data
+      if (d.overview) setValue('overview', d.overview)
+      if (d.area && !getValues('area')) setValue('area', d.area)
+      if (d.emirate) setValue('emirate', d.emirate)
+      if (d.highlights?.length) setHighlights(d.highlights.map((h: any) => h.label))
+      if (d.amenities?.length) setAmenities(d.amenities)
+      toast.success('Details filled — review and save')
+    } catch (err: any) {
+      toast.error(err?.error || 'AI could not fill the details')
+    } finally {
+      setAiBusy(false)
+    }
+  }
 
   useEffect(() => {
     propertyAPI.getAllAreas().then(r => { if (r.data.success) setAvailableAreas((r.data.data || []).map((a: any) => a.area)) }).catch(() => {})
@@ -81,7 +122,8 @@ function CommunityContentForm({ community, onClose, onSaved }: { community: Comm
   const onSubmit = async (data: any) => {
     setSubmitting(true)
     const payload = {
-      name: data.name, area: data.area || undefined,
+      name: data.name, area: data.area || undefined, emirate: data.emirate,
+      coordinates: coords, address: address || undefined,
       heroImage: heroImage || undefined,
       overview: data.overview,
       highlights: highlights.filter(h => h.trim()).map(label => ({ label })),
@@ -111,17 +153,42 @@ function CommunityContentForm({ community, onClose, onSaved }: { community: Comm
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto p-6 space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          {/* 1. Find it on the map  2. Let AI write it */}
+          <div className="rounded-xl p-3.5 space-y-3" style={{ background: 'var(--bg-alt)', border: '1px solid var(--border)' }}>
+            <Field label="1 · Find the community on Google Maps">
+              <LocationSearch defaultQuery={community?.name || initialName} onSelect={onPlace} />
+              {coords && (
+                <p className="text-[11px] mt-1.5 flex items-center gap-1 truncate" style={{ color: 'var(--text-muted)' }}>
+                  <MapPin size={11} style={{ color: 'var(--teal)', flexShrink: 0 }} />
+                  <span className="truncate">{address || `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`}</span>
+                </p>
+              )}
+            </Field>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>2 · Fill the overview, highlights and nearby amenities automatically</p>
+              <button type="button" onClick={fillWithAI} disabled={aiBusy} className="btn-primary btn-sm gap-1.5 flex-shrink-0">
+                {aiBusy ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+                {aiBusy ? 'Writing…' : 'Fill with AI'}
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Field label="Community Name *">
               {isEdit ? <input className="input" disabled value={community!.name} /> : (
                 <input className="input" placeholder="e.g. Old Town" {...register('name', { required: true })} />
               )}
             </Field>
-            <Field label="Parent Area (optional)">
-              <select className="select-field w-full" {...register('area')}>
-                <option value="">— None —</option>
-                {availableAreas.map(a => <option key={a} value={a}>{a}</option>)}
+            <Field label="Emirate">
+              <select className="select-field w-full" {...register('emirate')}>
+                {UAE_EMIRATES.map(e => <option key={e} value={e}>{e}</option>)}
               </select>
+            </Field>
+            <Field label="Parent Area (optional)">
+              <input className="input" list="community-parent-areas" placeholder="e.g. Downtown Dubai" {...register('area')} />
+              <datalist id="community-parent-areas">
+                {availableAreas.map(a => <option key={a} value={a} />)}
+              </datalist>
             </Field>
           </div>
           {errors.name && <p className="text-xs" style={{ color: '#FB7185' }}>Name is required</p>}
@@ -206,10 +273,17 @@ function CommunityContentForm({ community, onClose, onSaved }: { community: Comm
 
 // ══════════════════════════ Page ══════════════════════════
 
-export default function AdminCommunitiesPage() {
+function AdminCommunitiesPageInner() {
+  const searchParams = useSearchParams()
   const [communities, setCommunities] = useState<CommunityContentWithStats[]>([])
   const [loading, setLoading] = useState(true)
-  const [editing, setEditing] = useState<CommunityContentWithStats | null | 'new'>(null)
+  // "Add new community" from a listing form opens straight into the new-community form.
+  const [editing, setEditing] = useState<CommunityContentWithStats | null | 'new'>(() => (searchParams.get('new') ? 'new' : null))
+  const [q, setQ] = useState('')
+  const [emirateFilter, setEmirateFilter] = useState('')
+  const shown = communities.filter(c =>
+    (!emirateFilter || (c.emirate || 'Dubai') === emirateFilter) &&
+    (!q.trim() || `${c.name} ${c.area || ''}`.toLowerCase().includes(q.trim().toLowerCase())))
 
   const load = useCallback(() => {
     setLoading(true)
@@ -240,16 +314,30 @@ export default function AdminCommunitiesPage() {
       </header>
 
       <div className="p-7">
+        <div className="flex flex-col sm:flex-row gap-2 mb-4">
+          <div className="input-glass flex items-center gap-2 h-10 px-3 rounded-xl flex-1">
+            <Search size={14} style={{ color: 'var(--teal)' }} />
+            <input className="bg-transparent flex-1 text-sm outline-none min-w-0" style={{ color: 'var(--text)' }}
+              placeholder="Search communities…" value={q} onChange={e => setQ(e.target.value)} />
+          </div>
+          <select className="select-field h-10 sm:w-48" value={emirateFilter} onChange={e => setEmirateFilter(e.target.value)}>
+            <option value="">All emirates · {communities.length}</option>
+            {UAE_EMIRATES.map(e => {
+              const n = communities.filter(c => (c.emirate || 'Dubai') === e).length
+              return n ? <option key={e} value={e}>{e} · {n}</option> : null
+            })}
+          </select>
+        </div>
         {loading ? (
           <div className="space-y-3">{Array(4).fill(null).map((_, i) => <div key={i} className="shimmer h-16 rounded-2xl" />)}</div>
-        ) : communities.length === 0 ? (
+        ) : shown.length === 0 ? (
           <div className="text-center py-16">
             <Layers size={28} style={{ color: 'var(--text-muted)', opacity: 0.4 }} className="mx-auto mb-3" />
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No community profiles yet</p>
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{communities.length ? 'No communities match your search' : 'No community profiles yet'}</p>
           </div>
         ) : (
           <div className="space-y-2">
-            {communities.map(community => (
+            {shown.map(community => (
               <div key={community._id} className="card p-4 flex items-center gap-4">
                 <div className="w-14 h-14 rounded-xl flex-shrink-0 overflow-hidden flex items-center justify-center" style={{ background: 'var(--bg-alt)' }}>
                   {community.heroImage ? <img src={community.heroImage} alt="" className="w-full h-full object-cover" /> : <Layers size={20} style={{ color: 'var(--teal)', opacity: 0.5 }} />}
@@ -260,6 +348,7 @@ export default function AdminCommunitiesPage() {
                     {community.isFeatured && <Star size={11} style={{ color: '#F59E0B' }} fill="#F59E0B" />}
                   </p>
                   <p className="text-xs mt-0.5 truncate flex items-center gap-3" style={{ color: 'var(--text-muted)' }}>
+                    <span>{community.emirate || 'Dubai'}</span>
                     {community.area && <span>in {community.area}</span>}
                     <span>{community.count} listing{community.count === 1 ? '' : 's'}</span>
                     {community.avgPrice > 0 && <span>avg {formatPrice(Math.round(community.avgPrice))}</span>}
@@ -279,11 +368,17 @@ export default function AdminCommunitiesPage() {
         {editing && (
           <CommunityContentForm
             community={editing === 'new' ? null : editing}
-            onClose={() => setEditing(null)}
+            initialName={editing === 'new' ? searchParams.get('name') || undefined : undefined}
+            onClose={() => { setEditing(null); if (searchParams.get('new')) window.history.replaceState(null, '', '/admin/communities') }}
             onSaved={load}
           />
         )}
       </AnimatePresence>
     </div>
   )
+}
+
+// useSearchParams (the ?new=1 link) needs a Suspense boundary.
+export default function AdminCommunitiesPage() {
+  return <Suspense fallback={null}><AdminCommunitiesPageInner /></Suspense>
 }

@@ -518,9 +518,15 @@ export default function PropertyDetailClient({ property }: { property: Property 
                   {/* Location map — custom Google map */}
                   {coords && (
                     <div className="card p-6">
-                      <h3 className="font-semibold mb-5 flex items-center gap-2" style={{ color: 'var(--text)' }}>
-                        <MapIcon size={16} style={{ color: TEAL }} /> Location
-                      </h3>
+                      <div className="flex items-center justify-between gap-3 mb-5">
+                        <h3 className="font-semibold flex items-center gap-2" style={{ color: 'var(--text)' }}>
+                          <MapIcon size={16} style={{ color: TEAL }} /> Location
+                        </h3>
+                        {/* Opens the full map page with just this property on it. */}
+                        <Link href={`/map-search?only=property:${property.slug || property._id}`} className="btn-outline btn-sm gap-1.5 flex-shrink-0">
+                          <MapIcon size={13} /> Map View
+                        </Link>
+                      </div>
                       <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)', height: 320 }}>
                         <LocationMap lat={coords.lat} lng={coords.lng} />
                       </div>

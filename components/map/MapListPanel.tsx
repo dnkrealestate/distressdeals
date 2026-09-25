@@ -122,12 +122,16 @@ export default function MapListPanel({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={p.img} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
                   )}
+                  {p.kind === 'project' && (
+                    <span className="absolute bottom-1.5 left-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full text-white" style={{ background: '#8B5CF6' }}>New Project</span>
+                  )}
                   {p.featured && (
                     <span className="absolute top-1.5 left-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full text-white" style={{ background: 'var(--grad)' }}>★ Featured</span>
                   )}
                 </div>
                 <div className="flex-1 min-w-0 px-3 py-2">
                   <p className="text-sm font-extrabold grad-text leading-tight">
+                    {p.kind === 'project' && <span className="text-[10px] font-semibold mr-1" style={{ color: 'var(--text-muted)' }}>From</span>}
                     {formatPrice(p.price)}<span className="text-[10px] font-semibold" style={{ color: 'var(--text-muted)' }}>{rentSuffix({ listingType: p.lt, rentFrequency: p.rf })}</span>
                   </p>
                   <p className="text-xs font-medium truncate mt-0.5" style={{ color: 'var(--text)' }}>{p.title}</p>
@@ -138,6 +142,8 @@ export default function MapListPanel({
                     {p.beds > 0 && <span className="inline-flex items-center gap-0.5"><Bed size={10} />{p.beds}</span>}
                     {p.baths > 0 && <span className="inline-flex items-center gap-0.5"><Bath size={10} />{p.baths}</span>}
                     {p.size > 0 && <span className="inline-flex items-center gap-0.5"><Maximize2 size={10} />{Math.round(p.size).toLocaleString()}</span>}
+                    {p.bedsLabel && <span className="inline-flex items-center gap-0.5"><Bed size={10} />{p.bedsLabel}</span>}
+                    {p.handover && <span className="truncate">Handover {p.handover}</span>}
                   </div>
                   {p.drive && (
                     <div className="flex flex-wrap gap-1 mt-1.5">

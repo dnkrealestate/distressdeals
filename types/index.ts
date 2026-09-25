@@ -276,6 +276,7 @@ export interface AreaContentWithStats extends AreaContent {
 export interface CommunityContent {
   _id: string; name: string; slug: string; area?: string; heroImage?: string; overview?: string
   highlights: { label: string }[]; amenities: { icon: string; label: string }[]
+  emirate?: string; coordinates?: { lat: number; lng: number }; address?: string
   isFeatured: boolean; createdAt: string
 }
 

@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   Heart, GitCompare, Menu, X,
   ChevronDown, LogOut, Settings, User,
-  LayoutDashboard, Sun, Moon, ArrowRight,
+  LayoutDashboard, Sun, Moon, ArrowRight, ArrowLeft,
 } from 'lucide-react'
 import { useAuthStore }     from '@/store/authStore'
 import { useFavoritesStore } from '@/store/favoritesStore'
@@ -222,6 +222,7 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
   const [openMobileMega, setOpenMobileMega] = useState<string | null>(null)
 
   const pathname                          = usePathname()
+  const router                            = useRouter()
   const { user, isAuthenticated, logout } = useAuthStore()
   const { favorites }                     = useFavoritesStore()
   const { compareList }                   = useCompareStore()
@@ -233,6 +234,18 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
   }, [])
 
   const elevated = !transparent || scrolled
+
+  // Phones: a back arrow before the logo on a single property / project page (there's no browser chrome to lean on
+  // in an installed/home-screen view). Goes back if they came from within the site, else to the matching list.
+  const detailListHref =
+    /^\/projects\/[^/]+$/.test(pathname) && pathname !== '/projects/compare' ? '/projects'
+    : /^\/buyer\/properties\/[^/]+$/.test(pathname) ? '/for-sale'
+    : null
+  const goBack = () => {
+    const internal = typeof document !== 'undefined' && document.referrer.startsWith(window.location.origin)
+    if (internal && window.history.length > 1) router.back()
+    else router.push(detailListHref || '/')
+  }
 
   const dashHref =
     user?.role === 'admin' || user?.role === 'super_admin' ? '/admin/dashboard'
@@ -266,8 +279,16 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
       >
         <div className="wrap flex items-center justify-between h-16">
 
-          {/* ── Logo ─────────────────────────────────── */}
-          <Logo height={34} />
+          {/* ── Logo (with a back arrow on phones, on detail pages) ── */}
+          <div className="flex items-center gap-1.5 min-w-0">
+            {detailListHref && (
+              <button onClick={goBack} aria-label="Back" className="md:hidden -ml-2 w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform"
+                style={{ color: 'var(--text)' }}>
+                <ArrowLeft size={20} />
+              </button>
+            )}
+            <Logo height={34} />
+          </div>
 
           {/* ── Desktop nav ──────────────────────────── */}
           <div className="hidden md:flex items-center gap-1.5">

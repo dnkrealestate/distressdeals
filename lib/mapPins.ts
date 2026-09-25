@@ -25,6 +25,12 @@ export interface MapPin {
   offPlan: boolean
   views: number
   created: string
+  // New off-plan projects share the map with listings: price is the starting price, and the unit mix is free text.
+  kind?: 'project'
+  bedsLabel?: string       // e.g. "Studio - 3BR"
+  sizeLabel?: string       // e.g. "650 - 1,850 sqft"
+  dev?: string             // developer
+  handover?: string        // e.g. "Q4 2028"
   // Set by the drive-time search: how long it takes to drive here from each searched place.
   drive?: { tags: string[]; secs: (number | null)[]; meters: (number | null)[] }
 }
@@ -55,6 +61,9 @@ export function compactPrice(p: Pick<MapPin, 'price' | 'lt' | 'rf'>): string {
   if (p.lt === 'rent') s += p.rf === 'monthly' ? '/mo' : '/yr'
   return s
 }
+
+// Where a pin's "View details" goes.
+export const pinHref = (p: Pick<MapPin, 'kind' | 'slug'>) => (p.kind === 'project' ? `/projects/${p.slug}` : `/buyer/properties/${p.slug}`)
 
 export function formatType(type?: string): string {
   return type ? type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : ''

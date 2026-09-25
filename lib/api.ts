@@ -291,6 +291,9 @@ export const communityContentAPI = {
   create:    (data: any) => api.post('/community-content', data),
   update:    (id: string, data: any) => api.put(`/community-content/${id}`, data),
   delete:    (id: string) => api.delete(`/community-content/${id}`),
+  // Drafts overview / highlights / amenities (and parent area / emirate) — the model can take ~5-20s.
+  aiFill:    (data: { name: string; area?: string; emirate?: string; address?: string; coordinates?: { lat: number; lng: number } }) =>
+    api.post('/community-content/ai-fill', data, { timeout: 90000 }),
 }
 
 // ── Building Content ───────────────────────────────────

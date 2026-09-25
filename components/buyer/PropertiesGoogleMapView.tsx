@@ -6,14 +6,14 @@ import { formatPrice, rentSuffix } from '@/lib/utils'
 import { DUBAI_CENTER, baseMapOptions, useGoogleMapsStatus, useMapTheme, type MapBounds } from '@/lib/googleMaps'
 import { MAP_STYLES } from '@/lib/mapStyles'
 import MapStatusOverlay from '@/components/shared/MapStatusOverlay'
-import type { Property } from '@/types'
+import { pinHref, type MapPin } from '@/lib/mapPins'
 
 export type { MapBounds }
 
 // A small styled price-pill marker, drawn as a plain DOM overlay positioned
 // via the map's projection — matches the look of the price bubbles from the
 // previous Leaflet map without needing the paid AdvancedMarkerElement setup.
-function createPriceOverlay(g: any, map: any, position: any, label: string, title: string, onClick: () => void) {
+function createPriceOverlay(g: any, map: any, position: any, label: string, title: string, onClick: () => void, isProject = false) {
   class PriceOverlay extends g.maps.OverlayView {
     div: HTMLDivElement | null = null
     onAdd() {
@@ -21,7 +21,8 @@ function createPriceOverlay(g: any, map: any, position: any, label: string, titl
       Object.assign(div.style, {
         position: 'absolute',
         transform: 'translate(-50%, -50%)',
-        background: 'var(--grad, #CB0101)',
+        // New projects in purple, so they stand apart from resale listings.
+        background: isProject ? '#8B5CF6' : 'var(--grad, #CB0101)',
         color: '#fff',
         fontSize: '11px',
         fontWeight: '700',
@@ -59,9 +60,10 @@ function createPriceOverlay(g: any, map: any, position: any, label: string, titl
 // page and the full-screen /map-search page. Supports bounds-based "Search This
 // Area" and a fullHeight layout for the big-map page.
 export default function PropertiesGoogleMapView({
-  properties, onSearchThisArea, searching, fullHeight,
+  pins, onSearchThisArea, searching, fullHeight,
 }: {
-  properties: Property[]
+  // Listings and new projects, in the same compact shape the /map-search page uses.
+  pins: MapPin[]
   onSearchThisArea: (bounds: MapBounds) => void
   searching?: boolean
   fullHeight?: boolean
@@ -103,13 +105,13 @@ export default function PropertiesGoogleMapView({
     overlaysRef.current.forEach(o => o.setMap(null))
     overlaysRef.current = []
 
-    const withCoords = properties.filter(p => p.location?.coordinates?.lat && p.location?.coordinates?.lng)
+    const withCoords = pins.filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng))
     withCoords.forEach(p => {
-      const { lat, lng } = p.location.coordinates!
-      const position = new g.maps.LatLng(lat, lng)
-      const label = `${formatPrice(p.price)}${rentSuffix(p)}`
+      const position = new g.maps.LatLng(p.lat, p.lng)
+      const isProject = p.kind === 'project'
+      const label = isProject ? `From ${formatPrice(p.price)}` : `${formatPrice(p.price)}${rentSuffix({ listingType: p.lt, rentFrequency: p.rf })}`
       overlaysRef.current.push(
-        createPriceOverlay(g, map, position, label, p.title, () => router.push(`/buyer/properties/${p.slug}`))
+        createPriceOverlay(g, map, position, label, p.title, () => router.push(pinHref(p)), isProject)
       )
     })
 
@@ -118,13 +120,13 @@ export default function PropertiesGoogleMapView({
     // itself out from under the user right after they moved it.
     if (withCoords.length > 0 && !fittedOnce) {
       const bounds = new g.maps.LatLngBounds()
-      withCoords.forEach(p => bounds.extend({ lat: p.location.coordinates!.lat, lng: p.location.coordinates!.lng }))
+      withCoords.forEach(p => bounds.extend({ lat: p.lat, lng: p.lng }))
       programmaticRef.current = true
       g.maps.event.addListenerOnce(map, 'idle', () => { programmaticRef.current = false })
       map.fitBounds(bounds, 60)
       setFittedOnce(true)
     }
-  }, [properties, status])
+  }, [pins, status])
 
   const searchThisArea = () => {
     const map = mapRef.current

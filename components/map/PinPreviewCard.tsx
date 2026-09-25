@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import { useAuthStore } from '@/store/authStore'
 import { useFavoritesStore } from '@/store/favoritesStore'
 import { formatPrice, rentSuffix, cn } from '@/lib/utils'
-import { formatType, type MapPin } from '@/lib/mapPins'
+import { formatType, pinHref, type MapPin } from '@/lib/mapPins'
 import RentalBadge from '@/components/buyer/RentalBadge'
 import DirectionsPanel from '@/components/map/DirectionsPanel'
 import type { RouteView } from '@/lib/driveTime'
@@ -29,10 +29,11 @@ export default function PinPreviewCard({
   onFromPlace: (p: ResolvedPlace | null) => void
 }) {
   const { isAuthenticated } = useAuthStore()
-  const { toggleFavorite, isFavorite } = useFavoritesStore()
+  const { toggleFavorite, isFavorite, toggleProjectFavorite, isProjectFavorite } = useFavoritesStore()
+  const isProject = pin.kind === 'project'
   const [loadingSv, setLoadingSv] = useState(false)
   const [stepsOpen, setStepsOpen] = useState(false)
-  const fav = isFavorite(pin.id)
+  const fav = isProject ? isProjectFavorite(pin.id) : isFavorite(pin.id)
 
   const street = async () => {
     setLoadingSv(true)
@@ -58,7 +59,7 @@ export default function PinPreviewCard({
             className="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
             style={{ background: 'var(--grad)' }}
           >
-            {pin.lt === 'rent' ? 'For Rent' : 'For Sale'}
+            {isProject ? 'New Project' : pin.lt === 'rent' ? 'For Rent' : 'For Sale'}
           </span>
           {pin.lt === 'rent' && (
             <span className="absolute bottom-2 left-2">
@@ -73,6 +74,7 @@ export default function PinPreviewCard({
         </div>
 
         <div className="flex-1 min-w-0 p-3">
+          {isProject && <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Starting Price</p>}
           <div className="flex items-start justify-between gap-2">
             <p className="text-base font-extrabold grad-text leading-tight">
               {formatPrice(pin.price)}<span className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>{rentSuffix({ listingType: pin.lt, rentFrequency: pin.rf })}</span>
@@ -82,6 +84,7 @@ export default function PinPreviewCard({
             </button>
           </div>
           <p className="text-[13px] font-semibold leading-snug line-clamp-2 mt-0.5" style={{ color: 'var(--text)' }}>{pin.title}</p>
+          {isProject && pin.dev && <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>by <span className="font-semibold" style={{ color: 'var(--teal)' }}>{pin.dev}</span></p>}
           {location && <p className="text-[11px] mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>{location}</p>}
 
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-[11px]" style={{ color: 'var(--text-mid)' }}>
@@ -89,6 +92,8 @@ export default function PinPreviewCard({
             {pin.beds > 0 && <span className="inline-flex items-center gap-1"><Bed size={11} />{pin.beds}</span>}
             {pin.baths > 0 && <span className="inline-flex items-center gap-1"><Bath size={11} />{pin.baths}</span>}
             {pin.size > 0 && <span className="inline-flex items-center gap-1"><Maximize2 size={11} />{pin.size.toLocaleString()} sqft</span>}
+            {pin.bedsLabel && <span className="inline-flex items-center gap-1"><Bed size={11} />{pin.bedsLabel}</span>}
+            {pin.handover && <span>Handover {pin.handover}</span>}
           </div>
           {(pin.ppsf || pin.views > 0) && (
             <div className="flex items-center gap-3 mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>
@@ -112,7 +117,7 @@ export default function PinPreviewCard({
 
       <div className="flex items-center gap-2 px-3 py-2.5" style={{ borderTop: '1px solid var(--border)' }}>
         <a
-          href={`/buyer/properties/${pin.slug}`}
+          href={pinHref(pin)}
           target="_blank"
           rel="noopener noreferrer"
           className="btn-primary btn-sm gap-1 flex-1 justify-center"
@@ -133,7 +138,7 @@ export default function PinPreviewCard({
           <Navigation size={13} />
         </button>
         <button
-          onClick={() => { if (!isAuthenticated) { window.location.href = '/auth/login'; return } toggleFavorite(pin.id) }}
+          onClick={() => { if (!isAuthenticated) { window.location.href = '/auth/login'; return } isProject ? toggleProjectFavorite(pin.id) : toggleFavorite(pin.id) }}
           className={cn('btn-ghost btn-sm px-2.5')}
           title={fav ? 'Remove from favorites' : 'Save to favorites'}
           style={fav ? { color: '#F43F5E' } : undefined}

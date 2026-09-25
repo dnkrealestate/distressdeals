@@ -7,7 +7,7 @@ import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowLeft, MapPin, CalendarClock, Wallet, BedDouble, Bath, Home, ShieldCheck, Phone, Building2, MessageCircleHeart, MessageCircle, Share2,
-  TrainFront, GraduationCap, ShoppingBag, Landmark as LandmarkIcon, Plane, Search, Loader2, Navigation, Maximize2, Tag, Clock, X,
+  TrainFront, GraduationCap, ShoppingBag, Landmark as LandmarkIcon, Plane, Search, Loader2, Navigation, Maximize2, Tag, Clock, X, Map as MapIcon,
 } from 'lucide-react'
 import Navbar from '@/components/layouts/Navbar'
 import Footer from '@/components/layouts/Footer'
@@ -25,10 +25,6 @@ const LocationMap = dynamic(() => import('@/components/shared/LocationMap'), {
   ssr: false,
   loading: () => <div className="shimmer w-full h-full" />,
 })
-
-const STATUS_BADGE: Record<string, string> = {
-  upcoming: 'badge-blue', under_construction: 'badge-teal', ready: 'badge-green', sold_out: 'badge-gray',
-}
 
 const LAND_DEPARTMENT: Record<string, string> = {
   'Dubai':      'Dubai Land Department (DLD)',
@@ -340,7 +336,7 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
             ) : (
               <div className="w-full h-full flex items-center justify-center"><Building2 size={48} style={{ color: 'var(--teal)', opacity: 0.3 }} /></div>
             )}
-            <span className={cn('badge absolute top-4 left-4 text-xs capitalize', STATUS_BADGE[project.status])}>
+            <span className="badge absolute top-4 left-4 text-xs capitalize" style={{ background: 'rgba(255,255,255,0.94)', color: '#0F172A', border: 'none' }}>
               {project.status.replace('_', ' ')}
             </span>
           </div>
@@ -473,9 +469,17 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
               {/* Location & Nearby */}
               {(project.coordinates || (project.landmarks && project.landmarks.length > 0)) && (
                 <div className="card p-6">
-                  <h3 className="font-semibold mb-5 flex items-center gap-2" style={{ color: 'var(--text)' }}>
-                    <MapPin size={16} style={{ color: 'var(--teal)' }} /> Location & Nearby
-                  </h3>
+                  <div className="flex items-center justify-between gap-3 mb-5">
+                    <h3 className="font-semibold flex items-center gap-2" style={{ color: 'var(--text)' }}>
+                      <MapPin size={16} style={{ color: 'var(--teal)' }} /> Location & Nearby
+                    </h3>
+                    {/* Opens the full map page with just this project on it. */}
+                    {project.coordinates && (
+                      <Link href={`/map-search?only=project:${project.slug}`} className="btn-outline btn-sm gap-1.5 flex-shrink-0">
+                        <MapIcon size={13} /> Map View
+                      </Link>
+                    )}
+                  </div>
                   <NearbyDistances project={project} />
                 </div>
               )}
