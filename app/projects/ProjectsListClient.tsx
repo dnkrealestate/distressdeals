@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, Suspense } from 'react'
+import { useState, useEffect, useCallback, Suspense, Fragment } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
@@ -8,6 +8,9 @@ import { Search, ChevronRight, MapPin, Building2, Globe2, ChevronDown, X, Layout
 
 import Navbar from '@/components/layouts/Navbar'
 import ProjectCompareBar from '@/components/buyer/ProjectCompareBar'
+import AdSlot from '@/components/shared/AdSlot'
+import RecentlyViewedCard from '@/components/buyer/RecentlyViewedCard'
+import Pagination from '@/components/shared/Pagination'
 import Footer from '@/components/layouts/Footer'
 import ProjectCard from '@/components/buyer/ProjectCard'
 import { projectAPI } from '@/lib/api'
@@ -117,52 +120,6 @@ function TopDevelopersCard({ developers }: { developers: DeveloperStat[] }) {
   )
 }
 
-/* ─── SIDEBAR: SPONSORED AD ──────────────────────────────── */
-function SponsoredCard() {
-  return (
-    <div className="card p-5">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-            style={{ background: 'rgba(168,85,247,0.10)', border: '1px solid rgba(168,85,247,0.20)' }}
-          >
-            <Sparkles size={15} style={{ color: '#A855F7' }} />
-          </div>
-          <h3 className="font-semibold text-sm" style={{ color: 'var(--text)' }}>Featured Developments</h3>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-3">
-        {SPONSORED.map(s => (
-          <Link
-            key={s.title}
-            href="#"
-            className="flex gap-3 p-2.5 rounded-xl transition-colors group"
-            style={{ border: '1px solid var(--border)' }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(203,1,1,0.40)' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)' }}
-          >
-            <div
-              className="w-16 h-16 rounded-lg flex items-center justify-center flex-shrink-0"
-              style={{ background: 'var(--bg-alt)' }}
-            >
-              <Building2 size={22} style={{ color: 'var(--teal)', opacity: 0.4 }} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <span className="badge badge-purple text-[9px] mb-1">{s.tag}</span>
-              <p className="text-xs font-semibold leading-snug truncate transition-colors group-hover:text-[var(--teal)]" style={{ color: 'var(--text)' }}>{s.title}</p>
-              <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{s.area}</p>
-              <p className="text-xs font-bold grad-text mt-0.5">{s.price}</p>
-            </div>
-          </Link>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-/* ─── STATUS PILL — segmented group, live count baked into the label ── */
 function StatusPill({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
@@ -216,7 +173,7 @@ function ProjectsListClientInner() {
   const [statusStats,    setStatusStats]    = useState<{ status: string; count: number }[]>([])
   const [statusStatsTotal, setStatusStatsTotal] = useState(0)
 
-  const limit = 12
+  const limit = 40 // projects per page
 
   // Filter option sources — fetched once, independent of the active filters.
   useEffect(() => {
@@ -485,31 +442,24 @@ function ProjectsListClientInner() {
               <>
                 <div className={view === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6' : 'flex flex-col gap-4'}>
                   {projects.map((project, i) => (
-                    <motion.div key={project._id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                      <ProjectCard project={project} layout={view === 'grid' ? 'grid' : 'row'} />
-                    </motion.div>
+                    <Fragment key={project._id}>
+                      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 10) * 0.05 }}>
+                        <ProjectCard project={project} layout={view === 'grid' ? 'grid' : 'row'} />
+                      </motion.div>
+                      {/* No sidebar below xl — the ad sits in the list instead. */}
+                      {i === 5 && <AdSlot placement="listings" variant="wide" className="xl:hidden col-span-full" />}
+                    </Fragment>
                   ))}
                 </div>
 
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-center gap-2 mt-10">
-                    {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => i + 1).map(p => (
-                      <button
-                        key={p}
-                        onClick={() => setFilter('page', p)}
-                        className="w-9 h-9 rounded-lg text-sm font-medium border transition-all"
-                        style={{
-                          borderColor: filters.page === p ? 'var(--teal)' : 'var(--border)',
-                          background:  filters.page === p ? 'rgba(203,1,1,0.10)' : 'transparent',
-                          color:       filters.page === p ? 'var(--teal)' : 'var(--text-muted)',
-                        }}
-                      >
-                        {p}
-                      </button>
-                    ))}
-                    {totalPages > 7 && <span className="text-sm" style={{ color: 'var(--text-muted)' }}>…{totalPages}</span>}
-                  </div>
-                )}
+                <Pagination
+                  page={filters.page || 1}
+                  totalPages={totalPages}
+                  onChange={p => setFilter('page', p)}
+                  total={total}
+                  perPage={limit}
+                  itemLabel={total === 1 ? 'project' : 'projects'}
+                />
               </>
             ) : (
               <div className="flex flex-col items-center justify-center py-24 text-center">
@@ -533,10 +483,10 @@ function ProjectsListClientInner() {
 
           {/* ── Right: Sidebar (same relationship as the buy listing page) ── */}
           <aside className="hidden xl:flex flex-col gap-5 flex-shrink-0 w-[300px]">
-            <div className="sticky top-40 flex flex-col gap-5">
-              <TopDevelopersCard developers={developers} />
-              <SponsoredCard />
-            </div>
+            <TopDevelopersCard developers={developers} />
+            <RecentlyViewedCard />
+            {/* Not sticky here — the pinned filter card above is too tall to leave room for a 600px banner. */}
+            <AdSlot placement="listings" variant="tall" />
           </aside>
         </div>
       </section>

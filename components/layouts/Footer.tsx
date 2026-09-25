@@ -146,12 +146,17 @@ export default function Footer() {
               ))}
             </div>
 
+             <div className="flex flex-row flex-wrap sm:flex-nowrap gap-2.5">
+              <StoreBadge href={appStoreHref} Icon={Apple} eyebrow="Download on the" title="App Store" comingSoon={!appStoreHref} />
+              <StoreBadge href={playStoreHref} Icon={Play} eyebrow="Get it on" title="Google Play" />
+            </div>
+
             {/* RERA badge */}
-            <div className="inline-flex items-center gap-2 rounded-full px-3.5 py-2" style={{ background: 'rgba(203,1,1,.06)', border: '1px solid rgba(203,1,1,.18)' }}>
+            {/* <div className="inline-flex items-center gap-2 rounded-full px-3.5 py-2" style={{ background: 'rgba(203,1,1,.06)', border: '1px solid rgba(203,1,1,.18)' }}>
               <Shield size={13} style={{ color: '#CB0101' }} />
               <span className="text-xs font-semibold" style={{ color: '#CB0101' }}>RERA Registered</span>
-              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>· Broker No: </span>
-            </div>
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>· Broker No: 63902</span>
+            </div> */}
           </div>
 
           {/* Links columns */}
@@ -179,18 +184,15 @@ export default function Footer() {
           ))}
 
           {/* Get the App column */}
-          <div>
+          {/* <div>
             <h4 className="text-sm font-semibold mb-5" style={{ color: 'var(--text)' }}>
               Get the App
             </h4>
             <p className="text-sm leading-relaxed mb-5" style={{ color: 'var(--text-muted)' }}>
               Search, save, and message sellers on the go — download the Distress Deals app.
             </p>
-            <div className="flex flex-row flex-wrap sm:flex-nowrap gap-2.5">
-              <StoreBadge href={appStoreHref} Icon={Apple} eyebrow="Download on the" title="App Store" comingSoon={!appStoreHref} />
-              <StoreBadge href={playStoreHref} Icon={Play} eyebrow="Get it on" title="Google Play" />
-            </div>
-          </div>
+           
+          </div> */}
         </div>
 
         {/* Divider */}

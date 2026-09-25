@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { getVisitorId } from './visitor'
 
 // NEXT_PUBLIC_API_URL always wins when set (e.g. to point a build at a
 // staging backend). When it's not set, fall back by build environment
@@ -19,6 +20,9 @@ api.interceptors.request.use(cfg => {
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('luxestate_token')
     if (token) cfg.headers.Authorization = `Bearer ${token}`
+    // Lets the backend count a guest's views once (utils/uniqueView).
+    const vid = getVisitorId()
+    if (vid) cfg.headers['X-Visitor-Id'] = vid
   }
   return cfg
 })
@@ -99,6 +103,8 @@ export const propertyAPI = {
   manageAll:    (params?: any) => api.get('/properties/manage/all', { params }),
   getFeatured:  () => api.get('/properties?featured=true&limit=6'),
   getAreaStats: (limit?: number) => api.get('/properties/area-stats', { params: { limit } }),
+  // Trending Areas sidebar — this week's views vs last week, with live listing counts.
+  getTrendingAreas: (kind: 'sale' | 'rent', limit = 5) => api.get('/properties/trending-areas', { params: { kind, limit } }),
   getTypeStats: (params?: any) => api.get('/properties/type-stats', { params }),
   getAllAreas:  () => api.get('/properties/areas'),
   getAreaBySlug: (slug: string) => api.get(`/properties/areas/${slug}`),
@@ -210,6 +216,7 @@ export const blogAPI = {
   getAll:      (params?: any) => api.get('/blog', { params }),
   getAllAdmin: (params?: any) => api.get('/blog/admin/all', { params }),
   getOne:      (slug: string) => api.get(`/blog/${slug}`),
+  trackView:   (id: string) => api.post(`/blog/${id}/view`),
   create:      (data: any) => api.post('/blog', data),
   update:      (id: string, data: any) => api.put(`/blog/${id}`, data),
   delete:      (id: string) => api.delete(`/blog/${id}`),
@@ -249,6 +256,8 @@ export const uploadAPI = {
 export const projectAPI = {
   getAll:  (params?: any) => api.get('/projects', { params }),
   getOne:  (slug: string) => api.get(`/projects/${slug}`),
+  // One view per visitor — counted by the backend, not by page fetches.
+  trackView: (id: string) => api.post(`/projects/${id}/view`),
   create:  (data: any) => api.post('/projects', data),
   update:  (id: string, data: any) => api.put(`/projects/${id}`, data),
   delete:  (id: string) => api.delete(`/projects/${id}`),
@@ -257,6 +266,8 @@ export const projectAPI = {
   getAreas: () => api.get('/projects/areas'),
   getStatusStats: (params?: any) => api.get('/projects/status-stats', { params }),
   getTypeStats:   (params?: any) => api.get('/projects/type-stats', { params }),
+  // Staff: every project with who added / last edited it.
+  manageAll:      (params?: any) => api.get('/projects/manage/all', { params }),
   trackShare: (id: string) => api.post(`/projects/${id}/share`),
   getAnalytics: (id: string) => api.get(`/projects/${id}/analytics`),
   aiDescription: (data: any) => api.post('/projects/ai-description', data, { timeout: 90000 }),
@@ -285,6 +296,19 @@ export const areaContentAPI = {
 }
 
 // ── Community Content (separate section from Area) ────
+// ── Ads ─────────────────────────────────────────────
+export const adAPI = {
+  serve:       (placement: 'listings' | 'details') => api.get('/ads/serve', { params: { placement } }),
+  impressions: (ids: string[]) => api.post('/ads/impressions', { ids }),
+  // Clicks go through the backend (counted there, then redirected) — this is the link an ad points at.
+  clickUrl:    (id: string) => `${(api.defaults.baseURL || '').replace(/\/$/, '')}/ads/${id}/click${typeof window !== 'undefined' && getVisitorId() ? `?v=${getVisitorId()}` : ''}`,
+  list:        () => api.get('/ads'),
+  create:      (data: any) => api.post('/ads', data),
+  update:      (id: string, data: any) => api.put(`/ads/${id}`, data),
+  delete:      (id: string) => api.delete(`/ads/${id}`),
+  stats:       (id: string, days = 30) => api.get(`/ads/${id}/stats`, { params: { days } }),
+}
+
 export const communityContentAPI = {
   getAll:    (params?: any) => api.get('/community-content', { params }),
   getBySlug: (slug: string) => api.get(`/community-content/${slug}`),

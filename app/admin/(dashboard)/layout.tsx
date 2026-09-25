@@ -5,7 +5,7 @@ import Link from 'next/link'
 import {
   LayoutDashboard, Home, TrendingUp, Users, CalendarDays,
   UserCog, LogOut, Sun, Moon, ShieldCheck, MessageSquare, Wallet,
-  MoreHorizontal, X, Settings as SettingsIcon,
+  MoreHorizontal, X, Settings as SettingsIcon, Megaphone,
 } from 'lucide-react'
 import { useAuthStore, useAuthHydrated } from '@/store/authStore'
 import { useThemeStore } from '@/store/themeStore'
@@ -29,6 +29,7 @@ const NAV: { href: string; icon: any; label: string; permission: NavPermission }
   { href: '/admin/messages',   icon: MessageSquare,     label: 'Messages', permission: 'OPS'                },
   { href: '/admin/agents',     icon: Users,             label: 'Agents',   permission: 'manage_agents'      },
   { href: '/admin/meetings',   icon: CalendarDays,     label: 'Meetings', permission: 'schedule_meetings'  },
+  { href: '/admin/ads',        icon: Megaphone,         label: 'Ads',      permission: 'manage_ads'         },
   { href: '/admin/settings',   icon: SettingsIcon,      label: 'Settings', permission: 'ANY_CONTENT'        },
   { href: '/admin/users',      icon: UserCog,           label: 'Users',    permission: 'ADMIN_ONLY'         },
 ]

@@ -10,7 +10,7 @@ export type AgentPermission =
   | 'approve_listings' | 'manage_leads' | 'schedule_meetings' | 'view_analytics' | 'manage_agents' | 'export_data'
   | 'manage_content'
   | 'manage_blog' | 'manage_homepage' | 'manage_seo' | 'manage_pages' | 'manage_projects'
-  | 'manage_developers' | 'manage_areas' | 'manage_communities' | 'manage_buildings'
+  | 'manage_developers' | 'manage_areas' | 'manage_communities' | 'manage_buildings' | 'manage_ads'
 
 export interface User {
   _id: string; name: string; email: string; phone?: string; avatar?: string
@@ -194,6 +194,10 @@ export interface Project {
   status: 'upcoming' | 'under_construction' | 'ready' | 'sold_out'
   isFeatured: boolean; views: number; createdAt: string
   developerLogo?: string
+  // Admin list only (GET /projects/manage/all).
+  createdBy?: { _id: string; name: string; displayId?: string; role?: string } | null
+  updatedBy?: { _id: string; name: string; displayId?: string; role?: string } | null
+  updatedAt?: string
   // White version for the dark developer badge on project cards.
   developerLogoWhite?: string
   coordinates?: { lat: number; lng: number }
@@ -273,10 +277,24 @@ export interface AreaContentWithStats extends AreaContent {
   saleCount: number; rentCount: number; communities: string[]
 }
 
+// A banner ad (Ads manager). imageTall = 300×600 sidebar art, imageWide = 1200×300 banner / phone art.
+export type AdPlacement = 'listings' | 'details'
+export interface Ad {
+  _id: string; title: string; advertiser?: string; imageTall?: string; imageWide?: string
+  targetUrl: string; placements: AdPlacement[]; isActive: boolean; startsAt?: string; endsAt?: string; priority: number
+  impressions: number; clicks: number; ctr?: number; status?: 'running' | 'scheduled' | 'paused' | 'ended'
+  createdBy?: { _id: string; name: string; displayId?: string } | null
+  createdAt: string; updatedAt: string
+}
+export interface PublicAd { _id: string; title: string; advertiser?: string; imageTall?: string; imageWide?: string }
+
+export interface TrendingArea { area: string; listings: number; views: number; change: number | null; isNew: boolean }
+
 export interface CommunityContent {
   _id: string; name: string; slug: string; area?: string; heroImage?: string; overview?: string
   highlights: { label: string }[]; amenities: { icon: string; label: string }[]
   emirate?: string; coordinates?: { lat: number; lng: number }; address?: string
+  heroImageCredit?: { name: string; url: string; license?: string }
   isFeatured: boolean; createdAt: string
 }
 

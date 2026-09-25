@@ -23,6 +23,7 @@ export const CONTENT_MODULES: ModuleDef[] = [
   { key: 'manage_areas',       label: 'Areas',         hint: 'Area guide pages' },
   { key: 'manage_communities', label: 'Communities',   hint: 'Community guide pages' },
   { key: 'manage_buildings',   label: 'Buildings',     hint: 'Building guide pages' },
+  { key: 'manage_ads',         label: 'Ads',           hint: 'Banner ads on listing and property pages, with click stats' },
 ]
 
 export const CONTENT_KEYS = CONTENT_MODULES.map(m => m.key)
@@ -51,6 +52,7 @@ export const PATH_MODULE: [string, AgentPermission][] = [
   ['/admin/areas', 'manage_areas'],
   ['/admin/communities', 'manage_communities'],
   ['/admin/buildings', 'manage_buildings'],
+  ['/admin/ads', 'manage_ads'],
   ['/admin/properties', 'approve_listings'],
   ['/admin/leads', 'manage_leads'],
   ['/admin/mortgage', 'manage_leads'],

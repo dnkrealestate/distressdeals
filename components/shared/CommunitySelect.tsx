@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
 import type { UseFormRegisterReturn } from 'react-hook-form'
@@ -62,9 +62,16 @@ export default function CommunitySelect({
   const order = [...groups.keys()].sort((a, b) => (a === emirate ? -1 : b === emirate ? 1 : a.localeCompare(b)))
   const known = list.some(c => c.name === value)
 
+  // When the directory arrives the options are rebuilt, and a browser drops a <select>'s selection when its chosen
+  // <option> node is replaced — put the saved value back once the new options have rendered.
+  const selectRef = useRef<HTMLSelectElement | null>(null)
+  useEffect(() => {
+    if (selectRef.current && value && selectRef.current.value !== value) selectRef.current.value = value
+  }, [list, value])
+
   return (
     <div>
-      <select className="select-field" {...field}>
+      <select className="select-field" {...field} ref={el => { field.ref(el); selectRef.current = el }}>
         <option value="">— None —</option>
         {/* A saved value that isn't in the directory (older listings) still shows, instead of silently blanking. */}
         {value && !known && <option value={value}>{value}</option>}

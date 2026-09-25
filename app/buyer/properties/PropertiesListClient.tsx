@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useLayoutEffect, useCallback, useRef, Suspense } from 'react'
+import { useState, useEffect, useLayoutEffect, useCallback, useRef, Suspense, Fragment } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -15,8 +15,11 @@ import Navbar from '@/components/layouts/Navbar'
 import Footer from '@/components/layouts/Footer'
 import PropertyCard from '@/components/buyer/PropertyCard'
 import RecentlyViewedCard from '@/components/buyer/RecentlyViewedCard'
+import TrendingAreasCard from '@/components/buyer/TrendingAreasCard'
+import AdSlot from '@/components/shared/AdSlot'
 import ProjectCard from '@/components/buyer/ProjectCard'
 import ProjectCompareBar from '@/components/buyer/ProjectCompareBar'
+import Pagination from '@/components/shared/Pagination'
 import SearchBar from '@/components/buyer/SearchBar'
 import { PropertyFilterBar, Pill, FilterDropdown, DropdownOption, TYPES } from '@/components/buyer/PropertyFilterBar'
 import { propertyAPI, savedSearchAPI, projectAPI } from '@/lib/api'
@@ -46,110 +49,6 @@ const SORT_OPTIONS = [
   { v: 'area_asc',  l: 'Area: Smallest'    },
   { v: 'area_desc', l: 'Area: Largest'     },
 ]
-
-const TRENDING_AREAS = [
-  { name: 'Dubai Marina',   pct: '+18%', listings: 356 },
-  { name: 'JVC',            pct: '+24%', listings: 210 },
-  { name: 'Business Bay',   pct: '+12%', listings: 284 },
-  { name: 'Dubai Hills',    pct: '+31%', listings: 145 },
-]
-
-const SPONSORED = [
-  { title: 'Marina Gate Tower',     area: 'Dubai Marina',  price: 'AED 2.85M', tag: 'Sponsored' },
-  { title: 'Hills Estate Villa',    area: 'Dubai Hills',   price: 'AED 7.2M',  tag: 'Sponsored' },
-]
-
-/* ─── SIDEBAR: TRENDING AREAS ────────────────────────────────── */
-function TrendingAreasCard() {
-  return (
-    <div className="card p-5">
-      <div className="flex items-center gap-2 mb-4">
-        <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-          style={{ background: 'rgba(203,1,1,0.10)', border: '1px solid rgba(203,1,1,0.20)' }}
-        >
-          <TrendingUp size={15} style={{ color: 'var(--teal)' }} />
-        </div>
-        <div>
-          <h3 className="font-semibold text-sm" style={{ color: 'var(--text)' }}>Trending Areas</h3>
-          <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Most searched this week</p>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-1">
-        {TRENDING_AREAS.map((a, i) => (
-          <Link
-            key={a.name}
-            href={`/buyer/properties?area=${encodeURIComponent(a.name)}`}
-            className="flex items-center justify-between py-2.5 px-2 rounded-lg transition-colors group"
-            style={{}}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(203,1,1,0.05)' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
-          >
-            <div className="flex items-center gap-2.5">
-              <span
-                className="w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold flex-shrink-0"
-                style={{ background: 'var(--bg-alt)', color: 'var(--text-muted)' }}
-              >
-                {i + 1}
-              </span>
-              <div>
-                <p className="text-xs font-medium transition-colors group-hover:text-[var(--teal)]" style={{ color: 'var(--text)' }}>{a.name}</p>
-                <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{a.listings} listings</p>
-              </div>
-            </div>
-            <span className="text-xs font-semibold" style={{ color: 'var(--green)' }}>{a.pct}</span>
-          </Link>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-/* ─── SIDEBAR: SPONSORED PROPERTY ADS ───────────────────────── */
-function SponsoredCard() {
-  return (
-    <div className="card p-5">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-            style={{ background: 'rgba(168,85,247,0.10)', border: '1px solid rgba(168,85,247,0.20)' }}
-          >
-            <Sparkles size={15} style={{ color: '#A855F7' }} />
-          </div>
-          <h3 className="font-semibold text-sm" style={{ color: 'var(--text)' }}>Featured Listings</h3>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-3">
-        {SPONSORED.map(s => (
-          <Link
-            key={s.title}
-            href="#"
-            className="flex gap-3 p-2.5 rounded-xl transition-colors group"
-            style={{ border: '1px solid var(--border)' }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(203,1,1,0.40)' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)' }}
-          >
-            <div
-              className="w-16 h-16 rounded-lg flex items-center justify-center flex-shrink-0"
-              style={{ background: 'var(--bg-alt)' }}
-            >
-              <Building2 size={22} style={{ color: 'var(--teal)', opacity: 0.4 }} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <span className="badge badge-purple text-[9px] mb-1">{s.tag}</span>
-              <p className="text-xs font-semibold leading-snug truncate transition-colors group-hover:text-[var(--teal)]" style={{ color: 'var(--text)' }}>{s.title}</p>
-              <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{s.area}</p>
-              <p className="text-xs font-bold grad-text mt-0.5">{s.price}</p>
-            </div>
-          </Link>
-        ))}
-      </div>
-    </div>
-  )
-}
 
 /* ─── SIDEBAR: SAVE SEARCH + ALERTS ──────────────────────────── */
 function describeFilters(filters: PropertyFilters): string {
@@ -222,34 +121,6 @@ function AlertCard({ filters }: { filters: PropertyFilters }) {
   )
 }
 
-/* ─── SIDEBAR: TESTIMONIAL / SOCIAL PROOF ───────────────────── */
-function TestimonialCard() {
-  return (
-    <div className="card p-5">
-      <div className="flex items-center gap-1 mb-3">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Star key={i} size={13} fill="#FBBF24" stroke="#FBBF24" />
-        ))}
-      </div>
-      <p className="text-xs leading-relaxed mb-3" style={{ color: 'var(--text-mid)' }}>
-        "Found our dream apartment in Marina within a week. The verified listings saved us so much time."
-      </p>
-      <div className="flex items-center gap-2.5">
-        <div
-          className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
-          style={{ background: 'var(--grad)' }}
-        >
-          NK
-        </div>
-        <div>
-          <p className="text-xs font-semibold" style={{ color: 'var(--text)' }}>Nadia K.</p>
-          <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Bought in Dubai Marina</p>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 /* ─── SORT + VIEW TOGGLE (shared by the filter bar and the normal-time
    counts row, so switching between them never costs the buyer these
    controls) ─────────────────────────────────────────────────── */
@@ -313,7 +184,9 @@ function EmptyState({ onClear }: { onClear: () => void }) {
 /* ─── PROPERTIES + NEW PROJECTS IN ONE LIST ─────────────────── */
 // On the Buy page, off-plan projects sit in the same list as resale listings. Projects only come in residential
 // types and never for rent, and they can't be matched on bedrooms/size/availability — skip them for those searches.
-const PROJECTS_PER_PAGE = 4
+// 40 listings a page; up to 10 new projects mixed in.
+const PER_PAGE = 40
+const PROJECTS_PER_PAGE = 10
 const PROJECT_TYPES = ['apartment', 'villa', 'townhouse', 'penthouse', 'studio']
 
 function projectsApply(f: PropertyFilters, forced?: 'sale' | 'rent'): boolean {
@@ -423,7 +296,7 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
     completion:  searchParams.get('completion')  || '',
     sortBy:      searchParams.get('sortBy')      || 'recommended',
     page:        Number(searchParams.get('page')) || 1,
-    limit:       12,
+    limit:       PER_PAGE,
   })
 
   const fetchProperties = useCallback(async () => {
@@ -655,6 +528,7 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
     return () => ro.disconnect()
   }, [visibleTypeDefs.length, typeStatsTotal, pastSearch])
 
+  const isRent = forcedListingType === 'rent' || filters.listingType === 'rent'
   const shownTypeDefs = visibleTypeDefs.slice(0, visibleTypeCount)
   const moreTypeDefs  = visibleTypeDefs.slice(visibleTypeCount)
 
@@ -874,37 +748,29 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
               <>
                 <div className={cn(view === 'grid' ? 'grid gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3' : 'flex flex-col gap-4')}>
                   {listItems.map((entry, i) => (
-                    <motion.div key={entry.key}
-                      initial={{ opacity: 0, y: 16 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.04 }}>
-                      {entry.kind === 'project'
-                        ? <ProjectCard project={entry.item} layout={view === 'grid' ? 'grid' : 'row'} markAsProject />
-                        : <PropertyCard property={entry.item} loading={!entry.item} layout={view === 'grid' ? 'grid' : 'row'} />}
-                    </motion.div>
+                    <Fragment key={entry.key}>
+                      <motion.div
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: Math.min(i, 10) * 0.04 }}>
+                        {entry.kind === 'project'
+                          ? <ProjectCard project={entry.item} layout={view === 'grid' ? 'grid' : 'row'} markAsProject />
+                          : <PropertyCard property={entry.item} loading={!entry.item} layout={view === 'grid' ? 'grid' : 'row'} />}
+                      </motion.div>
+                      {/* No sidebar below xl — the ad sits in the list instead, after the 6th listing. */}
+                      {i === 5 && <AdSlot placement="listings" variant="wide" className="xl:hidden col-span-full" />}
+                    </Fragment>
                   ))}
                 </div>
 
-                {/* Pagination */}
-                {pageCount > 1 && (
-                  <div className="flex items-center justify-center gap-2 mt-10">
-                    {Array.from({ length: Math.min(pageCount, 7) }, (_, i) => i + 1).map(p => (
-                      <button
-                        key={p}
-                        onClick={() => setFilter('page', p)}
-                        className="w-9 h-9 rounded-lg text-sm font-medium border transition-all"
-                        style={{
-                          borderColor: filters.page === p ? 'var(--teal)' : 'var(--border)',
-                          background:  filters.page === p ? 'rgba(203,1,1,0.10)' : 'transparent',
-                          color:       filters.page === p ? 'var(--teal)' : 'var(--text-muted)',
-                        }}
-                      >
-                        {p}
-                      </button>
-                    ))}
-                    {pageCount > 7 && <span className="text-sm" style={{ color: 'var(--text-muted)' }}>…{pageCount}</span>}
-                  </div>
-                )}
+                <Pagination
+                  page={filters.page || 1}
+                  totalPages={pageCount}
+                  onChange={p => setFilter('page', p)}
+                  total={total}
+                  perPage={PER_PAGE}
+                  itemLabel={total === 1 ? 'property' : 'properties'}
+                />
               </>
             )}
 
@@ -912,12 +778,16 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
 
           {/* ── Right: Sidebar (ads + buying behavior) ────── */}
           <aside className="hidden xl:flex flex-col gap-5 flex-shrink-0 w-[300px]">
-            <div className="sticky top-20 flex flex-col gap-5">
-              <AlertCard filters={filters} />
-              <RecentlyViewedCard />
-              <TrendingAreasCard />
-              <SponsoredCard />
-              <TestimonialCard />
+            <AlertCard filters={filters} />
+            <RecentlyViewedCard />
+              <TrendingAreasCard
+                kind={isRent ? 'rent' : 'sale'}
+                basePath={forcedListingType === 'rent' ? '/for-rent' : forcedListingType === 'sale' ? '/for-sale' : '/buyer/properties'}
+              />
+            {/* Only the ad sticks — a whole sticky column taller than the screen would hide the cards below it. */}
+            {/* Sits just under the sticky filter bar (navbar 64px + bar ~64px). */}
+            <div className="sticky" style={{ top: 144 }}>
+              <AdSlot placement="listings" variant="tall" />
             </div>
           </aside>
         </div>

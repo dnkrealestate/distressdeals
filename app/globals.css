@@ -415,6 +415,13 @@ body {
   .rich-content table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.92em; overflow-x: auto; display: block; }
   .rich-content th, .rich-content td { border: 1px solid var(--border); padding: 0.5em 0.75em; text-align: left; }
   .rich-content thead th, .rich-content tr:first-child td { background: var(--bg-alt); font-weight: 600; }
+  /* Nothing may push past the card: long links / unbroken words wrap, media and embeds shrink to fit. */
+  .rich-content { overflow-wrap: anywhere; word-break: break-word; max-width: 100%; min-width: 0; }
+  .rich-content pre { white-space: pre-wrap; overflow-x: auto; }
+  .rich-content iframe, .rich-content video, .rich-content embed, .rich-content object { max-width: 100%; }
+  /* Descriptions written in the listing forms keep their line breaks exactly as typed (the editor shows them with
+     white-space: pre-wrap; plain HTML would otherwise collapse them into one block). */
+  .rich-content.keep-lines p, .rich-content.keep-lines li, .rich-content.keep-lines blockquote, .rich-content.keep-lines td { white-space: pre-line; }
 }
 
 @layer utilities {

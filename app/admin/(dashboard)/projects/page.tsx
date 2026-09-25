@@ -5,8 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import { useDropzone } from 'react-dropzone'
 import {
-  Plus, X, Trash2, Pencil, Building2, UploadCloud, Loader2, Star, Eye, QrCode,
-  BarChart3, MessageCircleHeart, Share2, Map as MapIcon, Crosshair, ChevronLeft, ChevronRight, GripVertical,
+  Plus, X, Trash2, Pencil, Building2, UploadCloud, Loader2, Star, Eye, QrCode, Save,
+  BarChart3, MessageCircleHeart, Share2, Map as MapIcon, Crosshair, UserRound, ChevronLeft, ChevronRight, GripVertical,
   Image as ImagePlaceholder, Video as VideoIcon, LayoutGrid as MasterPlanIcon,
 } from 'lucide-react'
 import { projectAPI, uploadAPI, developerAPI } from '@/lib/api'
@@ -22,6 +22,7 @@ import ProjectDescriptionStep, { type ProjectSeo, type ProjectFacts } from '@/co
 import { PerformanceStats } from '@/components/admin/PerformanceStats'
 import type { Project, Developer } from '@/types'
 import toast from 'react-hot-toast'
+import { useFormDraft } from '@/lib/useFormDraft'
 
 const LocationPickerMap = dynamic(() => import('@/components/shared/LocationPickerMap'), {
   ssr: false,
@@ -48,6 +49,26 @@ interface VideoEntry { platform: VideoPlatform; url: string; title?: string }
 
 interface FloorPlanEntry { label: string; image: string; bedrooms: string; size: string; price: string }
 interface LandmarkEntry { name: string; category: string; lat: string; lng: string }
+
+// "Added by Adil (AD-A1) · 25 Sep 2026 · Edited by Sara (E-A1) 26 Sep 2026" — who added the project and, when it's
+// someone else, who last changed it. Projects added before this was tracked show just the date.
+function ProjectAuthorship({ project, className = '' }: { project: Project; className?: string }) {
+  const who = (u: { name: string; displayId?: string }) => (
+    <><strong style={{ color: 'var(--text-mid)' }}>{u.name}</strong>{u.displayId && <span className="font-mono">&nbsp;({u.displayId})</span>}</>
+  )
+  return (
+    <p className={`text-[11px] flex items-center gap-1 ${className}`} style={{ color: 'var(--text-muted)' }}>
+      <UserRound size={10} className="flex-shrink-0" />
+      <span className="truncate">
+        {project.createdBy ? <>Added by {who(project.createdBy)}</> : 'Added'}
+        {' · '}{formatDate(project.createdAt)}
+        {project.updatedBy && project.updatedBy._id !== project.createdBy?._id && (
+          <> · Edited by {who(project.updatedBy)}{project.updatedAt ? ` ${formatDate(project.updatedAt)}` : ''}</>
+        )}
+      </span>
+    </p>
+  )
+}
 
 function PerformanceModal({ project, onClose }: { project: Project; onClose: () => void }) {
   const [analytics, setAnalyticsData] = useState<any>(null)
@@ -76,6 +97,7 @@ function PerformanceModal({ project, onClose }: { project: Project; onClose: () 
           <div>
             <h3 className="font-bold text-sm" style={{ color: 'var(--text)' }}>Performance</h3>
             <p className="text-xs truncate max-w-[280px]" style={{ color: 'var(--text-muted)' }}>{project.title}</p>
+            <ProjectAuthorship project={project} className="mt-1 max-w-[320px]" />
           </div>
           <button onClick={onClose} className="btn-ghost btn-sm p-2"><X size={14} /></button>
         </div>
@@ -164,18 +186,21 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
   const [locationVersion, setLocationVersion] = useState(0)
 
   useEffect(() => {
-    developerAPI.getAll().then(r => {
-      if (r.data.success) {
-        setDevelopers(r.data.data || [])
-        // The <select>'s options don't exist until this list loads — a plain
-        // register()'d value set before then never gets re-applied once they
-        // do, which is why the field looked "reset" and re-triggered the
-        // required-field error on every edit. Force it back in once the
-        // matching <option> actually exists.
-        if (project?.developer) setValue('developer', project.developer)
-      }
-    }).catch(() => {})
-  }, [project?.developer])
+    developerAPI.getAll().then(r => { if (r.data.success) setDevelopers(r.data.data || []) }).catch(() => {})
+  }, [])
+
+  const [draftDeveloper, setDraftDeveloper] = useState('')
+  const developerOptions = [
+    ...[project?.developer, draftDeveloper].filter((n, i, a): n is string => !!n && a.indexOf(n) === i && !developers.some(d => d.name === n))
+      .map(n => ({ name: n, label: developers.length ? `${n} (not in Developers list)` : n })),
+    ...developers.map(d => ({ name: d.name, label: d.name })),
+  ]
+
+  // Re-apply the saved developer AFTER the loaded options have rendered (an effect runs post-render). Setting it in
+  // the fetch callback ran before the new <option>s existed — dev mode's double effect hid that; production didn't.
+  useEffect(() => {
+    if (project?.developer && developers.length && getValues('developer') === project.developer) setValue('developer', project.developer, { shouldValidate: true })
+  }, [developers]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const uploadSingleImage = async (file: File): Promise<string | null> => {
     const fd = new FormData(); fd.append('image', file)
@@ -254,7 +279,7 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
     maxSize: 5 * 1024 * 1024, multiple: false,
   })
 
-  const { register, handleSubmit, setValue, getValues, watch, formState: { errors } } = useForm({
+  const { register, handleSubmit, setValue, getValues, watch, reset, formState: { errors } } = useForm({
     defaultValues: {
       title:           project?.title || '',
       developer:       project?.developer || '',
@@ -278,6 +303,28 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
       lng:             project?.coordinates?.lng ?? '',
     },
   })
+
+  // Draft: everything typed, picked or uploaded is kept until the project is saved (lib/useFormDraft) — restored on
+  // reopen, and closing / leaving with changes asks "save as draft?". The "Save draft" button saves on demand.
+  const draft = useFormDraft({
+    key: `project:${project?._id || 'new'}`,
+    values: {
+      ...watch(), coverImage, gallery, blocks, seo, permitQrImage, amenities, floorPlans,
+      masterPlanImage, masterPlanDescription, landmarks, videos,
+    },
+    onRestore: d => {
+      const { coverImage: c, gallery: g, blocks: b, seo: so, permitQrImage: q, amenities: am, floorPlans: fp,
+        masterPlanImage: mi, masterPlanDescription: md, landmarks: lm, videos: v, ...fields } = d as any
+      setDraftDeveloper(fields.developer || '')
+      reset(fields)
+      setCoverImage(c || ''); setGallery(g || []); if (b?.length) setBlocks(b); if (so) setSeo(so)
+      setPermitQrImage(q || ''); setAmenities(am || {}); setFloorPlans(fp || []); setMasterPlanImage(mi || '')
+      setMasterPlanDescription(md || ''); setLandmarks(lm || []); setVideos(v || [])
+      if (fields.area) setLocatedIn(`${fields.emirate || 'Dubai'} / ${fields.area}`)
+      setLocationVersion(n => n + 1) // area / emirate / lat / lng inputs repaint with the restored values
+    },
+  })
+  const saveDraft = () => { draft.saveNow(); toast.success('Draft saved — it will be here when you reopen this form') }
 
   // Google picks carry area/emirate directly; OpenStreetMap ones are parsed from the label, as in the Property wizard.
   const communities = useCommunities()
@@ -421,6 +468,7 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
       if (project) await projectAPI.update(project._id, payload)
       else await projectAPI.create(payload)
       toast.success(project ? 'Updated' : 'Created')
+      draft.clear()
       onSaved(); onClose()
     } catch (err: any) {
       toast.error(err?.error || 'Failed to save')
@@ -463,7 +511,13 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
 
         <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
           <h2 className="font-bold text-sm" style={{ color: 'var(--text)' }}>{project ? 'Edit' : 'New'} Project</h2>
-          <button type="button" onClick={onClose} className="btn-ghost btn-sm p-2"><X size={14} /></button>
+          <div className="flex items-center gap-1.5">
+            <button type="button" onClick={saveDraft} disabled={!draft.dirty} className="btn-ghost btn-sm gap-1.5 disabled:opacity-40"
+              title={draft.dirty ? 'Keep these changes as a draft' : 'No changes to save yet'}>
+              <Save size={13} /> Save draft
+            </button>
+            <button type="button" onClick={() => draft.guard(onClose)} className="btn-ghost btn-sm p-2" aria-label="Close"><X size={14} /></button>
+          </div>
         </div>
 
         <form
@@ -471,6 +525,8 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
           onKeyDown={e => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') e.preventDefault() }}
           className="flex-1 min-h-0 overflow-y-auto p-6"
         >
+          {draft.banner && <div className="mb-4">{draft.banner}</div>}
+          {draft.dialog}
           <StepIndicator step={step} onJump={setStep} labels={['Details', 'Amenities', 'Uploads', 'Description']} />
 
           {/* ── Step 1 — Details ─────────────────────────────────── */}
@@ -488,10 +544,9 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
                 <Field label="Developer *">
                   <select className="select-field w-full" {...register('developer', { required: true })}>
                     <option value="">Select a developer…</option>
-                    {project?.developer && !developers.some(d => d.name === project.developer) && (
-                      <option value={project.developer}>{project.developer} (not in Developers list)</option>
-                    )}
-                    {developers.map(d => <option key={d._id} value={d.name}>{d.name}</option>)}
+                    {/* Keyed by name, and the saved developer is always one of them: when the list arrives its <option>
+                        stays the same DOM node, so the browser never drops the selection (that was the live-site bug). */}
+                    {developerOptions.map(o => <option key={o.name} value={o.name}>{o.label}</option>)}
                   </select>
                   {errors.developer && <p className="text-xs mt-1" style={{ color: '#FB7185' }}>Developer is required</p>}
                   <a href="/admin/developers" target="_blank" rel="noopener noreferrer" className="text-xs inline-block mt-1.5" style={{ color: 'var(--teal)' }}>
@@ -999,7 +1054,7 @@ export default function AdminProjectsPage() {
 
   const load = useCallback(() => {
     setLoading(true)
-    projectAPI.getAll({ limit: 100 })
+    projectAPI.manageAll({ limit: 200 })
       .then(r => { if (r.data.success) setProjects(r.data.data.data || []) })
       .catch(() => toast.error('Failed to load projects'))
       .finally(() => setLoading(false))
@@ -1050,6 +1105,7 @@ export default function AdminProjectsPage() {
                     {project.developer} · {project.area} · from {formatPrice(project.priceFrom)}
                     {' · '}<Eye size={10} className="inline" /> {project.views}
                   </p>
+                  <ProjectAuthorship project={project} className="mt-0.5 truncate" />
                 </div>
                 <span className="badge badge-gray capitalize">{project.status.replace('_', ' ')}</span>
                 <div className="flex items-center gap-1.5 flex-shrink-0">

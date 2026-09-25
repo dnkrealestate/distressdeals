@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Building2, Clock, Search } from 'lucide-react'
-import { getRecentlyViewed, type RecentlyViewedItem } from '@/lib/recentlyViewed'
+import { getRecentlyViewed, recentlyViewedHref, type RecentlyViewedItem } from '@/lib/recentlyViewed'
 import { formatPrice, rentSuffix } from '@/lib/utils'
 
 function timeAgo(ms: number): string {
@@ -42,7 +42,7 @@ export default function RecentActivity() {
   return (
     <div className="space-y-3">
       {items.map(item => (
-        <Link key={item.slug} href={`/buyer/properties/${item.slug}`} className="card p-3.5 flex items-center gap-4 transition-colors hover:border-[rgba(203,1,1,0.35)]">
+        <Link key={`${item.kind || 'property'}:${item.slug}`} href={recentlyViewedHref(item)} className="card p-3.5 flex items-center gap-4 transition-colors hover:border-[rgba(203,1,1,0.35)]">
           <div className="w-16 h-16 rounded-xl flex-shrink-0 relative overflow-hidden" style={{ background: 'var(--bg-alt)' }}>
             {item.image ? <Image src={item.image} alt="" fill className="object-cover" sizes="64px" /> : (
               <div className="w-full h-full flex items-center justify-center"><Building2 size={20} style={{ color: 'var(--text-muted)', opacity: 0.4 }} /></div>

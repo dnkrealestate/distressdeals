@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowLeft, MapPin, CalendarClock, Wallet, BedDouble, Bath, Home, ShieldCheck, Phone, Building2, MessageCircleHeart, MessageCircle, Share2,
-  TrainFront, GraduationCap, ShoppingBag, Landmark as LandmarkIcon, Plane, Search, Loader2, Navigation, Maximize2, Tag, Clock, X, Map as MapIcon,
+  ChevronDown, ChevronUp, TrainFront, GraduationCap, ShoppingBag, Landmark as LandmarkIcon, Plane, Search, Loader2, Navigation, Maximize2, Tag, Clock, X, Map as MapIcon,
 } from 'lucide-react'
 import Navbar from '@/components/layouts/Navbar'
 import Footer from '@/components/layouts/Footer'
@@ -18,6 +18,11 @@ import { formatPrice, cn, timeAgo } from '@/lib/utils'
 import { AMENITY_META } from '@/lib/amenities'
 import { haversineKm, formatDistanceKm, geocodePlace, type GeocodeResult } from '@/lib/distance'
 import type { Project } from '@/types'
+import RecentlyViewedCard from '@/components/buyer/RecentlyViewedCard'
+import AdSlot from '@/components/shared/AdSlot'
+import ImageLightbox from '@/components/shared/ImageLightbox'
+import { Camera } from 'lucide-react'
+import { addRecentlyViewed } from '@/lib/recentlyViewed'
 import toast from 'react-hot-toast'
 
 // Custom-styled Google map, loaded client-side only (the Maps script needs `window`).
@@ -279,7 +284,24 @@ function Fact({ icon: Icon, label, value }: { icon: any; label: string; value: s
 export default function ProjectDetailClient({ project }: { project: Project }) {
   const [related, setRelated] = useState<Project[]>([])
   const [interestOpen, setInterestOpen] = useState(false)
-  const [activeImage, setActiveImage] = useState(project.coverImage || project.images[0]?.url || '')
+
+  // "About This Project" starts collapsed with a Read More — only when the text is actually taller than that.
+  const DESC_COLLAPSED_HEIGHT = 260
+  const descRef = useRef<HTMLDivElement>(null)
+  const [descExpanded, setDescExpanded] = useState(false)
+  const [descOverflows, setDescOverflows] = useState(false)
+  useEffect(() => {
+    const el = descRef.current
+    if (!el) return
+    const measure = () => setDescOverflows(el.scrollHeight > DESC_COLLAPSED_HEIGHT + 8)
+    measure()
+    // Re-measure when it reflows (images loading, window resized).
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [project.description])
+  // Photo viewer — null when closed, otherwise the photo it opens on.
+  const [viewerAt, setViewerAt] = useState<number | null>(null)
   const [showStickyBar, setShowStickyBar] = useState(false)
   const gallery = [project.coverImage, ...project.images.map(i => i.url)].filter((v, i, arr): v is string => !!v && arr.indexOf(v) === i)
 
@@ -290,6 +312,16 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
+
+  // Shows up under "Recently Viewed" on the listing and property pages; the view itself is counted once per visitor.
+  useEffect(() => {
+    projectAPI.trackView(project._id).catch(() => {})
+    addRecentlyViewed({
+      kind: 'project', slug: project.slug, title: project.title,
+      image: project.coverImage || project.images?.[0]?.url, price: project.priceFrom, area: project.area, listingType: 'sale',
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project._id])
 
   useEffect(() => {
     projectAPI.getAll({ area: project.area, limit: 4 })
@@ -314,7 +346,7 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
   }
 
   return (
-    <div className="page overflow-x-hidden">
+    <div className="page" style={{ overflowX: 'clip' }}>
       <Navbar />
 
       <div className="wrap py-4">
@@ -328,37 +360,69 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
       </div>
 
       <div className="wrap pb-20">
-        {/* Gallery */}
+        {/* Gallery banner — one large photo with the developer's logo, two stacked beside it ("📷 N+" on the last);
+            any photo opens the full-screen viewer. Phones: the large photo with a photo count. */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <div className="relative w-full h-64 md:h-[420px] rounded-3xl overflow-hidden mb-3" style={{ background: 'var(--bg-alt)' }}>
-            {activeImage ? (
-              <Image src={activeImage} alt={project.title} fill priority className="object-cover" sizes="(max-width:1024px)100vw,1024px" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center"><Building2 size={48} style={{ color: 'var(--teal)', opacity: 0.3 }} /></div>
-            )}
-            <span className="badge absolute top-4 left-4 text-xs capitalize" style={{ background: 'rgba(255,255,255,0.94)', color: '#0F172A', border: 'none' }}>
-              {project.status.replace('_', ' ')}
-            </span>
-          </div>
-          {gallery.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto">
-              {gallery.map((url, i) => (
-                <button key={i} onClick={() => setActiveImage(url)}
-                  className="relative w-20 h-16 rounded-lg overflow-hidden flex-shrink-0 transition-opacity"
-                  style={{ opacity: activeImage === url ? 1 : 0.55, border: activeImage === url ? '2px solid var(--teal)' : '2px solid transparent' }}>
-                  <Image src={url} alt="" fill className="object-cover" sizes="80px" />
-                </button>
-              ))}
+          {gallery.length === 0 ? (
+            <div className="w-full h-64 md:h-[460px] rounded-3xl flex items-center justify-center" style={{ background: 'var(--bg-alt)' }}>
+              <Building2 size={48} style={{ color: 'var(--teal)', opacity: 0.3 }} />
+            </div>
+          ) : (
+            <div className={cn('grid gap-1.5 rounded-3xl overflow-hidden h-72 sm:h-[400px] md:h-[460px]',
+              gallery.length >= 3 ? 'md:grid-cols-[1.9fr_1fr] md:grid-rows-2' : gallery.length === 2 ? 'md:grid-cols-[1.9fr_1fr]' : '')}>
+              {/* Main photo */}
+              <button onClick={() => setViewerAt(0)} aria-label="Open photos"
+                className={cn('relative group overflow-hidden', gallery.length >= 3 && 'md:row-span-2')} style={{ background: 'var(--bg-alt)' }}>
+                <Image src={gallery[0]} alt={project.title} fill priority sizes="(max-width:768px)100vw,66vw"
+                  className="object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
+                <span className="badge absolute top-4 left-4 text-xs capitalize" style={{ background: 'rgba(255,255,255,0.94)', color: '#0F172A', border: 'none' }}>
+                  {project.status.replace('_', ' ')}
+                </span>
+                {(project.developerLogo || project.developer) && (
+                  <span className="absolute bottom-3 right-3 md:bottom-4 md:right-4 flex items-center justify-center rounded-lg md:rounded-xl px-2.5 py-1.5 md:px-3 md:py-2 shadow-md h-9 min-w-[72px] md:h-11 md:min-w-[96px]"
+                    style={{ background: '#fff' }}>
+                    {project.developerLogo
+                      ? <Image src={project.developerLogo} alt={project.developer} width={140} height={40} className="object-contain w-auto h-full max-w-[84px] md:max-w-[112px]" />
+                      : <span className="text-xs md:text-sm font-bold tracking-wide uppercase" style={{ color: '#0F172A' }}>{project.developer}</span>}
+                  </span>
+                )}
+                {/* Phones only show this photo — say how many there are. */}
+                {gallery.length > 1 && (
+                  <span className="md:hidden absolute bottom-4 left-4 flex items-center gap-1.5 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg" style={{ background: 'rgba(0,0,0,0.55)' }}>
+                    <Camera size={14} /> {gallery.length}
+                  </span>
+                )}
+              </button>
+
+              {/* Side photos (desktop) */}
+              {gallery.slice(1, 3).map((src, n) => {
+                const isLast = n === Math.min(gallery.length, 3) - 2
+                const more = gallery.length - 3
+                return (
+                  <button key={src} onClick={() => setViewerAt(n + 1)} aria-label="Open photos"
+                    className="relative group overflow-hidden hidden md:block" style={{ background: 'var(--bg-alt)' }}>
+                    <Image src={src} alt="" fill sizes="33vw" className="object-cover transition-transform duration-700 group-hover:scale-[1.04]" />
+                    {isLast && more > 0 && (
+                      <span className="absolute inset-0 flex items-center justify-center gap-2 text-white text-2xl font-semibold" style={{ background: 'rgba(0,0,0,0.42)' }}>
+                        <Camera size={26} /> {more}+
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
             </div>
           )}
         </motion.div>
+
+        {viewerAt !== null && <ImageLightbox images={gallery} start={viewerAt} title={project.title} onClose={() => setViewerAt(null)} />}
 
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,3fr)_320px] gap-12">
           <article className="min-w-0">
             <Link href={`/developers/${project.developer.toLowerCase().trim().replace(/\s+/g, '-')}`} className="inline-flex items-center gap-2 mb-1 group">
               {project.developerLogo && (
-                <span className="w-6 h-6 rounded-md overflow-hidden flex-shrink-0" style={{ background: 'var(--bg-alt)' }}>
-                  <Image src={project.developerLogo} alt={project.developer} width={24} height={24} className="object-contain w-full h-full p-0.5" />
+                <span className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center"
+                  style={{ background: '#fff', border: '1px solid var(--border)', boxShadow: '0 1px 4px rgba(15,23,42,0.08)' }}>
+                  <Image src={project.developerLogo} alt={project.developer} width={36} height={36} className="object-contain w-full h-full p-1.5" />
                 </span>
               )}
               <span className="text-sm font-semibold group-hover:underline" style={{ color: 'var(--teal)' }}>{project.developer}</span>
@@ -410,8 +474,29 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
               {project.description && (
                 <div className="card p-6">
                   <h3 className="font-semibold mb-4" style={{ color: 'var(--text)' }}>About This Project</h3>
-                  <div className="rich-content text-sm leading-relaxed" style={{ color: 'var(--text-mid)' }}
-                    dangerouslySetInnerHTML={{ __html: project.description }} />
+                  {/* Same formatting as the description editor in the admin form (headings, lists, line breaks). */}
+                  <div className="relative overflow-hidden transition-[max-height] duration-300"
+                    style={{ maxHeight: descExpanded || !descOverflows ? 'none' : DESC_COLLAPSED_HEIGHT }}>
+                    <div ref={descRef} className="rich-content keep-lines text-sm leading-relaxed" style={{ color: 'var(--text-mid)' }}
+                      dangerouslySetInnerHTML={{ __html: project.description }} />
+                    {!descExpanded && descOverflows && (
+                      <div className="absolute bottom-0 inset-x-0 h-20 pointer-events-none"
+                        style={{ background: 'linear-gradient(to top, var(--surface), transparent)' }} />
+                    )}
+                  </div>
+                  {descOverflows && (
+                    <button
+                      onClick={() => {
+                        // Collapsing from far down the text: bring the section heading back into view.
+                        if (descExpanded) descRef.current?.closest('.card')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                        setDescExpanded(v => !v)
+                      }}
+                      className="btn-ghost btn-sm gap-1.5 mt-3"
+                      aria-expanded={descExpanded}
+                    >
+                      {descExpanded ? <>Read Less <ChevronUp size={13} /></> : <>Read More <ChevronDown size={13} /></>}
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -528,8 +613,8 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
 
           {/* Sidebar — lead-generation only; the rest of the key info lives
               in the main column, same split as the Property detail page. */}
-          <aside>
-            <div className="sticky" style={{ top: 96 }}>
+          <aside className="space-y-5">
+            <div>
               <div className="card p-6" style={{ borderColor: 'rgba(203,1,1,0.25)', background: 'linear-gradient(180deg, rgba(203,1,1,0.06), var(--surface) 45%)' }}>
                 <div className="text-center mb-6">
                   <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Starting Price</p>
@@ -549,6 +634,12 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                 </button>
               </div>
             </div>
+            <RecentlyViewedCard exclude={`project:${project.slug}`} />
+            {/* Tall ad sticks while the page scrolls (desktop); phones get the wide one. */}
+            <div className="sticky mx-auto w-full hidden lg:block" style={{ top: 96, maxWidth: 300 }}>
+              <AdSlot placement="details" variant="tall" />
+            </div>
+            <AdSlot placement="details" variant="wide" className="lg:hidden" />
           </aside>
         </div>
 

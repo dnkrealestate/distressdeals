@@ -76,6 +76,12 @@ export default async function CommunityDetailPage({ params }: { params: { slug: 
           <>
             <img src={community.heroImage} alt={community.name} className="absolute inset-0 w-full h-full object-cover" />
             <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(8,8,8,0.55) 0%, var(--bg) 92%)' }} />
+            {community.heroImageCredit?.name && (
+              <a href={community.heroImageCredit.url} target="_blank" rel="noopener noreferrer nofollow"
+                className="absolute top-20 right-4 z-10 text-[10px] px-2 py-0.5 rounded hover:underline" style={{ background: 'rgba(0,0,0,0.35)', color: 'rgba(255,255,255,0.8)' }}>
+                Photo: {community.heroImageCredit.name}{community.heroImageCredit.license ? ` · ${community.heroImageCredit.license}` : ''} · Wikimedia Commons
+              </a>
+            )}
           </>
         ) : (
           <div className="absolute inset-0" style={{ background: 'linear-gradient(145deg, var(--bg) 0%, var(--bg-alt) 60%, #EFF6FF 100%)' }} />

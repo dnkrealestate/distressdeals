@@ -14,7 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function ForSalePage() {
   // Server-fetched first page — so crawlers (and the very first paint) see real listings, not an empty shell.
   // The client component re-fetches on mount as usual for filters/sorting; this only seeds that initial render.
-  const initial = await propertyAPI.getAll({ listingType: 'sale', page: 1, limit: 12, sortBy: 'recommended' })
+  const initial = await propertyAPI.getAll({ listingType: 'sale', page: 1, limit: 40, sortBy: 'recommended' })
     .then(r => r.data.success ? r.data.data : null)
     .catch(() => null)
 

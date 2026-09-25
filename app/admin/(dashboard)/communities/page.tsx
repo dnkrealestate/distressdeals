@@ -15,6 +15,7 @@ import { formatPrice } from '@/lib/utils'
 import { HOME_ICON_MAP, HOME_ICON_OPTIONS } from '@/lib/homeIcons'
 import type { CommunityContentWithStats } from '@/types'
 import toast from 'react-hot-toast'
+import { useFormDraft } from '@/lib/useFormDraft'
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -39,6 +40,7 @@ function CommunityContentForm({ community, initialName, onClose, onSaved }: { co
   const isEdit = !!community
   const [availableAreas, setAvailableAreas] = useState<string[]>([])
   const [heroImage, setHeroImage] = useState(community?.heroImage || '')
+  const [heroCredit, setHeroCredit] = useState<{ name: string; url: string; license?: string } | null>(community?.heroImageCredit || null)
   const [uploadingHero, setUploadingHero] = useState(false)
   const [highlights, setHighlights] = useState<string[]>(community?.highlights?.map(h => h.label) || [])
   const [amenities, setAmenities] = useState<{ icon: string; label: string }[]>(community?.amenities || [])
@@ -47,11 +49,25 @@ function CommunityContentForm({ community, initialName, onClose, onSaved }: { co
   const [address, setAddress] = useState(community?.address || '')
   const [aiBusy, setAiBusy] = useState(false)
 
-  const { register, handleSubmit, setValue, getValues, formState: { errors } } = useForm({
-    defaultValues: {
-      name: community?.name || initialName || '', area: community?.area || '', emirate: community?.emirate || 'Dubai',
-      overview: community?.overview || '', isFeatured: community?.isFeatured || false,
+  const defaults = {
+    name: community?.name || initialName || '', area: community?.area || '', emirate: community?.emirate || 'Dubai',
+    overview: community?.overview || '', isFeatured: community?.isFeatured || false,
+  }
+  const { register, handleSubmit, setValue, getValues, watch, reset, formState: { errors } } = useForm({ defaultValues: defaults })
+
+  // Everything typed or picked is kept as a draft until it's saved (see lib/useFormDraft).
+  const draft = useFormDraft({
+    key: `community:${community?._id || 'new'}`,
+    values: { ...watch(), heroImage, heroCredit, highlights, amenities, coords: coords || null, address },
+    onRestore: d => {
+      const { heroImage: h, heroCredit: hc, highlights: hl, amenities: am, coords: c, address: ad, ...fields } = d
+      reset(fields as any); setHeroImage(h || ''); setHeroCredit(hc || null); setHighlights(hl || []); setAmenities(am || [])
+      setCoords(c || undefined); setAddress(ad || '')
     },
+  })
+  draft.onDiscard(() => {
+    reset(defaults); setHeroImage(community?.heroImage || ''); setHeroCredit(community?.heroImageCredit || null); setHighlights(community?.highlights?.map(h => h.label) || [])
+    setAmenities(community?.amenities || []); setCoords(community?.coordinates); setAddress(community?.address || '')
   })
 
   // Step 1 — pick the place on Google Maps: fills the name, emirate, parent area and map pin.
@@ -106,8 +122,8 @@ function CommunityContentForm({ community, initialName, onClose, onSaved }: { co
   }, [])
   const heroDropzone = useDropzone({
     onDrop: onDropHero,
-    accept: { 'image/jpeg': [], 'image/png': [], 'image/webp': [] },
-    maxSize: 10 * 1024 * 1024, multiple: false,
+    accept: { 'image/*': [] },
+    maxSize: 15 * 1024 * 1024, multiple: false,
   })
 
   const addHighlight = () => setHighlights(h => [...h, ''])
@@ -125,6 +141,7 @@ function CommunityContentForm({ community, initialName, onClose, onSaved }: { co
       name: data.name, area: data.area || undefined, emirate: data.emirate,
       coordinates: coords, address: address || undefined,
       heroImage: heroImage || undefined,
+      heroImageCredit: heroImage && heroCredit ? heroCredit : undefined,
       overview: data.overview,
       highlights: highlights.filter(h => h.trim()).map(label => ({ label })),
       amenities: amenities.filter(a => a.label.trim()),
@@ -134,6 +151,7 @@ function CommunityContentForm({ community, initialName, onClose, onSaved }: { co
       if (isEdit) await communityContentAPI.update(community!._id, payload)
       else await communityContentAPI.create(payload)
       toast.success(isEdit ? 'Updated' : 'Created')
+      draft.clear()
       onSaved(); onClose()
     } catch (err: any) {
       toast.error(err?.error || 'Failed to save')
@@ -149,10 +167,12 @@ function CommunityContentForm({ community, initialName, onClose, onSaved }: { co
 
         <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
           <h2 className="font-bold text-sm" style={{ color: 'var(--text)' }}>{isEdit ? 'Edit' : 'New'} Community Profile</h2>
-          <button type="button" onClick={onClose} className="btn-ghost btn-sm p-2"><X size={14} /></button>
+          <button type="button" onClick={() => draft.guard(onClose)} className="btn-ghost btn-sm p-2"><X size={14} /></button>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto p-6 space-y-4">
+          {draft.banner}
+          {draft.dialog}
           {/* 1. Find it on the map  2. Let AI write it */}
           <div className="rounded-xl p-3.5 space-y-3" style={{ background: 'var(--bg-alt)', border: '1px solid var(--border)' }}>
             <Field label="1 · Find the community on Google Maps">
@@ -193,11 +213,16 @@ function CommunityContentForm({ community, initialName, onClose, onSaved }: { co
           </div>
           {errors.name && <p className="text-xs" style={{ color: '#FB7185' }}>Name is required</p>}
 
-          <Field label="Hero Image">
+          <Field label="Cover Image">
             {heroImage ? (
               <div className="relative rounded-xl overflow-hidden" style={{ background: 'var(--bg-alt)' }}>
                 <img src={heroImage} alt="" className="w-full h-32 object-cover" />
-                <button type="button" onClick={() => setHeroImage('')}
+                {heroCredit && (
+                  <span className="absolute bottom-1.5 left-2 text-[10px] text-white px-1.5 py-0.5 rounded" style={{ background: 'rgba(0,0,0,0.5)' }}>
+                    Photo: {heroCredit.name}{heroCredit.license ? ` · ${heroCredit.license}` : ''}
+                  </span>
+                )}
+                <button type="button" onClick={() => { setHeroImage(''); setHeroCredit(null) }}
                   className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-white" style={{ background: 'rgba(0,0,0,0.6)' }}>
                   <X size={13} />
                 </button>

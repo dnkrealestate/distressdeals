@@ -22,6 +22,9 @@ export default function BlogDetailClient({ post }: { post: BlogPost }) {
   const contentRef = useRef<HTMLDivElement>(null)
   const shareUrl = typeof window !== 'undefined' ? window.location.href : `https://www.distressdealsuae.com/blog/${post.slug}`
 
+  // Counted once per visitor by the backend.
+  useEffect(() => { blogAPI.trackView(post._id).catch(() => {}) }, [post._id])
+
   useEffect(() => {
     blogAPI.getAll({ category: post.category, limit: 4 })
       .then(r => { if (r.data.success) setRelated((r.data.data.data || []).filter((p: BlogPost) => p._id !== post._id).slice(0, 3)) })

@@ -21,6 +21,7 @@ import Navbar from '@/components/layouts/Navbar'
 import Footer from '@/components/layouts/Footer'
 import PropertyCard from '@/components/buyer/PropertyCard'
 import RecentlyViewedCard from '@/components/buyer/RecentlyViewedCard'
+import AdSlot from '@/components/shared/AdSlot'
 import RentalBadge from '@/components/buyer/RentalBadge'
 import { rentalLabel } from '@/lib/rental'
 import LeadModal from '../../LeadModal'
@@ -136,6 +137,7 @@ export default function PropertyDetailClient({ property }: { property: Property 
   useEffect(() => {
     propertyAPI.trackView(property._id).catch(() => {})
     addRecentlyViewed({
+      kind: 'property',
       slug: property.slug,
       title: property.title,
       image: property.images?.[0]?.url,
@@ -404,7 +406,7 @@ export default function PropertyDetailClient({ property }: { property: Property 
                   <div className="card p-6">
                     <h3 className="font-semibold mb-4" style={{ color: 'var(--text)' }}>About This Property</h3>
                     <div className="relative overflow-hidden" style={{ maxHeight: descExpanded ? 'none' : DESC_COLLAPSED_HEIGHT }}>
-                      <div ref={descRef} className="text-sm leading-relaxed rich-content" style={{ color: 'var(--text-mid)' }}
+                      <div ref={descRef} className="text-sm leading-relaxed rich-content keep-lines" style={{ color: 'var(--text-mid)' }}
                         dangerouslySetInnerHTML={{ __html: property.description }} />
                       {!descExpanded && descOverflows && (
                         <div className="absolute bottom-0 left-0 right-0 h-16 pointer-events-none"
@@ -790,18 +792,16 @@ export default function PropertyDetailClient({ property }: { property: Property 
               </button>
             </div>
 
-            <RecentlyViewedCard excludeSlug={property.slug} />
+            <RecentlyViewedCard exclude={`property:${property.slug}`} />
 
             {/* Ad slot — standard 300x600 half-page unit. Sticks once it
                 reaches the navbar, and un-sticks naturally once the sidebar
                 column (which stretches to match the taller main column under
                 CSS Grid's default row-stretch) has fully scrolled past. */}
-            <div className="sticky rounded-2xl flex flex-col items-center justify-center gap-2 mx-auto"
-              style={{ top: 84, width: '100%', maxWidth: 300, height: 600, border: '1px dashed var(--border)', background: 'var(--bg-alt)' }}>
-              <Sparkles size={20} style={{ color: 'var(--text-muted)', opacity: 0.4 }} />
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Advertisement</p>
-              <p className="text-[10px]" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>300 × 600</p>
+            <div className="sticky mx-auto w-full hidden lg:block" style={{ top: 84, maxWidth: 300 }}>
+              <AdSlot placement="details" variant="tall" />
             </div>
+            <AdSlot placement="details" variant="wide" className="lg:hidden" />
 
           </div>
         </div>

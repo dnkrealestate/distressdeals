@@ -11,6 +11,7 @@ import { developerAPI, uploadAPI } from '@/lib/api'
 import { formatPrice } from '@/lib/utils'
 import type { Developer, DeveloperWithStats, DeveloperImport } from '@/types'
 import toast from 'react-hot-toast'
+import { useFormDraft } from '@/lib/useFormDraft'
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -33,16 +34,26 @@ function DeveloperForm({ developer, onClose, onSaved }: { developer: Developer |
   const [importing, setImporting] = useState(false)
   const [imported, setImported] = useState<DeveloperImport | null>(null)
 
-  const { register, handleSubmit, setValue, getValues, formState: { errors } } = useForm({
-    defaultValues: {
-      name:            developer?.name || '',
-      website:         developer?.website || '',
-      establishedYear: developer?.establishedYear || '',
-      headquarters:    developer?.headquarters || '',
-      description:     developer?.description || '',
-      isFeatured:      developer?.isFeatured || false,
+  const defaults = {
+    name:            developer?.name || '',
+    website:         developer?.website || '',
+    establishedYear: developer?.establishedYear || '',
+    headquarters:    developer?.headquarters || '',
+    description:     developer?.description || '',
+    isFeatured:      developer?.isFeatured || false,
+  }
+  const { register, handleSubmit, setValue, getValues, watch, reset, formState: { errors } } = useForm({ defaultValues: defaults })
+
+  // Everything typed or picked is kept as a draft until it's saved (see lib/useFormDraft).
+  const draft = useFormDraft({
+    key: `developer:${developer?._id || 'new'}`,
+    values: { ...watch(), logo, logoWhite, importUrl },
+    onRestore: d => {
+      const { logo: l, logoWhite: lw, importUrl: u, ...fields } = d
+      reset(fields as any); setLogo(l || ''); setLogoWhite(lw || ''); setImportUrl(u || '')
     },
   })
+  draft.onDiscard(() => { reset(defaults); setLogo(developer?.logo || ''); setLogoWhite(developer?.logoWhite || ''); setImportUrl(developer?.website || '') })
 
   // Reads the developer's site: fills every field, and stores their logo (colour + white WebP).
   const autoFill = async () => {
@@ -119,6 +130,7 @@ function DeveloperForm({ developer, onClose, onSaved }: { developer: Developer |
       if (developer) await developerAPI.update(developer._id, payload)
       else await developerAPI.create(payload)
       toast.success(developer ? 'Updated' : 'Created')
+      draft.clear()
       onSaved(); onClose()
     } catch (err: any) {
       toast.error(err?.error || 'Failed to save')
@@ -137,7 +149,7 @@ function DeveloperForm({ developer, onClose, onSaved }: { developer: Developer |
 
         <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
           <h2 className="font-bold text-sm" style={{ color: 'var(--text)' }}>{developer ? 'Edit' : 'New'} Developer</h2>
-          <button type="button" onClick={onClose} className="btn-ghost btn-sm p-2"><X size={14} /></button>
+          <button type="button" onClick={() => draft.guard(onClose)} className="btn-ghost btn-sm p-2"><X size={14} /></button>
         </div>
 
         <form
@@ -145,6 +157,8 @@ function DeveloperForm({ developer, onClose, onSaved }: { developer: Developer |
           onKeyDown={e => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') e.preventDefault() }}
           className="flex-1 overflow-y-auto p-6 space-y-5"
         >
+          {draft.banner}
+          {draft.dialog}
           {/* ── Auto-fill from website ── */}
           <div className="rounded-2xl p-4" style={{ background: 'rgba(203,1,1,0.04)', border: '1px solid rgba(203,1,1,0.2)' }}>
             <div className="flex items-center gap-2 mb-1">
