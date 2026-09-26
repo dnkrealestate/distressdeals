@@ -24,6 +24,9 @@ import MortgageSection from '@/components/MortgageSection'
 import { propertyAPI, homepageAPI, communityContentAPI, projectAPI } from '@/lib/api'
 import { HOME_ICON_MAP, DEFAULT_HOME_ICON } from '@/lib/homeIcons'
 import type { Property, Project, HomepageContent, CommunityContentWithStats } from '@/types'
+import PopularSearches from '@/components/PopularSearches'
+import type { QuickLinksData } from '@/lib/quickLinks'
+import type { ListingKind } from '@/lib/listingTags'
 
 /* ─── DATA ──────────────────────────────────────────────────── */
 // Icons are purely cosmetic and keyed by area name — the actual listing
@@ -163,7 +166,7 @@ function WhyCard({ icon, title, description }: { icon: string; title: string; de
 }
 
 /* ─── HOME PAGE ─────────────────────────────────────────────── */
-export default function HomeClient({ content }: { content: HomepageContent }) {
+export default function HomeClient({ content, popularSearches }: { content: HomepageContent; popularSearches?: Partial<Record<ListingKind, QuickLinksData | null>> }) {
   const [hlIdx,   setHlIdx]   = useState(0)
   // Featured section: featured properties, topped up with the newest listings (then new projects) so it's never
   // empty or half-full. null = still loading.
@@ -787,6 +790,9 @@ export default function HomeClient({ content }: { content: HomepageContent }) {
 
       {/* ─── BLOG ───────────────────────────────────────────── */}
       <BlogSection />
+
+      {/* ─── POPULAR SEARCHES (live search links) ──────────── */}
+      {popularSearches && <PopularSearches data={popularSearches} />}
 
       {/* ─── CTA BANNER ────────────────────────────────────── */}
       <section className="section">

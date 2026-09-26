@@ -6,6 +6,7 @@ import { contentPageAPI } from '@/lib/api'
 import { HOME_ICON_MAP, HOME_ICON_OPTIONS } from '@/lib/homeIcons'
 import type { ContentPageData, ContentSection, ContentCard, MiniStat } from '@/types'
 import toast from 'react-hot-toast'
+import { GUIDE_DEFAULTS } from '@/lib/guideContent'
 
 const PAGE_LABELS: Record<string, { label: string; path: string }> = {
   'about':                         { label: 'About Page',              path: '/about' },
@@ -14,6 +15,9 @@ const PAGE_LABELS: Record<string, { label: string; path: string }> = {
   'dubai-property-auctions':       { label: 'Dubai Property Auctions', path: '/dubai-property-auctions' },
   'sell-property-fast-dubai':      { label: 'Sell Property Fast',      path: '/sell-property-fast-dubai' },
   'free-property-valuation-dubai': { label: 'Free Property Valuation', path: '/free-property-valuation-dubai' },
+  'guide-buying':                  { label: 'Buying Guide (Buy page)',  path: '/for-sale#guide-title' },
+  'guide-renting':                 { label: 'Renting Guide (Rent page)', path: '/for-rent#guide-title' },
+  'guide-new-projects':            { label: 'New Projects Guide',       path: '/projects#guide-title' },
 }
 
 function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
@@ -99,7 +103,8 @@ export default function ContentPageEditor({ params }: { params: { pageKey: strin
     contentPageAPI.get(pageKey)
       .then(r => {
         if (r.data.success && r.data.data) setContent(r.data.data)
-        else setContent({ pageKey, heroTitle: '', heroIntro: '', sections: [] })
+        // Nothing saved yet — start from what the website shows by default (guides have built-in content).
+        else setContent(GUIDE_DEFAULTS[pageKey] ? structuredClone(GUIDE_DEFAULTS[pageKey]) : { pageKey, heroTitle: '', heroIntro: '', sections: [] })
       })
       .catch(() => toast.error('Failed to load page content'))
       .finally(() => setLoading(false))

@@ -7,6 +7,7 @@ import { X, Send, CheckCircle2, Loader2 } from 'lucide-react'
 import { leadAPI } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import toast from 'react-hot-toast'
+import { trackLead } from '@/lib/leadTracking'
 import AccountStep, { type LeadAccountMeta } from '@/components/buyer/AccountStep'
 
 export default function ProjectInterestModal({
@@ -27,6 +28,10 @@ export default function ProjectInterestModal({
     setSubmitting(true)
     try {
       const res = await leadAPI.createProjectLead({ project: projectId, name: name.trim(), email: email.trim(), phone: phone.trim(), message: message.trim() || undefined })
+      trackLead('Project enquiry submitted', {
+        name: name.trim(), phone: phone.trim(), email: email.trim(),
+        extra: { project: projectTitle, ref: projectId },
+      })
       setOutcome(res.data.meta || {})
       setSent(true)
     } catch (err: any) {

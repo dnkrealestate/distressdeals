@@ -1,5 +1,8 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import { Authorship, useAdminList, AdminListToolbar, AdminListFooter, type Staff } from '@/components/admin/AdminList'
+import { useAuthStore } from '@/store/authStore'
+import { useFormDraft } from '@/lib/useFormDraft'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import { useDropzone } from 'react-dropzone'
@@ -38,14 +41,21 @@ function BuildingContentForm({ building, onClose, onSaved }: { building: Buildin
   const [amenities, setAmenities] = useState<{ icon: string; label: string }[]>(building?.amenities || [])
   const [submitting, setSubmitting] = useState(false)
 
-  const { register, handleSubmit, formState: { errors } } = useForm({
-    defaultValues: {
-      name: building?.name || '', area: building?.area || '', community: building?.community || '',
-      developer: building?.developer || '', overview: building?.overview || '',
-      yearBuilt: building?.yearBuilt || '', totalFloors: building?.totalFloors || '',
-      isFeatured: building?.isFeatured || false,
-    },
+  const defaults = {
+    name: building?.name || '', area: building?.area || '', community: building?.community || '',
+    developer: building?.developer || '', overview: building?.overview || '',
+    yearBuilt: building?.yearBuilt || '', totalFloors: building?.totalFloors || '',
+    isFeatured: building?.isFeatured || false,
+  }
+  const { register, handleSubmit, watch, reset, formState: { errors } } = useForm({ defaultValues: defaults })
+
+  // Everything typed or picked is kept as a draft until it's saved (see lib/useFormDraft).
+  const draft = useFormDraft({
+    key: `building:${building?._id || 'new'}`,
+    values: { ...watch(), heroImage, amenities },
+    onRestore: d => { const { heroImage: h, amenities: am, ...fields } = d; reset(fields as any); setHeroImage(h || ''); setAmenities(am || []) },
   })
+  draft.onDiscard(() => { reset(defaults); setHeroImage(building?.heroImage || ''); setAmenities(building?.amenities || []) })
 
   useEffect(() => {
     propertyAPI.getAllAreas().then(r => { if (r.data.success) setAvailableAreas((r.data.data || []).map((a: any) => a.area)) }).catch(() => {})
@@ -90,6 +100,7 @@ function BuildingContentForm({ building, onClose, onSaved }: { building: Buildin
       if (isEdit) await buildingContentAPI.update(building!._id, payload)
       else await buildingContentAPI.create(payload)
       toast.success(isEdit ? 'Updated' : 'Created')
+      draft.clear()
       onSaved(); onClose()
     } catch (err: any) {
       toast.error(err?.error || 'Failed to save')
@@ -105,10 +116,10 @@ function BuildingContentForm({ building, onClose, onSaved }: { building: Buildin
 
         <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
           <h2 className="font-bold text-sm" style={{ color: 'var(--text)' }}>{isEdit ? 'Edit' : 'New'} Building Profile</h2>
-          <button type="button" onClick={onClose} className="btn-ghost btn-sm p-2"><X size={14} /></button>
+          <button type="button" onClick={() => draft.guard(onClose)} className="btn-ghost btn-sm p-2"><X size={14} /></button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto p-6 space-y-4">
+        <form {...draft.touchProps} onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto p-6 space-y-4">
           <Field label="Building Name *">
             {isEdit ? <input className="input" disabled value={building!.name} /> : (
               <input className="input" placeholder="e.g. Marina Gate 1" {...register('name', { required: true })} />
@@ -212,13 +223,25 @@ export default function AdminBuildingsPage() {
 
   const load = useCallback(() => {
     setLoading(true)
-    buildingContentAPI.getAll()
+    buildingContentAPI.getAllAdmin()
       .then(r => { if (r.data.success) setBuildings(r.data.data || []) })
       .catch(() => toast.error('Failed to load buildings'))
       .finally(() => setLoading(false))
   }, [])
 
   useEffect(() => { load() }, [load])
+
+  const myId = useAuthStore(s => s.user?._id)
+  const list = useAdminList('buildings', buildings, {
+    myId,
+    searchText: b => `${b.name} ${b.area || ''} ${b.community || ''} ${b.developer || ''}`,
+    filters: [
+      { key: 'area', label: 'Areas', get: b => b.area },
+      { key: 'community', label: 'Communities', get: b => b.community },
+      { key: 'developer', label: 'Developers', get: b => b.developer },
+    ],
+    sorts: [{ value: 'name', label: 'Name A–Z', cmp: (a: any, b: any) => a.name.localeCompare(b.name) }, { value: 'newest', label: 'Newest first', cmp: (a: any, b: any) => +new Date(b.createdAt) - +new Date(a.createdAt) }, { value: 'updated', label: 'Recently edited', cmp: (a: any, b: any) => +new Date(b.updatedAt || b.createdAt) - +new Date(a.updatedAt || a.createdAt) }],
+  })
 
   const remove = async (building: BuildingContent) => {
     if (!confirm(`Delete the profile for "${building.name}"?`)) return
@@ -238,17 +261,18 @@ export default function AdminBuildingsPage() {
         </button>
       </header>
 
-      <div className="p-7">
+      <div className="p-4 sm:p-7">
+        <AdminListToolbar list={list} placeholder="Search name, area, community or developer…" />
         {loading ? (
           <div className="space-y-3">{Array(4).fill(null).map((_, i) => <div key={i} className="shimmer h-16 rounded-2xl" />)}</div>
-        ) : buildings.length === 0 ? (
+        ) : list.pageItems.length === 0 ? (
           <div className="text-center py-16">
             <Building2 size={28} style={{ color: 'var(--text-muted)', opacity: 0.4 }} className="mx-auto mb-3" />
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No building profiles yet</p>
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{buildings.length ? 'No buildings match your filters' : 'No building profiles yet'}</p>
           </div>
         ) : (
           <div className="space-y-2">
-            {buildings.map(building => (
+            {list.pageItems.map(building => (
               <div key={building._id} className="card p-4 flex items-center gap-4">
                 <div className="w-14 h-14 rounded-xl flex-shrink-0 overflow-hidden flex items-center justify-center" style={{ background: 'var(--bg-alt)' }}>
                   {building.heroImage ? <img src={building.heroImage} alt="" className="w-full h-full object-cover" /> : <Building2 size={20} style={{ color: 'var(--teal)', opacity: 0.5 }} />}
@@ -263,6 +287,7 @@ export default function AdminBuildingsPage() {
                     {building.developer && <span>{building.developer}</span>}
                     {building.yearBuilt && <span>Built {building.yearBuilt}</span>}
                   </p>
+                  <Authorship className="mt-1" createdBy={building.createdBy} updatedBy={building.updatedBy} createdAt={building.createdAt} updatedAt={building.updatedAt} />
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
                   <button onClick={() => setEditing(building)} className="btn-ghost btn-sm p-2"><Pencil size={13} /></button>
@@ -272,6 +297,7 @@ export default function AdminBuildingsPage() {
             ))}
           </div>
         )}
+        <AdminListFooter list={list} itemLabel={['building', 'buildings']} />
       </div>
 
       <AnimatePresence>

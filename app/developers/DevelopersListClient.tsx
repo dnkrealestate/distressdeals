@@ -17,7 +17,7 @@ function DeveloperCard({ dev, delay }: { dev: DeveloperWithStats; delay: number 
     <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay }}>
       <Link href={`/developers/${dev.slug}`}>
         <div className="card-hover group h-full flex flex-col">
-          <div className="h-40 relative flex items-center justify-center flex-shrink-0 overflow-hidden" style={{ background: 'var(--bg-alt)' }}>
+          <div className="h-40 relative flex items-center justify-center flex-shrink-0 overflow-hidden" style={{ background: '#fff', borderBottom: '1px solid var(--border)' }}>
             {dev.logo ? (
               <Image src={dev.logo} alt={dev.name} fill className="object-contain p-6 transition-transform duration-500 group-hover:scale-105" sizes="(max-width:768px)100vw,400px" />
             ) : (

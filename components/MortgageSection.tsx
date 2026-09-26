@@ -7,6 +7,7 @@ import { Calculator, Wallet, X, Loader2, CheckCircle2 } from 'lucide-react'
 import { mortgageAPI, homepageAPI } from '@/lib/api'
 import { formatPrice } from '@/lib/utils'
 import toast from 'react-hot-toast'
+import { trackLead } from '@/lib/leadTracking'
 
 function calcMonthlyPayment(loanAmount: number, annualRatePct: number, tenureYears: number): number {
   const monthlyRate = annualRatePct / 100 / 12
@@ -51,6 +52,7 @@ function PreApprovalForm({ inputs, monthlyPayment, onClose }: {
     setSubmitting(true)
     try {
       await mortgageAPI.create({ name, email, phone, ...inputs })
+      trackLead('Mortgage enquiry submitted', { name, phone, email })
       setDone(true)
     } catch (err: any) {
       toast.error(err?.error || 'Failed to submit — please try again')

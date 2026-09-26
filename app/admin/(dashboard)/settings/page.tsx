@@ -50,6 +50,9 @@ const PAGE_CONTENT_CARDS: SettingsCard[] = [
   { href: '/admin/settings/content-pages/distressed-villas-dubai', icon: Sparkles, title: 'Distressed Villas Dubai', description: 'Villa-specific distress sale landing page', module: 'manage_pages' },
   { href: '/admin/settings/content-pages/dubai-property-auctions', icon: Sparkles, title: 'Dubai Property Auctions', description: 'Auctions vs. negotiated distress sale landing page', module: 'manage_pages' },
   { href: '/admin/settings/content-pages/sell-property-fast-dubai', icon: Sparkles, title: 'Sell Property Fast', description: 'Fast-sale landing page for sellers', module: 'manage_pages' },
+  { href: '/admin/settings/content-pages/guide-buying', icon: Info, title: 'Buying Guide', description: 'The "Guide to Buying a Property in the UAE" under the Buy page list', module: 'manage_pages' },
+  { href: '/admin/settings/content-pages/guide-renting', icon: Info, title: 'Renting Guide', description: 'The renting guide under the Rent page list', module: 'manage_pages' },
+  { href: '/admin/settings/content-pages/guide-new-projects', icon: Info, title: 'New Projects Guide', description: 'The off-plan buying guide under the New Projects list', module: 'manage_pages' },
   { href: '/admin/settings/content-pages/free-property-valuation-dubai', icon: Sparkles, title: 'Free Property Valuation', description: 'Free valuation request landing page', module: 'manage_pages' },
 ]
 

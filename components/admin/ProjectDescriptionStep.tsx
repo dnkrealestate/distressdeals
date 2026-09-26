@@ -1,5 +1,7 @@
 'use client'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Sparkles, RefreshCw } from 'lucide-react'
+import { buildAutoSeo } from '@/lib/autoSeo'
 import RichEditor from '@/components/shared/RichEditor'
 import AiWriterCard, { type Tone, type Length } from '@/components/admin/seo/AiWriterCard'
 import SeoAppearancePanel, { type SeoFields } from '@/components/admin/seo/SeoAppearancePanel'
@@ -72,6 +74,40 @@ export default function ProjectDescriptionStep({
     }
   }
 
+  // ── Auto SEO: rebuilt from the description + facts while writing. A field is only replaced while it's empty or
+  // still holds the last automatic value — once someone edits it (or the AI writer fills it) it's theirs.
+  const lastAuto = useRef<ProjectSeo | null>(null)
+  const seoRef = useRef(seo); seoRef.current = seo
+  const factsKey = JSON.stringify([facts.title, facts.developer, facts.type, facts.status, facts.area, facts.community,
+    facts.priceFrom, facts.bedrooms, facts.handoverQuarter, facts.handoverYear, facts.paymentPlan, facts.emirate])
+  const applyAutoSeo = (force = false) => {
+    const cur = seoRef.current
+    const prev = lastAuto.current
+    const isAuto = (k: keyof ProjectSeo) => {
+      const v = cur[k]
+      if (Array.isArray(v) ? v.length === 0 : !String(v).trim()) return true
+      return !!prev && JSON.stringify(prev[k]) === JSON.stringify(v)
+    }
+    if (!facts.title.trim()) return
+    const kwAuto = force || isAuto('focusKeyword')
+    const next = buildAutoSeo(html, facts, kwAuto ? '' : cur.focusKeyword)
+    const out: ProjectSeo = {
+      focusKeyword: kwAuto ? next.focusKeyword : cur.focusKeyword,
+      metaTitle: force || isAuto('metaTitle') ? next.metaTitle : cur.metaTitle,
+      metaDescription: force || isAuto('metaDescription') ? next.metaDescription : cur.metaDescription,
+      keywords: force || isAuto('keywords') ? next.keywords : cur.keywords,
+    }
+    lastAuto.current = next
+    if (JSON.stringify(out) !== JSON.stringify(cur)) onSeoChange(out)
+  }
+  useEffect(() => {
+    // Only react to real writing — not to the first render of an existing project.
+    if (!hasContent) return
+    const t = setTimeout(() => applyAutoSeo(), 700)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [html, factsKey])
+
   const words = html.replace(/<[^>]*>/g, ' ').trim().split(/\s+/).filter(Boolean).length
 
   return (
@@ -91,6 +127,18 @@ export default function ProjectDescriptionStep({
           <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{words} words</span>
         </div>
         <RichEditor value={html} onChange={onHtmlChange} placeholder="Write about the project — or let the AI draft it above, then edit here." />
+      </div>
+
+      <div className="flex items-center justify-between gap-3 flex-wrap rounded-xl px-4 py-2.5 -mb-2"
+        style={{ background: 'rgba(22,163,74,0.07)', border: '1px solid rgba(22,163,74,0.22)' }}>
+        <p className="text-xs flex items-center gap-1.5" style={{ color: 'var(--text-mid)' }}>
+          <Sparkles size={13} style={{ color: '#16A34A' }} />
+          SEO fields update automatically as you write. Edit any field to take it over.
+        </p>
+        <button type="button" onClick={() => applyAutoSeo(true)} disabled={!facts.title.trim()}
+          className="text-xs font-semibold inline-flex items-center gap-1 disabled:opacity-40" style={{ color: '#15803D' }}>
+          <RefreshCw size={12} /> Rebuild all SEO fields
+        </button>
       </div>
 
       <SeoAppearancePanel

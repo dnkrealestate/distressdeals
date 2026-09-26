@@ -1,21 +1,14 @@
 import type { Metadata } from 'next'
+import { resolveSeo } from '@/lib/seo'
 import DevelopersListClient from './DevelopersListClient'
 
-export const metadata: Metadata = {
-  title: 'Dubai Real Estate Developers',
-  description: "Browse off-plan projects by developer — Emaar, Damac, and more — all managed end-to-end by our own in-house team.",
-  alternates: { canonical: '/developers' },
-  openGraph: {
-    title: 'Dubai Real Estate Developers',
-    description: "Browse off-plan projects by developer, all managed end-to-end by our own in-house team.",
-    type: 'website',
-    url: '/developers',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Dubai Real Estate Developers',
-    description: 'Browse off-plan projects by developer.',
-  },
+// Editable in Admin → SEO ("Developers").
+export async function generateMetadata(): Promise<Metadata> {
+  return resolveSeo('developers', {
+    title: 'Dubai Property Developers & Projects',
+    description: 'Compare Dubai and UAE developers — Emaar, DAMAC, Sobha, Aldar, Nakheel and more. Live off-plan projects, starting prices, payment plans and handover dates.',
+    path: '/developers',
+  })
 }
 
 export default function DevelopersPage() {

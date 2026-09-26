@@ -20,7 +20,7 @@ function firstParagraph(html: string): string {
 // Google-style preview, SEO title + meta description, secondary keywords, and a live checklist — shared by the
 // project and property forms.
 export default function SeoAppearancePanel({
-  html, seo, onSeoChange, fallbackTitle, urlPath, extraChecks = [],
+  html, seo, onSeoChange, fallbackTitle, urlPath, extraChecks = [], profile = false,
 }: {
   html: string
   seo: SeoFields
@@ -28,6 +28,9 @@ export default function SeoAppearancePanel({
   fallbackTitle: string
   urlPath: string
   extraChecks?: SeoCheck[]
+  // Developer / community profile pages: the body is a short profile, so skip the long-article checks (300 words,
+  // subheadings) and check for a real profile instead.
+  profile?: boolean
 }) {
   const [kwDraft, setKwDraft] = useState('')
   const text = useMemo(() => strip(html), [html])
@@ -43,10 +46,15 @@ export default function SeoAppearancePanel({
     ...extraChecks,
     { label: 'Keyword in SEO title', ok: includesCI(titleShown, kw) },
     { label: 'Keyword in meta description', ok: includesCI(seo.metaDescription, kw) },
-    { label: 'Keyword in the opening paragraph', ok: includesCI(opening, kw) },
-    { label: 'Keyword in a subheading', ok: headings.some(h => includesCI(h, kw)) },
-    { label: 'At least 2 subheadings', ok: headings.length >= 2 },
-    { label: `300+ words (${words})`, ok: words >= 300 },
+    ...(profile ? [
+      { label: `Profile text 80+ words (${words})`, ok: words >= 80 },
+      { label: `3+ secondary keywords (${seo.keywords.length})`, ok: seo.keywords.length >= 3 },
+    ] : [
+      { label: 'Keyword in the opening paragraph', ok: includesCI(opening, kw) },
+      { label: 'Keyword in a subheading', ok: headings.some(h => includesCI(h, kw)) },
+      { label: 'At least 2 subheadings', ok: headings.length >= 2 },
+      { label: `300+ words (${words})`, ok: words >= 300 },
+    ]),
     { label: `Meta description 120–160 chars (${metaLen})`, ok: metaLen >= 120 && metaLen <= 160 },
     { label: `SEO title fits search results (${(titleShown + SITE_SUFFIX).length}/65)`, ok: (titleShown + SITE_SUFFIX).length <= 65 },
   ]

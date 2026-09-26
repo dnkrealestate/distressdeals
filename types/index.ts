@@ -192,6 +192,8 @@ export interface Project {
   priceFrom: number; priceTo?: number; type?: string; bedrooms: string; bathrooms?: string; sizeRange?: string
   handoverQuarter?: string; handoverYear?: number; paymentPlan?: string; permitNumber?: string; permitQrImage?: string
   status: 'upcoming' | 'under_construction' | 'ready' | 'sold_out'
+  // Feature tags (automatic + admin overrides) — see backend utils/listingTags
+  tags?: string[]; tagsAdded?: string[]; tagsRemoved?: string[]
   isFeatured: boolean; views: number; createdAt: string
   developerLogo?: string
   // Admin list only (GET /projects/manage/all).
@@ -213,6 +215,10 @@ export interface Developer {
   // All-white version of the logo (transparent background) for dark backgrounds.
   logoWhite?: string
   website?: string; establishedYear?: number; headquarters?: string; isFeatured: boolean
+  // Staff tracking (admin lists only)
+  createdBy?: { _id: string; name: string; displayId?: string } | null; updatedBy?: { _id: string; name: string; displayId?: string } | null; updatedAt?: string
+  // Search appearance — written automatically when empty, editable in the admin.
+  metaTitle?: string; metaDescription?: string; focusKeyword?: string; seoKeywords?: string[]
   createdAt: string
 }
 
@@ -295,6 +301,10 @@ export interface CommunityContent {
   highlights: { label: string }[]; amenities: { icon: string; label: string }[]
   emirate?: string; coordinates?: { lat: number; lng: number }; address?: string
   heroImageCredit?: { name: string; url: string; license?: string }
+  // Staff tracking (admin lists only)
+  createdBy?: { _id: string; name: string; displayId?: string } | null; updatedBy?: { _id: string; name: string; displayId?: string } | null; updatedAt?: string
+  // Search appearance — written automatically when empty, editable in the admin.
+  metaTitle?: string; metaDescription?: string; focusKeyword?: string; seoKeywords?: string[]
   isFeatured: boolean; createdAt: string
 }
 
@@ -306,6 +316,8 @@ export interface BuildingContent {
   _id: string; name: string; slug: string; area?: string; community?: string; developer?: string
   heroImage?: string; overview?: string; yearBuilt?: number; totalFloors?: number
   amenities: { icon: string; label: string }[]
+  // Staff tracking (admin lists only)
+  createdBy?: { _id: string; name: string; displayId?: string } | null; updatedBy?: { _id: string; name: string; displayId?: string } | null; updatedAt?: string
   isFeatured: boolean; createdAt: string
 }
 
@@ -315,6 +327,8 @@ export interface PropertyFilters {
   rentalStatus?: string; availableWithin?: number
   category?: 'residential' | 'commercial' | ''; bathrooms?: string; sizeMin?: number; sizeMax?: number
   sortBy?: string; page?: number; limit?: number
+  // Feature tag from a "More searches" link — cheap, luxury, installments…
+  tag?: string
 }
 
 export interface PaginatedResponse<T> {

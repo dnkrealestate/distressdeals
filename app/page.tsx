@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { homepageAPI } from '@/lib/api'
+import { homepageAPI, quickLinksAPI } from '@/lib/api'
 import { resolveSeo } from '@/lib/seo'
 import HomeClient from '@/components/HomeClient'
 import type { HomepageContent } from '@/types'
@@ -47,6 +47,8 @@ async function getHomepageContent(): Promise<HomepageContent> {
 
 
 export default async function HomePage() {
-  const content = await getHomepageContent()
-  return <HomeClient content={content} />
+  // "Popular Real Estate Searches" — live search links for each tab, fetched on the server so they're crawlable.
+  const links = (kind: 'sale' | 'rent' | 'projects') => quickLinksAPI.get(kind).then(r => (r.data.success ? r.data.data : null)).catch(() => null)
+  const [content, sale, rent, projects] = await Promise.all([getHomepageContent(), links('sale'), links('rent'), links('projects')])
+  return <HomeClient content={content} popularSearches={{ sale, rent, projects }} />
 }

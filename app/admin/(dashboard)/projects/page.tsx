@@ -20,6 +20,7 @@ import { AMENITY_META, AMENITY_GROUPS } from '@/lib/amenities'
 import { reverseGeocode, type GeocodeResult } from '@/lib/distance'
 import { LocationSearch } from '@/components/shared/LocationSearch'
 import StepIndicator from '@/components/shared/StepIndicator'
+import ProjectFeatureTags from '@/components/admin/ProjectFeatureTags'
 import ProjectDescriptionStep, { type ProjectSeo, type ProjectFacts } from '@/components/admin/ProjectDescriptionStep'
 import { PerformanceStats } from '@/components/admin/PerformanceStats'
 import type { Project, Developer } from '@/types'
@@ -165,6 +166,9 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
   const [uploadingQr, setUploadingQr] = useState(false)
 
   const [amenities, setAmenities] = useState<Record<string, boolean>>(project?.amenities || {})
+  // Feature-tag overrides on top of the automatic tags.
+  const [tagsAdded, setTagsAdded] = useState<string[]>(project?.tagsAdded || [])
+  const [tagsRemoved, setTagsRemoved] = useState<string[]>(project?.tagsRemoved || [])
   const [floorPlans, setFloorPlans] = useState<FloorPlanEntry[]>(
     (project?.floorPlans || []).map(f => ({ label: f.label, image: f.image, bedrooms: f.bedrooms || '', size: f.size || '', price: f.price ? String(f.price) : '' }))
   )
@@ -316,11 +320,12 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
     key: draftKey || `project:${project?._id || 'new'}`,
     values: {
       ...watch(), coverImage, gallery, descriptionHtml, seo, permitQrImage, amenities, floorPlans,
-      masterPlanImage, masterPlanDescription, landmarks, videos,
+      masterPlanImage, masterPlanDescription, landmarks, videos, tagsAdded, tagsRemoved,
     },
     onRestore: d => {
       const { coverImage: c, gallery: g, descriptionHtml: dh, seo: so, permitQrImage: q, amenities: am, floorPlans: fp,
-        masterPlanImage: mi, masterPlanDescription: md, landmarks: lm, videos: v, ...fields } = d as any
+        masterPlanImage: mi, masterPlanDescription: md, landmarks: lm, videos: v, tagsAdded: ta, tagsRemoved: tr, ...fields } = d as any
+      setTagsAdded(ta || []); setTagsRemoved(tr || [])
       setDraftDeveloper(fields.developer || '')
       reset(fields)
       setCoverImage(c || ''); setGallery(g || []); if (typeof dh === 'string') setDescriptionHtml(dh); if (so) setSeo(so)
@@ -468,6 +473,7 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
       metaDescription: seo.metaDescription.trim(),
       focusKeyword: seo.focusKeyword.trim(),
       seoKeywords: seo.keywords,
+      tagsAdded, tagsRemoved,
     }
 
     try {
@@ -1055,6 +1061,17 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
               html={descriptionHtml} onHtmlChange={setDescriptionHtml}
               seo={seo} onSeoChange={setSeo}
               getFacts={getFacts} slug={project?.slug} onJump={setStep}
+            />
+
+            <ProjectFeatureTags
+              input={{
+                title: watch('title'), type: watch('type'), status: watch('status'), priceFrom: watch('priceFrom'),
+                bedrooms: watch('bedrooms'), paymentPlan: watch('paymentPlan'), handoverYear: watch('handoverYear'),
+                handoverQuarter: watch('handoverQuarter'), area: watch('area'), community: watch('community'),
+                description: descriptionHtml, amenities,
+              }}
+              added={tagsAdded} removed={tagsRemoved}
+              onChange={(a, r) => { setTagsAdded(a); setTagsRemoved(r) }}
             />
 
             <div className="flex items-center justify-between">

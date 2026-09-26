@@ -8,6 +8,7 @@ import { useAuthStore } from '@/store/authStore'
 import { getStoredUtm } from '@/lib/utm'
 import { formatPrice, cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
+import { trackLead } from '@/lib/leadTracking'
 import AccountStep, { type LeadAccountMeta } from '@/components/buyer/AccountStep'
 import type { Property } from '@/types'
 
@@ -37,6 +38,10 @@ export default function LeadModal({ property, onClose }: Props) {
         ...data,
         budget: data.budget ? { min: 0, max: Number(data.budget) } : undefined,
         ...getStoredUtm(),
+      })
+      trackLead('Property enquiry submitted', {
+        name: data.name, phone: data.phone, email: data.email,
+        extra: { property: property.title, ref: property._id },
       })
       setOutcome({ ...res.data.meta, email: data.email })
       setSubmitted(true)

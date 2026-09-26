@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Loader2, CheckCircle2 } from 'lucide-react'
 import { contactAPI } from '@/lib/api'
 import toast from 'react-hot-toast'
+import { trackLead } from '@/lib/leadTracking'
 
 interface ContactFormProps {
   source: 'contact_form' | 'valuation_request' | 'fast_sale_request'
@@ -30,6 +31,10 @@ export default function ContactForm({ source, messagePlaceholder = 'Tell us a bi
     setLoading(true)
     try {
       await contactAPI.submit({ name, email, phone: phone || undefined, message, source })
+      trackLead(
+        source === 'valuation_request' ? 'Valuation request submitted' : source === 'fast_sale_request' ? 'Fast sale request submitted' : 'Contact form submitted',
+        { name, phone, email },
+      )
       setSent(true)
     } catch (err: any) {
       toast.error(err?.error || 'Something went wrong — please try again')

@@ -16,6 +16,10 @@ import { HOME_ICON_MAP, HOME_ICON_OPTIONS } from '@/lib/homeIcons'
 import type { CommunityContentWithStats } from '@/types'
 import toast from 'react-hot-toast'
 import { useFormDraft } from '@/lib/useFormDraft'
+import { Authorship, useAdminList, AdminListToolbar, AdminListFooter, type Staff } from '@/components/admin/AdminList'
+import { useAuthStore } from '@/store/authStore'
+import EntitySeoSection, { seoFromRecord, seoToPayload, seoFromSuggestion } from '@/components/admin/seo/EntitySeoSection'
+import type { SeoFields } from '@/components/admin/seo/SeoAppearancePanel'
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -48,6 +52,7 @@ function CommunityContentForm({ community, initialName, onClose, onSaved }: { co
   const [coords, setCoords] = useState<{ lat: number; lng: number } | undefined>(community?.coordinates)
   const [address, setAddress] = useState(community?.address || '')
   const [aiBusy, setAiBusy] = useState(false)
+  const [seo, setSeo] = useState<SeoFields>(seoFromRecord(community))
 
   const defaults = {
     name: community?.name || initialName || '', area: community?.area || '', emirate: community?.emirate || 'Dubai',
@@ -58,16 +63,17 @@ function CommunityContentForm({ community, initialName, onClose, onSaved }: { co
   // Everything typed or picked is kept as a draft until it's saved (see lib/useFormDraft).
   const draft = useFormDraft({
     key: `community:${community?._id || 'new'}`,
-    values: { ...watch(), heroImage, heroCredit, highlights, amenities, coords: coords || null, address },
+    values: { ...watch(), heroImage, heroCredit, highlights, amenities, coords: coords || null, address, seo },
     onRestore: d => {
-      const { heroImage: h, heroCredit: hc, highlights: hl, amenities: am, coords: c, address: ad, ...fields } = d
+      const { heroImage: h, heroCredit: hc, highlights: hl, amenities: am, coords: c, address: ad, seo: so, ...fields } = d
       reset(fields as any); setHeroImage(h || ''); setHeroCredit(hc || null); setHighlights(hl || []); setAmenities(am || [])
-      setCoords(c || undefined); setAddress(ad || '')
+      setCoords(c || undefined); setAddress(ad || ''); if (so) setSeo(so)
     },
   })
   draft.onDiscard(() => {
     reset(defaults); setHeroImage(community?.heroImage || ''); setHeroCredit(community?.heroImageCredit || null); setHighlights(community?.highlights?.map(h => h.label) || [])
     setAmenities(community?.amenities || []); setCoords(community?.coordinates); setAddress(community?.address || '')
+    setSeo(seoFromRecord(community))
   })
 
   // Step 1 — pick the place on Google Maps: fills the name, emirate, parent area and map pin.
@@ -146,6 +152,7 @@ function CommunityContentForm({ community, initialName, onClose, onSaved }: { co
       highlights: highlights.filter(h => h.trim()).map(label => ({ label })),
       amenities: amenities.filter(a => a.label.trim()),
       isFeatured: !!data.isFeatured,
+      ...seoToPayload(seo),
     }
     try {
       if (isEdit) await communityContentAPI.update(community!._id, payload)
@@ -287,6 +294,19 @@ function CommunityContentForm({ community, initialName, onClose, onSaved }: { co
             Feature this community on the homepage & Communities hub
           </label>
 
+          <EntitySeoSection
+            seo={seo} onSeoChange={setSeo}
+            text={watch('overview') || ''}
+            fallbackTitle={`${watch('name') || 'Community'} Properties`}
+            urlPath={`communities/${community?.slug || 'new-community'}`}
+            generate={async () => {
+              const v = getValues()
+              if (!String(v.name || '').trim()) throw { error: 'Enter or search the community name first' }
+              const r = await communityContentAPI.seoSuggest({ name: v.name, area: v.area || undefined, emirate: v.emirate || undefined })
+              return seoFromSuggestion(r.data.data)
+            }}
+          />
+
           <button type="submit" disabled={submitting || uploadingHero} className="btn-primary w-full justify-center">
             {submitting ? 'Saving…' : isEdit ? 'Save Changes' : 'Create'}
           </button>
@@ -304,15 +324,27 @@ function AdminCommunitiesPageInner() {
   const [loading, setLoading] = useState(true)
   // "Add new community" from a listing form opens straight into the new-community form.
   const [editing, setEditing] = useState<CommunityContentWithStats | null | 'new'>(() => (searchParams.get('new') ? 'new' : null))
-  const [q, setQ] = useState('')
-  const [emirateFilter, setEmirateFilter] = useState('')
-  const shown = communities.filter(c =>
-    (!emirateFilter || (c.emirate || 'Dubai') === emirateFilter) &&
-    (!q.trim() || `${c.name} ${c.area || ''}`.toLowerCase().includes(q.trim().toLowerCase())))
+  const myId = useAuthStore(s => s.user?._id)
+  const list = useAdminList('communities', communities, {
+    myId,
+    searchText: c => `${c.name} ${c.area || ''} ${c.emirate || ''} ${c.address || ''}`,
+    filters: [
+      { key: 'emirate', label: 'Emirates', get: c => c.emirate || 'Dubai' },
+      { key: 'area', label: 'Areas', get: c => c.area },
+      { key: 'listings', label: 'Listings', get: c => c.count > 0 ? 'With listings' : 'No listings yet' },
+      { key: 'cover', label: 'Cover photo', get: c => c.heroImage ? 'Has cover photo' : 'No cover photo' },
+    ],
+    sorts: [
+      { value: 'name', label: 'Name A–Z', cmp: (a: any, b: any) => a.name.localeCompare(b.name) },
+      { value: 'listings', label: 'Most listings', cmp: (a, b) => b.count - a.count },
+      { value: 'newest', label: 'Newest first', cmp: (a: any, b: any) => +new Date(b.createdAt) - +new Date(a.createdAt) },
+      { value: 'updated', label: 'Recently edited', cmp: (a: any, b: any) => +new Date(b.updatedAt || b.createdAt) - +new Date(a.updatedAt || a.createdAt) },
+    ],
+  })
 
   const load = useCallback(() => {
     setLoading(true)
-    communityContentAPI.getAll()
+    communityContentAPI.getAllAdmin()
       .then(r => { if (r.data.success) setCommunities(r.data.data || []) })
       .catch(() => toast.error('Failed to load communities'))
       .finally(() => setLoading(false))
@@ -338,31 +370,18 @@ function AdminCommunitiesPageInner() {
         </button>
       </header>
 
-      <div className="p-7">
-        <div className="flex flex-col sm:flex-row gap-2 mb-4">
-          <div className="input-glass flex items-center gap-2 h-10 px-3 rounded-xl flex-1">
-            <Search size={14} style={{ color: 'var(--teal)' }} />
-            <input className="bg-transparent flex-1 text-sm outline-none min-w-0" style={{ color: 'var(--text)' }}
-              placeholder="Search communities…" value={q} onChange={e => setQ(e.target.value)} />
-          </div>
-          <select className="select-field h-10 sm:w-48" value={emirateFilter} onChange={e => setEmirateFilter(e.target.value)}>
-            <option value="">All emirates · {communities.length}</option>
-            {UAE_EMIRATES.map(e => {
-              const n = communities.filter(c => (c.emirate || 'Dubai') === e).length
-              return n ? <option key={e} value={e}>{e} · {n}</option> : null
-            })}
-          </select>
-        </div>
+      <div className="p-4 sm:p-7">
+        <AdminListToolbar list={list} placeholder="Search name, area, emirate or address…" />
         {loading ? (
           <div className="space-y-3">{Array(4).fill(null).map((_, i) => <div key={i} className="shimmer h-16 rounded-2xl" />)}</div>
-        ) : shown.length === 0 ? (
+        ) : list.pageItems.length === 0 ? (
           <div className="text-center py-16">
             <Layers size={28} style={{ color: 'var(--text-muted)', opacity: 0.4 }} className="mx-auto mb-3" />
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{communities.length ? 'No communities match your search' : 'No community profiles yet'}</p>
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{communities.length ? 'No communities match your filters' : 'No community profiles yet'}</p>
           </div>
         ) : (
           <div className="space-y-2">
-            {shown.map(community => (
+            {list.pageItems.map(community => (
               <div key={community._id} className="card p-4 flex items-center gap-4">
                 <div className="w-14 h-14 rounded-xl flex-shrink-0 overflow-hidden flex items-center justify-center" style={{ background: 'var(--bg-alt)' }}>
                   {community.heroImage ? <img src={community.heroImage} alt="" className="w-full h-full object-cover" /> : <Layers size={20} style={{ color: 'var(--teal)', opacity: 0.5 }} />}
@@ -378,6 +397,7 @@ function AdminCommunitiesPageInner() {
                     <span>{community.count} listing{community.count === 1 ? '' : 's'}</span>
                     {community.avgPrice > 0 && <span>avg {formatPrice(Math.round(community.avgPrice))}</span>}
                   </p>
+                  <Authorship className="mt-1" createdBy={community.createdBy} updatedBy={community.updatedBy} createdAt={community.createdAt} updatedAt={community.updatedAt} />
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
                   <button onClick={() => setEditing(community)} className="btn-ghost btn-sm p-2"><Pencil size={13} /></button>
@@ -387,6 +407,7 @@ function AdminCommunitiesPageInner() {
             ))}
           </div>
         )}
+        <AdminListFooter list={list} itemLabel={['community', 'communities']} />
       </div>
 
       <AnimatePresence>

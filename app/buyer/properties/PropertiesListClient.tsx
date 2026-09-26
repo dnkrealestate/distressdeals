@@ -10,6 +10,7 @@ import {
   TrendingUp, Star,
   Bell, Sparkles, BadgeCheck, Map as MapIcon,
   LayoutList,
+  X,
 } from 'lucide-react'
 import Navbar from '@/components/layouts/Navbar'
 import Footer from '@/components/layouts/Footer'
@@ -29,6 +30,7 @@ import type { MapPin } from '@/lib/mapPins'
 import type { MapBounds } from '@/lib/googleMaps'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
+import { tagHeadline } from '@/lib/listingTags'
 
 // Loaded client-side only — the Maps script needs `window`.
 const PropertiesMapView = dynamic(() => import('@/components/buyer/PropertiesGoogleMapView'), {
@@ -256,6 +258,8 @@ interface PropertiesListClientProps {
   initialProperties?: Property[]
   initialTotal?: number
   initialTotalPages?: number
+  // Server-rendered blocks shown under the list, above the footer ("More searches", the buying/renting guide).
+  bottom?: React.ReactNode
 }
 
 export default function PropertiesListClient(props: PropertiesListClientProps) {
@@ -266,7 +270,7 @@ export default function PropertiesListClient(props: PropertiesListClientProps) {
   )
 }
 
-function PropertiesListClientInner({ forcedListingType, initialProperties, initialTotal, initialTotalPages }: PropertiesListClientProps) {
+function PropertiesListClientInner({ forcedListingType, initialProperties, initialTotal, initialTotalPages, bottom }: PropertiesListClientProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
 
@@ -307,6 +311,7 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
     rentalStatus:   searchParams.get('rentalStatus') || '',
     availableWithin: Number(searchParams.get('availableWithin')) || 0,
     completion:  searchParams.get('completion')  || '',
+    tag:         searchParams.get('tag')         || '',
     sortBy:      searchParams.get('sortBy')      || 'recommended',
     page:        Number(searchParams.get('page')) || 1,
     limit:       PER_PAGE,
@@ -328,6 +333,7 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
     if (filters.priceMin) pParams.priceMin = filters.priceMin
     if (filters.priceMax) pParams.priceMax = filters.priceMax
     if (filters.completion) pParams.status = PROJECT_STATUS_FOR[filters.completion]
+    if (filters.tag) pParams.tag = filters.tag
 
     const getProps = (offset: number, limit: number) => propertyAPI.getAll({ ...clean, offset, limit })
       .then(r => r.data.success ? r.data.data : null)
@@ -385,6 +391,7 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
         if (filters.priceMin) pParams.priceMin = filters.priceMin
         if (filters.priceMax) pParams.priceMax = filters.priceMax
         if (filters.completion) pParams.status = PROJECT_STATUS_FOR[filters.completion]
+        if (filters.tag) pParams.tag = filters.tag
       }
       const [res, pRes] = await Promise.all([
         propertyAPI.getTypeStats(clean),
@@ -406,7 +413,7 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
     filters.listingType, filters.q, filters.area, filters.community, filters.bedrooms,
     filters.priceMin, filters.priceMax, (filters as any).furnishing, (filters as any).completion,
     filters.rentalStatus, filters.availableWithin,
-    filters.category, filters.bathrooms, filters.sizeMin, filters.sizeMax,
+    filters.category, filters.bathrooms, filters.sizeMin, filters.sizeMax, filters.tag,
   ])
 
   useEffect(() => { fetchTypeStats() }, [fetchTypeStats])
@@ -454,6 +461,7 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
       rentalStatus:   searchParams.get('rentalStatus') || '',
       availableWithin: Number(searchParams.get('availableWithin')) || 0,
       completion:  searchParams.get('completion')  || '',
+      tag:         searchParams.get('tag')         || '',
       page: 1,
     }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -488,7 +496,7 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
     setFilters(f => ({
       ...f, type: '', q: '', area: '', bedrooms: '', category: '', bathrooms: '',
       sizeMin: 0, sizeMax: 0, priceMin: 0, priceMax: 0, sortBy: 'recommended', page: 1,
-      furnishing: '', completion: '', rentalStatus: '', availableWithin: 0,
+      furnishing: '', completion: '', rentalStatus: '', availableWithin: 0, tag: '',
     }))
   }
 
@@ -577,6 +585,13 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
           )}
           {filters.area && <span style={{ color: 'var(--text-muted)' }} className="text-xl"> · {filters.area}</span>}
         </h1>
+        {/* A "More searches" link is active — say what's shown, and let it be cleared */}
+        {filters.tag && (
+          <p className="inline-flex items-center gap-2 text-sm font-semibold rounded-full pl-3.5 pr-1.5 py-1 mb-2" style={{ background: 'rgba(203,1,1,0.08)', color: 'var(--teal)', border: '1px solid rgba(203,1,1,0.2)' }}>
+            {tagHeadline(filters.tag, filters.listingType === 'rent' ? 'rent' : 'sale')}
+            <button onClick={() => setFilter('tag' as any, '')} aria-label="Clear this search" className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[rgba(203,1,1,0.12)]"><X size={12} /></button>
+          </p>
+        )}
         <p className="muted">
           {loading ? 'Loading…' : `${total.toLocaleString()} ${total === 1 ? 'property' : 'properties'}${projectTotal ? ` · ${projectTotal} new ${projectTotal === 1 ? 'project' : 'projects'}` : ''} found`}
         </p>
@@ -810,6 +825,8 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
           </aside>
         </div>
       </div>
+
+      {bottom}
 
       <Footer />
     </div>

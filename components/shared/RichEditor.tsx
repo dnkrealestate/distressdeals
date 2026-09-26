@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { uploadAPI } from '@/lib/api'
+import { cleanPastedHtml, textToRichHtml } from '@/lib/pasteClean'
 
 // Word-style rich text editor for listing descriptions. What you see here is what the website shows (the editable
 // area uses the same `rich-content` styles as the public pages). Output is plain HTML that the backend's allowlist
@@ -20,9 +21,10 @@ const COLORS = [
 const HIGHLIGHTS = ['#FEF08A', '#FDE68A', '#FED7AA', '#FECACA', '#FBCFE8', '#DDD6FE', '#BFDBFE', '#A7F3D0']
 const BLOCKS = [
   { tag: 'p', label: 'Paragraph' },
-  { tag: 'h2', label: 'Heading 1' },
-  { tag: 'h3', label: 'Heading 2' },
-  { tag: 'h4', label: 'Heading 3' },
+  // No H1 — the page title is the H1; descriptions start at H2 (good for SEO).
+  { tag: 'h2', label: 'Heading 2 (H2)' },
+  { tag: 'h3', label: 'Heading 3 (H3)' },
+  { tag: 'h4', label: 'Heading 4 (H4)' },
   { tag: 'blockquote', label: 'Quote' },
 ]
 const BULLETS = [
@@ -40,11 +42,6 @@ const NUMBERS = [
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
-// Pasted text → clean paragraphs (blank line = new paragraph, single line break kept). Keeps Word/web junk out.
-function textToHtml(text: string) {
-  return text.replace(/\r\n?/g, '\n').split(/\n{2,}/).map(p => p.trim()).filter(Boolean)
-    .map(p => `<p>${esc(p).replace(/\n/g, '<br>')}</p>`).join('')
-}
 
 // ── Toolbar pieces (module level, so they keep their identity between renders) ──
 const Btn = ({ on, title, onClick, children, disabled }: { on?: boolean; title: string; onClick: () => void; children: React.ReactNode; disabled?: boolean }) => (
@@ -270,11 +267,16 @@ export default function RichEditor({ value, onChange, placeholder = 'Start writi
     }
   }
 
+  // Paste keeps the arrangement of what was copied — headings (H1 → H2), bold/italic/underline, lists, links,
+  // tables, alignment — cleaned to this editor's markup (see lib/pasteClean). Plain text gets lists/headings detected.
   const onPaste = (e: React.ClipboardEvent) => {
+    const html = e.clipboardData.getData('text/html')
     const text = e.clipboardData.getData('text/plain')
-    if (!text) return
+    if (!html && !text) return
     e.preventDefault()
-    exec('insertHTML', text.includes('\n') ? textToHtml(text) : esc(text))
+    const cleaned = html ? cleanPastedHtml(html) : ''
+    if (cleaned) exec('insertHTML', cleaned)
+    else if (text) exec('insertHTML', text.includes('\n') ? textToRichHtml(text) : esc(text))
   }
 
   const toggle = (m: typeof menu) => { saveSelection(); setMenu(v => (v === m ? null : m)) }

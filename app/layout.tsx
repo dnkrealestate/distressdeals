@@ -6,6 +6,9 @@ import EmailVerificationBanner from '@/components/EmailVerificationBanner'
 import MobileBottomNav from '@/components/layouts/MobileBottomNav'
 import FloatingActions from '@/components/layouts/FloatingActions'
 import { GoogleTagHead, GoogleTagNoScript } from '@/components/GoogleTags'
+import { Analytics } from '@vercel/analytics/next'
+import { SpeedInsights } from '@vercel/speed-insights/next'
+import ContactClickTracker from '@/components/ContactClickTracker'
 
 // Canonical www — the actual live domain (non-www 301s to this), so metadataBase (and therefore every relative
 // `alternates.canonical` across the app) must resolve here too, not to a URL that immediately redirects away.
@@ -84,6 +87,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             }}
           />
         </Providers>
+        {/* Vercel Web Analytics (page views + lead events via track()) and Speed Insights (Core Web Vitals). */}
+        <Analytics />
+        <ContactClickTracker />
+        <SpeedInsights />
       </body>
     </html>
   )

@@ -3,6 +3,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { authAPI } from '@/lib/api'
 import type { User } from '@/types'
+import { trackLead } from '@/lib/leadTracking'
 
 interface AuthState {
   user: User | null
@@ -57,6 +58,7 @@ export const useAuthStore = create<AuthState>()(
       register: async (data) => {
         set({ isLoading: true })
         const res = await authAPI.register(data)
+        trackLead('Sign up completed', { name: (data as any).name, phone: (data as any).phone, email: (data as any).email, extra: { role: (data as any).role } })
         const { token, user } = res.data.data
         localStorage.setItem('luxestate_token', token)
         set({ user, token, isAuthenticated: true, isLoading: false })

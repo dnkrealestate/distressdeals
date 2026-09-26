@@ -7,10 +7,12 @@ import { MapPin, TrendingUp, Tag, Home as HomeIcon, Sparkles, Layers } from 'luc
 import Navbar from '@/components/layouts/Navbar'
 import Footer from '@/components/layouts/Footer'
 import PropertyCard from '@/components/buyer/PropertyCard'
-import { propertyAPI, areaContentAPI } from '@/lib/api'
+import ProjectCard from '@/components/buyer/ProjectCard'
+import LinkPagination from '@/components/shared/LinkPagination'
+import { propertyAPI, areaContentAPI, projectAPI } from '@/lib/api'
 import { formatPrice } from '@/lib/utils'
 import { HOME_ICON_MAP } from '@/lib/homeIcons'
-import type { AreaStats, AreaContentWithStats, Property } from '@/types'
+import type { AreaStats, AreaContentWithStats, Property, Project } from '@/types'
 
 const SITE_URL = 'https://www.distressdealsuae.com'
 
@@ -35,16 +37,34 @@ const getAreaContent = cache(async (slug: string): Promise<AreaContentWithStats 
   }
 })
 
-const getAreaListings = cache(async (area: string): Promise<Property[]> => {
+const PER_PAGE = 40
+type SP = { page?: string; pp?: string }
+const num = (v?: string) => Math.max(1, Math.floor(Number(v)) || 1)
+type Paged<T> = { data: T[]; total: number; totalPages: number }
+const EMPTY = { data: [], total: 0, totalPages: 1 }
+
+// 40 listings a page (?page=), 40 new projects a page (?pp=) — each list pages on its own.
+const getAreaListings = cache(async (area: string, page: number): Promise<Paged<Property>> => {
   try {
-    const res = await propertyAPI.getAll({ area, limit: 24 })
-    return res.data.success ? res.data.data.data || [] : []
+    const res = await propertyAPI.getAll({ area, page, limit: PER_PAGE })
+    const d = res.data.success ? res.data.data : null
+    return d ? { data: d.data || [], total: d.total || 0, totalPages: d.totalPages || 1 } : EMPTY
   } catch {
-    return []
+    return EMPTY
   }
 })
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+const getAreaProjects = cache(async (area: string, page: number): Promise<Paged<Project>> => {
+  try {
+    const res = await projectAPI.getAll({ area, page, limit: PER_PAGE })
+    const d = res.data.success ? res.data.data : null
+    return d ? { data: d.data || [], total: d.total || 0, totalPages: d.totalPages || 1 } : EMPTY
+  } catch {
+    return EMPTY
+  }
+})
+
+export async function generateMetadata({ params, searchParams }: { params: { slug: string }; searchParams?: SP }): Promise<Metadata> {
   const area = await getArea(params.slug)
   if (!area) return { title: 'Area Not Found' }
 
@@ -57,20 +77,23 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   return {
     title,
     description,
-    alternates: { canonical: `/areas/${area.slug}` },
+    alternates: { canonical: `/areas/${area.slug}${num(searchParams?.page) > 1 ? `?page=${num(searchParams?.page)}` : ''}` },
     openGraph: { title, description, type: 'website', url: `/areas/${area.slug}`, ...(content?.heroImage ? { images: [content.heroImage] } : {}) },
     twitter: { card: 'summary_large_image', title, description },
   }
 }
 
-export default async function AreaDetailPage({ params }: { params: { slug: string } }) {
+export default async function AreaDetailPage({ params, searchParams }: { params: { slug: string }; searchParams?: SP }) {
   const area = await getArea(params.slug)
   if (!area) notFound()
 
-  const [content, listings] = await Promise.all([
+  const page = num(searchParams?.page), pPage = num(searchParams?.pp)
+  const [content, listingPage, projectPage] = await Promise.all([
     getAreaContent(params.slug),
-    getAreaListings(area.area),
+    getAreaListings(area.area, page),
+    getAreaProjects(area.area, pPage),
   ])
+  const listings = listingPage.data
 
   const breadcrumbJsonLd = {
     '@context': 'https://schema.org',
@@ -203,17 +226,34 @@ export default async function AreaDetailPage({ params }: { params: { slug: strin
 
       <section className="section pb-20">
         <div className="wrap">
-          <h2 className="text-lg font-bold mb-6" style={{ color: 'var(--text)' }}>
-            Available Listings in {area.area}
+          <h2 id="listings" className="text-lg font-bold mb-6 scroll-mt-24" style={{ color: 'var(--text)' }}>
+            Available Listings in {area.area}{listingPage.total > 0 && <span className="font-normal text-sm ml-2" style={{ color: 'var(--text-muted)' }}>· {listingPage.total}</span>}
           </h2>
           {listings.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {listings.map(p => <PropertyCard key={p._id} property={p} />)}
-            </div>
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {listings.map(p => <PropertyCard key={p._id} property={p} />)}
+              </div>
+              <LinkPagination page={page} totalPages={listingPage.totalPages} basePath={`/areas/${area.slug}`} anchor="listings"
+                total={listingPage.total} perPage={PER_PAGE} itemLabel={listingPage.total === 1 ? 'listing' : 'listings'} />
+            </>
           ) : (
             <div className="text-center py-16">
               <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No live listings in {area.area} right now — check back soon.</p>
             </div>
+          )}
+
+          {projectPage.data.length > 0 && (
+            <>
+              <h2 id="projects" className="text-lg font-bold mb-6 mt-14 scroll-mt-24" style={{ color: 'var(--text)' }}>
+                New Projects in {area.area}<span className="font-normal text-sm ml-2" style={{ color: 'var(--text-muted)' }}>· {projectPage.total}</span>
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {projectPage.data.map((p, i) => <ProjectCard key={p._id} project={p} markAsProject delay={Math.min(i, 8) * 0.05} />)}
+              </div>
+              <LinkPagination page={pPage} param="pp" totalPages={projectPage.totalPages} basePath={`/areas/${area.slug}`} anchor="projects"
+                total={projectPage.total} perPage={PER_PAGE} itemLabel={projectPage.total === 1 ? 'project' : 'projects'} />
+            </>
           )}
         </div>
       </section>

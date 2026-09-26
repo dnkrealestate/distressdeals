@@ -21,6 +21,8 @@ import { LocationSearch } from './LocationSearch'
 import StepIndicator from './StepIndicator'
 import type { Property } from '@/types'
 import toast from 'react-hot-toast'
+import { useAuthStore } from '@/store/authStore'
+import { trackLead } from '@/lib/leadTracking'
 
 // Sellers only ever give the basics here — no title, description, or precise
 // verification detail. The assigned agent still reviews and completes
@@ -360,6 +362,10 @@ export default function SellerListingForm({ property, onSuccess }: { property?: 
         })
         newImages.forEach(f => fd.append('images', f))
         const res = await propertyAPI.create(fd)
+        trackLead('Seller listing submitted', {
+          name: useAuthStore.getState().user?.name, phone: useAuthStore.getState().user?.phone, email: useAuthStore.getState().user?.email,
+          extra: { listing: `${type} for ${listingType} in ${payload.location.area || payload.location.city}`, price: payload.price },
+        })
         toast.success('Listing submitted — our team will review it and be in touch shortly')
         onSuccess(res.data.data._id)
       }

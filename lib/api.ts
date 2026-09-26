@@ -255,6 +255,8 @@ export const uploadAPI = {
 // ── Projects (off-plan developments) ─────────────────
 export const projectAPI = {
   getAll:  (params?: any) => api.get('/projects', { params }),
+  // The automatic feature tags for the project form's current values (+ every tag there is).
+  tagPreview: (data: any) => api.post('/projects/tag-preview', data),
   getOne:  (slug: string) => api.get(`/projects/${slug}`),
   // One view per visitor — counted by the backend, not by page fetches.
   trackView: (id: string) => api.post(`/projects/${id}/view`),
@@ -278,6 +280,8 @@ export const projectAPI = {
 export const developerAPI = {
   getAll:     (params?: any) => api.get('/developers', { params }),
   getBySlug:  (slug: string) => api.get(`/developers/${slug}`),
+  // Staff list — adds who added / last edited each developer.
+  getAllAdmin: () => api.get('/developers/admin/all'),
   create:     (data: any) => api.post('/developers', data),
   update:     (id: string, data: any) => api.put(`/developers/${id}`, data),
   delete:     (id: string) => api.delete(`/developers/${id}`),
@@ -285,6 +289,8 @@ export const developerAPI = {
   aiImport:   (url: string) => api.post('/developers/ai-import', { url }, { timeout: 90000 }),
   // Any logo URL → stored colour + white WebP versions.
   processLogo: (url: string, name?: string) => api.post('/developers/process-logo', { url, name }, { timeout: 60000 }),
+  // Fresh SEO title / description / keywords written from the developer's live projects.
+  seoSuggest: (data: { name: string; establishedYear?: number; headquarters?: string }) => api.post('/developers/seo-suggest', data),
 }
 
 // ── Area Content (admin-managed area-insights copy) ──
@@ -313,16 +319,20 @@ export const adAPI = {
 export const communityContentAPI = {
   getAll:    (params?: any) => api.get('/community-content', { params }),
   getBySlug: (slug: string) => api.get(`/community-content/${slug}`),
+  getAllAdmin: () => api.get('/community-content/admin/all'),
   create:    (data: any) => api.post('/community-content', data),
   update:    (id: string, data: any) => api.put(`/community-content/${id}`, data),
   delete:    (id: string) => api.delete(`/community-content/${id}`),
   // Drafts overview / highlights / amenities (and parent area / emirate) — the model can take ~5-20s.
   aiFill:    (data: { name: string; area?: string; emirate?: string; address?: string; coordinates?: { lat: number; lng: number } }) =>
     api.post('/community-content/ai-fill', data, { timeout: 90000 }),
+  // Fresh SEO title / description / keywords written from the community's live listings.
+  seoSuggest: (data: { name: string; area?: string; emirate?: string }) => api.post('/community-content/seo-suggest', data),
 }
 
 // ── Building Content ───────────────────────────────────
 export const buildingContentAPI = {
+  getAllAdmin: () => api.get('/building-content/admin/all'),
   getAll:    (params?: any) => api.get('/building-content', { params }),
   getBySlug: (slug: string) => api.get(`/building-content/${slug}`),
   create:    (data: any) => api.post('/building-content', data),
@@ -356,6 +366,11 @@ export const mortgageAPI = {
 }
 
 // ── Contact (general enquiries — no property/project attached) ──
+// ── "More searches" links under the listing pages (live counts) ──
+export const quickLinksAPI = {
+  get: (kind: 'sale' | 'rent' | 'projects') => api.get('/quick-links', { params: { kind } }),
+}
+
 export const contactAPI = {
   submit: (data: { name: string; email: string; phone?: string; message: string; source: 'contact_form' | 'valuation_request' | 'fast_sale_request' }) =>
     api.post('/contact', data),

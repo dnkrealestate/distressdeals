@@ -1,5 +1,8 @@
 'use client'
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { Authorship, useAdminList, AdminListToolbar, AdminListFooter, type Staff } from '@/components/admin/AdminList'
+import { useAuthStore } from '@/store/authStore'
+import { useFormDraft } from '@/lib/useFormDraft'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import { useDropzone } from 'react-dropzone'
@@ -35,7 +38,9 @@ interface Item {
   coverImage?: string; category: string; tags?: string[]
   status: string; publishedAt?: string; views?: number; readTime?: number
   editorialStage?: EditorialStage; scheduledFor?: string
-  createdAt: string
+  createdAt: string; updatedAt?: string
+  // Blog: author = who added it. News: createdBy. Both: updatedBy = who last edited it.
+  author?: Staff | null; createdBy?: Staff | null; updatedBy?: Staff | null
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -57,18 +62,25 @@ function ContentForm({ type, item, categories, onClose, onSaved }: { type: Conte
   const [contentError, setContentError] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
-  const { register, handleSubmit, watch, formState: { errors } } = useForm({
-    defaultValues: {
-      title:          item?.title || '',
-      excerpt:        item?.excerpt || item?.summary || '',
-      category:       item?.category || '',
-      tags:           item?.tags?.join(', ') || '',
-      status:         item?.status || 'draft',
-      readTime:       item?.readTime || 5,
-      editorialStage: item?.editorialStage || 'idea',
-      scheduledFor:   item?.scheduledFor ? item.scheduledFor.slice(0, 10) : '',
-    },
+  const defaults = {
+    title:          item?.title || '',
+    excerpt:        item?.excerpt || item?.summary || '',
+    category:       item?.category || '',
+    tags:           item?.tags?.join(', ') || '',
+    status:         item?.status || 'draft',
+    readTime:       item?.readTime || 5,
+    editorialStage: item?.editorialStage || 'idea',
+    scheduledFor:   item?.scheduledFor ? item.scheduledFor.slice(0, 10) : '',
+  }
+  const { register, handleSubmit, watch, reset, formState: { errors } } = useForm({ defaultValues: defaults })
+
+  // Everything typed or picked is kept as a draft until it's saved (see lib/useFormDraft).
+  const draft = useFormDraft({
+    key: `${type}:${item?._id || 'new'}`,
+    values: { ...watch(), coverImage, blocks },
+    onRestore: d => { const { coverImage: c, blocks: b, ...fields } = d as any; reset(fields); setCoverImage(c || ''); if (Array.isArray(b)) setBlocks(b) },
   })
+  draft.onDiscard(() => { reset(defaults); setCoverImage(item?.coverImage || ''); setBlocks(htmlToBlocks(item?.content || '')) })
   const editorialStage = watch('editorialStage')
 
   const onDropCover = useCallback(async (accepted: File[]) => {
@@ -118,6 +130,7 @@ function ContentForm({ type, item, categories, onClose, onSaved }: { type: Conte
       if (item) await api.update(item._id, payload)
       else await api.create(payload)
       toast.success(item ? 'Updated' : 'Created')
+      draft.clear()
       onSaved(); onClose()
     } catch (err: any) {
       toast.error(err?.error || 'Failed to save')
@@ -134,11 +147,11 @@ function ContentForm({ type, item, categories, onClose, onSaved }: { type: Conte
         <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
           <h2 className="font-bold text-sm" style={{ color: 'var(--text)' }}>{item ? 'Edit' : 'New'} {type === 'blog' ? 'Post' : 'News Item'}</h2>
           <div className="flex items-center gap-2">
-            <button type="button" onClick={onClose} className="btn-ghost btn-sm p-2"><X size={14} /></button>
+            <button type="button" onClick={() => draft.guard(onClose)} className="btn-ghost btn-sm p-2"><X size={14} /></button>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
+        <form {...draft.touchProps} onSubmit={handleSubmit(onSubmit)} className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
           {/* Main column: title + block editor */}
           <div className="flex-1 min-w-0 overflow-y-auto p-6 space-y-4">
             <div>
@@ -402,7 +415,24 @@ export default function AdminContentPage() {
     } catch (err: any) { toast.error(err?.error || 'Failed to add card') }
   }
 
-  const listItems = items.filter(i => i.status === status)
+  const myId = useAuthStore(s => s.user?._id)
+  const statusItems = useMemo(() => items.filter(i => i.status === status).map(i => ({ ...i, createdBy: i.author || i.createdBy })), [items, status])
+  const list = useAdminList(`content-${type}`, statusItems, {
+    myId,
+    searchText: i => `${i.title} ${i.excerpt || i.summary || ''} ${i.category} ${(i.tags || []).join(' ')}`,
+    filters: [
+      { key: 'category', label: 'Categories', get: i => i.category },
+      { key: 'stage', label: 'Stages', get: i => i.editorialStage, format: v => v.charAt(0).toUpperCase() + v.slice(1) },
+      ...(type === 'blog' ? [{ key: 'tag', label: 'Tags', get: (i: Item) => i.tags }] : []),
+    ],
+    sorts: [
+      { value: 'newest', label: 'Newest first', cmp: (a: any, b: any) => +new Date(b.createdAt) - +new Date(a.createdAt) },
+      { value: 'updated', label: 'Recently edited', cmp: (a: any, b: any) => +new Date(b.updatedAt || b.createdAt) - +new Date(a.updatedAt || a.createdAt) },
+      { value: 'views', label: 'Most viewed', cmp: (a, b) => (b.views || 0) - (a.views || 0) },
+      { value: 'title', label: 'Title A–Z', cmp: (a, b) => a.title.localeCompare(b.title) },
+    ],
+  })
+  const listItems = list.pageItems
   const categoryOptions = useMemo(
     () => Array.from(new Set([...BASE_CATEGORIES[type], ...items.map(i => i.category)])).filter(Boolean).sort(),
     [type, items]
@@ -458,6 +488,7 @@ export default function AdminContentPage() {
           )}
         </div>
 
+        {view === 'list' && <AdminListToolbar list={list} placeholder={`Search ${type === 'blog' ? 'posts' : 'news'} by title, summary, category or tag…`} />}
         {loading ? (
           <div className="space-y-3">{Array(4).fill(null).map((_, i) => <div key={i} className="shimmer h-16 rounded-2xl" />)}</div>
         ) : view === 'calendar' ? (
@@ -465,7 +496,7 @@ export default function AdminContentPage() {
         ) : listItems.length === 0 ? (
           <div className="text-center py-16">
             <FileText size={28} style={{ color: 'var(--text-muted)', opacity: 0.4 }} className="mx-auto mb-3" />
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Nothing here yet</p>
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{statusItems.length ? 'Nothing matches your filters' : 'Nothing here yet'}</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -480,6 +511,7 @@ export default function AdminContentPage() {
                     {item.category} · {formatDate(item.createdAt)}
                     {typeof item.views === 'number' && <> · <Eye size={10} className="inline" /> {item.views}</>}
                   </p>
+                  <Authorship className="mt-1" createdBy={item.createdBy} updatedBy={item.updatedBy} createdAt={item.createdAt} updatedAt={item.updatedAt} />
                 </div>
                 <span className={cn('badge', item.status === 'published' ? 'badge-green' : item.status === 'draft' ? 'badge-blue' : 'badge-gray')}>
                   {item.status}
@@ -492,6 +524,7 @@ export default function AdminContentPage() {
             ))}
           </div>
         )}
+        {view === 'list' && <AdminListFooter list={list} itemLabel={type === 'blog' ? ['post', 'posts'] : ['news item', 'news items']} />}
       </div>
 
       <AnimatePresence>

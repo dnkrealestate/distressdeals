@@ -12,6 +12,10 @@ import { formatPrice } from '@/lib/utils'
 import type { Developer, DeveloperWithStats, DeveloperImport } from '@/types'
 import toast from 'react-hot-toast'
 import { useFormDraft } from '@/lib/useFormDraft'
+import { Authorship, useAdminList, AdminListToolbar, AdminListFooter, type Staff } from '@/components/admin/AdminList'
+import { useAuthStore } from '@/store/authStore'
+import EntitySeoSection, { seoFromRecord, seoToPayload, seoFromSuggestion } from '@/components/admin/seo/EntitySeoSection'
+import type { SeoFields } from '@/components/admin/seo/SeoAppearancePanel'
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -33,6 +37,7 @@ function DeveloperForm({ developer, onClose, onSaved }: { developer: Developer |
   const [importUrl, setImportUrl] = useState(developer?.website || '')
   const [importing, setImporting] = useState(false)
   const [imported, setImported] = useState<DeveloperImport | null>(null)
+  const [seo, setSeo] = useState<SeoFields>(seoFromRecord(developer))
 
   const defaults = {
     name:            developer?.name || '',
@@ -47,13 +52,13 @@ function DeveloperForm({ developer, onClose, onSaved }: { developer: Developer |
   // Everything typed or picked is kept as a draft until it's saved (see lib/useFormDraft).
   const draft = useFormDraft({
     key: `developer:${developer?._id || 'new'}`,
-    values: { ...watch(), logo, logoWhite, importUrl },
+    values: { ...watch(), logo, logoWhite, importUrl, seo },
     onRestore: d => {
-      const { logo: l, logoWhite: lw, importUrl: u, ...fields } = d
-      reset(fields as any); setLogo(l || ''); setLogoWhite(lw || ''); setImportUrl(u || '')
+      const { logo: l, logoWhite: lw, importUrl: u, seo: so, ...fields } = d
+      reset(fields as any); setLogo(l || ''); setLogoWhite(lw || ''); setImportUrl(u || ''); if (so) setSeo(so)
     },
   })
-  draft.onDiscard(() => { reset(defaults); setLogo(developer?.logo || ''); setLogoWhite(developer?.logoWhite || ''); setImportUrl(developer?.website || '') })
+  draft.onDiscard(() => { reset(defaults); setLogo(developer?.logo || ''); setLogoWhite(developer?.logoWhite || ''); setImportUrl(developer?.website || ''); setSeo(seoFromRecord(developer)) })
 
   // Reads the developer's site: fills every field, and stores their logo (colour + white WebP).
   const autoFill = async () => {
@@ -125,6 +130,7 @@ function DeveloperForm({ developer, onClose, onSaved }: { developer: Developer |
       establishedYear: data.establishedYear ? Number(data.establishedYear) : undefined,
       headquarters: data.headquarters || undefined,
       isFeatured: !!data.isFeatured,
+      ...seoToPayload(seo),
     }
     try {
       if (developer) await developerAPI.update(developer._id, payload)
@@ -270,6 +276,19 @@ function DeveloperForm({ developer, onClose, onSaved }: { developer: Developer |
             Feature this developer
           </label>
 
+          <EntitySeoSection
+            seo={seo} onSeoChange={setSeo}
+            text={watch('description') || ''}
+            fallbackTitle={`${watch('name') || 'Developer'} Projects`}
+            urlPath={`developers/${developer?.slug || 'new-developer'}`}
+            generate={async () => {
+              const v = getValues()
+              if (!String(v.name || '').trim()) throw { error: 'Enter the developer name first' }
+              const r = await developerAPI.seoSuggest({ name: v.name, establishedYear: Number(v.establishedYear) || undefined, headquarters: v.headquarters || undefined })
+              return seoFromSuggestion(r.data.data)
+            }}
+          />
+
           <button type="submit" disabled={submitting || busyLogo || importing} className="btn-primary w-full justify-center">
             {submitting ? 'Saving…' : developer ? 'Save Changes' : 'Create'}
           </button>
@@ -288,13 +307,30 @@ export default function AdminDevelopersPage() {
 
   const load = useCallback(() => {
     setLoading(true)
-    developerAPI.getAll()
+    developerAPI.getAllAdmin()
       .then(r => { if (r.data.success) setDevelopers(r.data.data || []) })
       .catch(() => toast.error('Failed to load developers'))
       .finally(() => setLoading(false))
   }, [])
 
   useEffect(() => { load() }, [load])
+
+  const myId = useAuthStore(s => s.user?._id)
+  const list = useAdminList('developers', developers, {
+    myId,
+    searchText: d => `${d.name} ${d.website || ''} ${d.headquarters || ''} ${(d.areas || []).join(' ')}`,
+    filters: [
+      { key: 'hq', label: 'Headquarters', get: d => d.headquarters?.split(',')[0].trim() },
+      { key: 'projects', label: 'Projects', get: d => d.projectCount > 0 ? 'With projects' : 'No projects yet' },
+      { key: 'featured', label: 'Featured', get: d => d.isFeatured ? 'Featured' : 'Not featured' },
+    ],
+    sorts: [
+      { value: 'name', label: 'Name A–Z', cmp: (a: any, b: any) => a.name.localeCompare(b.name) },
+      { value: 'projects', label: 'Most projects', cmp: (a, b) => b.projectCount - a.projectCount },
+      { value: 'newest', label: 'Newest first', cmp: (a: any, b: any) => +new Date(b.createdAt) - +new Date(a.createdAt) },
+      { value: 'updated', label: 'Recently edited', cmp: (a: any, b: any) => +new Date(b.updatedAt || b.createdAt) - +new Date(a.updatedAt || a.createdAt) },
+    ],
+  })
 
   const remove = async (developer: Developer) => {
     if (!confirm(`Delete "${developer.name}"? Existing projects keep this name as free text but will lose the logo link.`)) return
@@ -314,19 +350,20 @@ export default function AdminDevelopersPage() {
         </button>
       </header>
 
-      <div className="p-7">
+      <div className="p-4 sm:p-7">
+        <AdminListToolbar list={list} placeholder="Search name, website, headquarters or area…" />
         {loading ? (
           <div className="space-y-3">{Array(4).fill(null).map((_, i) => <div key={i} className="shimmer h-16 rounded-2xl" />)}</div>
-        ) : developers.length === 0 ? (
+        ) : list.pageItems.length === 0 ? (
           <div className="text-center py-16">
             <Building2 size={28} style={{ color: 'var(--text-muted)', opacity: 0.4 }} className="mx-auto mb-3" />
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No developers yet</p>
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{developers.length ? 'No developers match your filters' : 'No developers yet'}</p>
           </div>
         ) : (
           <div className="space-y-2">
-            {developers.map(dev => (
+            {list.pageItems.map(dev => (
               <div key={dev._id} className="card p-4 flex items-center gap-4">
-                <div className="w-14 h-14 rounded-xl flex-shrink-0 overflow-hidden flex items-center justify-center" style={{ background: 'var(--bg-alt)' }}>
+                <div className="w-14 h-14 rounded-xl flex-shrink-0 overflow-hidden flex items-center justify-center" style={{ background: '#fff', border: '1px solid var(--border)' }}>
                   {dev.logo ? <img src={dev.logo} alt="" className="w-full h-full object-contain p-1.5" /> : <Building2 size={20} style={{ color: 'var(--teal)', opacity: 0.5 }} />}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -339,6 +376,7 @@ export default function AdminDevelopersPage() {
                     {dev.minPriceFrom > 0 && <span>from {formatPrice(dev.minPriceFrom)}</span>}
                     {dev.website && <span className="flex items-center gap-1"><Globe size={10} /> {dev.website.replace(/^https?:\/\//, '')}</span>}
                   </p>
+                  <Authorship className="mt-1" createdBy={dev.createdBy} updatedBy={dev.updatedBy} createdAt={dev.createdAt} updatedAt={dev.updatedAt} />
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
                   <button onClick={() => setEditing(dev)} className="btn-ghost btn-sm p-2"><Pencil size={13} /></button>
@@ -348,6 +386,7 @@ export default function AdminDevelopersPage() {
             ))}
           </div>
         )}
+        <AdminListFooter list={list} itemLabel={['developer', 'developers']} />
       </div>
 
       <AnimatePresence>

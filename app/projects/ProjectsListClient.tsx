@@ -137,18 +137,21 @@ function StatusPill({ active, onClick, children }: { active: boolean; onClick: (
   )
 }
 
-export default function ProjectsListClient() {
+// `bottom`: server-rendered blocks under the list, above the footer ("More searches", the new-projects guide).
+export default function ProjectsListClient({ bottom }: { bottom?: React.ReactNode }) {
   return (
     <Suspense fallback={null}>
-      <ProjectsListClientInner />
+      <ProjectsListClientInner bottom={bottom} />
     </Suspense>
   )
 }
 
-function ProjectsListClientInner() {
+function ProjectsListClientInner({ bottom }: { bottom?: React.ReactNode }) {
   const searchParams = useSearchParams()
   const [filters, setFilters] = useState({
-    q: searchParams.get('q') || '', area: searchParams.get('area') || '', developer: '',
+    q: searchParams.get('q') || '', area: searchParams.get('area') || '', developer: searchParams.get('developer') || '',
+    // From "More searches" links: ?tag=luxury, ?community=…
+    tag: searchParams.get('tag') || '', community: searchParams.get('community') || '',
     status: (searchParams.get('status') || '') as Project['status'] | '',
     emirate: searchParams.get('emirate') || '',
     type: searchParams.get('type') || '',
@@ -198,7 +201,8 @@ function ProjectsListClientInner() {
     priceMin: filters.priceMin || undefined, priceMax: filters.priceMax || undefined,
     ...handoverParams(filters.handover),
     handoverQuarter: filters.quarter || undefined,
-  }), [filters.q, filters.area, filters.developer, filters.emirate, filters.type, filters.priceMin, filters.priceMax, filters.handover, filters.quarter])
+    tag: filters.tag || undefined, community: filters.community || undefined,
+  }), [filters.q, filters.area, filters.developer, filters.emirate, filters.type, filters.priceMin, filters.priceMax, filters.handover, filters.quarter, filters.tag, filters.community])
 
   const fetchProjects = useCallback(() => {
     setLoading(true)
@@ -222,8 +226,8 @@ function ProjectsListClientInner() {
       .catch(() => {})
   }, [searchParamsFor])
 
-  const activeFilterCount = [filters.area, filters.developer, filters.status, filters.emirate, filters.type, filters.priceMin, filters.priceMax, filters.handover, filters.quarter].filter(Boolean).length
-  const clearAll = () => setFilters(f => ({ ...f, area: '', developer: '', status: '', emirate: '', type: '', priceMin: 0, priceMax: 0, handover: '', quarter: '' }))
+  const activeFilterCount = [filters.area, filters.developer, filters.status, filters.emirate, filters.type, filters.priceMin, filters.priceMax, filters.handover, filters.quarter, filters.tag, filters.community].filter(Boolean).length
+  const clearAll = () => setFilters(f => ({ ...f, area: '', developer: '', status: '', emirate: '', type: '', priceMin: 0, priceMax: 0, handover: '', quarter: '', tag: '', community: '' }))
 
   return (
     <div className="page overflow-x-clip">
@@ -473,7 +477,7 @@ function ProjectsListClientInner() {
                 <h3 className="font-semibold text-lg mb-2" style={{ color: 'var(--text)' }}>No projects found</h3>
                 <p className="muted mb-6 max-w-xs">Try a different area, developer, or status.</p>
                 <button
-                  onClick={() => { setQuery(''); setFilters({ q: '', area: '', developer: '', status: '', emirate: '', type: '', priceMin: 0, priceMax: 0, handover: '', quarter: '', page: 1 }) }}
+                  onClick={() => { setQuery(''); setFilters({ q: '', area: '', developer: '', status: '', emirate: '', type: '', priceMin: 0, priceMax: 0, handover: '', quarter: '', tag: '', community: '', page: 1 }) }}
                   className="btn-primary btn-sm"
                 >
                   Clear Filters
@@ -493,6 +497,8 @@ function ProjectsListClientInner() {
           </aside>
         </div>
       </section>
+
+      {bottom}
 
       <Footer />
     </div>
