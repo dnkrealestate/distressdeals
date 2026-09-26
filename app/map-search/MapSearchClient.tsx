@@ -95,6 +95,11 @@ function MapSearchClientInner() {
 
   // ── UI state ───────────────────────────────────────────────────────────
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  // Listings sharing one spot (a stack marker was clicked): the card steps through them.
+  const [stackIds, setStackIds] = useState<string[] | null>(null)
+  // Phones: the filters bottom sheet
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const selectOne = (id: string | null) => { setStackIds(null); setSelectedId(id) }
   const [hoverId, setHoverId] = useState<string | null>(null)
   const [drawMode, setDrawMode] = useState<DrawMode>('none')
   const [mapType, setMapType] = useState<MapType>('roadmap')
@@ -353,9 +358,97 @@ function MapSearchClientInner() {
     if (filters.q) setFilter('q', '')
     engineRef.current?.clearPlace()
   }
+  const clearAllFilters = () => { setFilters(f => ({ ...f, type: '', area: '', bedrooms: '', priceMin: 0, priceMax: 0, q: '', rentalStatus: '', availableWithin: 0 })); setQuery('') }
+  // Phones: Buy/Rent sits in the sheet too, so it counts as a filter there.
+  const sheetCount = activeCount + (filters.listingType ? 1 : 0)
+  const resultCount = commuteResults ? commuteResults.length : capped ? total : pins.length
+  const sheetLabel = (t: string) => <p className="text-[11px] uppercase tracking-widest mb-2 font-semibold" style={{ color: 'var(--text-muted)' }}>{t}</p>
+
   return (
     <div className="page">
       <Navbar />
+
+      {/* ── Phones: all filters in a bottom sheet ── */}
+      {sheetOpen && (
+        <div className="md:hidden fixed inset-0 z-[70] flex flex-col justify-end" role="dialog" aria-label="Filters">
+          <div className="absolute inset-0" style={{ background: 'rgba(15,23,42,0.45)' }} onClick={() => setSheetOpen(false)} />
+          <div className="relative rounded-t-3xl flex flex-col max-h-[85vh] shadow-2xl animate-[sheetUp_.22s_ease-out]" style={{ background: 'var(--surface)' }}>
+            <div className="flex justify-center pt-2.5"><span className="w-10 h-1 rounded-full" style={{ background: 'var(--border)' }} /></div>
+            <div className="flex items-center justify-between px-5 pt-2 pb-3" style={{ borderBottom: '1px solid var(--border)' }}>
+              <p className="font-bold" style={{ color: 'var(--text)' }}>Filters</p>
+              <button onClick={() => setSheetOpen(false)} aria-label="Close filters" className="p-1.5 -mr-1.5" style={{ color: 'var(--text-muted)' }}><X size={18} /></button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+              <div>
+                {sheetLabel('Purpose')}
+                <div className="flex gap-2">
+                  {([['', 'All'], ['sale', 'Buy'], ['rent', 'Rent']] as const).map(([v, l]) => (
+                    <Pill key={l} active={(filters.listingType || '') === v} onClick={() => setFilter('listingType', v)} className="flex-1 py-2 justify-center">{l}</Pill>
+                  ))}
+                </div>
+              </div>
+              <div>
+                {sheetLabel('Property type')}
+                <div className="flex flex-wrap gap-1.5">
+                  {TYPES.map(t => (
+                    <Pill key={t.v || 'all'} active={(filters.type || '') === t.v} onClick={() => setFilter('type', t.v)} className="px-3 py-1.5">{t.l}</Pill>
+                  ))}
+                </div>
+              </div>
+              <div>
+                {sheetLabel('Area')}
+                <select value={filters.area || ''} onChange={e => setFilter('area', e.target.value)}
+                  className="w-full h-11 rounded-xl px-3 text-sm" style={{ background: 'var(--bg-alt)', border: '1px solid var(--border)', color: 'var(--text)' }}>
+                  <option value="">Any area</option>
+                  {AREAS.map(a => <option key={a} value={a}>{a}</option>)}
+                </select>
+              </div>
+              <div>
+                {sheetLabel('Bedrooms')}
+                <div className="flex flex-wrap gap-1.5">
+                  {BEDS.map(b => (
+                    <Pill key={b} active={filters.bedrooms === b} onClick={() => setFilter('bedrooms', filters.bedrooms === b ? '' : b)} className="px-3 py-1.5">
+                      {b === 'Studio' ? 'Studio' : `${b} BR`}
+                    </Pill>
+                  ))}
+                </div>
+              </div>
+              {filters.listingType === 'rent' && (
+                <div>
+                  {sheetLabel('Rental availability')}
+                  <div className="flex flex-wrap gap-1.5">
+                    {AVAILABILITY_FILTERS.map(o => (
+                      <Pill key={o.v} active={(filters.rentalStatus || '') === o.v} onClick={() => setFilter('rentalStatus', o.v)} className="px-3 py-1.5">{o.l}</Pill>
+                    ))}
+                    {AVAILABLE_WITHIN.filter(o => o.v).map(o => (
+                      <Pill key={o.v} active={filters.availableWithin === o.v} onClick={() => setFilter('availableWithin', filters.availableWithin === o.v ? 0 : o.v)} className="px-3 py-1.5">{o.l}</Pill>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div>
+                {sheetLabel('Price')}
+                <div className="flex flex-wrap gap-1.5">
+                  {PRICES.map(p => (
+                    <Pill key={p.l} active={filters.priceMin === p.min && filters.priceMax === p.max} onClick={() => { setFilter('priceMin', p.min); setFilter('priceMax', p.max) }} className="px-3 py-1.5">{p.l}</Pill>
+                  ))}
+                </div>
+              </div>
+              <Link href={backHref} className="inline-flex items-center gap-1.5 text-sm font-medium" style={{ color: 'var(--text-mid)' }}>
+                <LayoutList size={15} /> Back to list page
+              </Link>
+            </div>
+
+            <div className="flex items-center gap-3 px-5 py-3" style={{ borderTop: '1px solid var(--border)', paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
+              <button onClick={() => { clearAllFilters(); setFilter('listingType', '') }} className="btn-ghost btn-sm flex-shrink-0" disabled={!sheetCount && !query}>Clear all</button>
+              <button onClick={() => setSheetOpen(false)} className="btn-primary flex-1 justify-center">
+                {loading ? 'Searching…' : `Show ${resultCount.toLocaleString()} ${resultCount === 1 ? 'result' : 'results'}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Navbar renders its own 64px spacer in normal flow (see
           layouts/Navbar.tsx), so this fills what's left of the viewport — on phones also
@@ -368,23 +461,23 @@ function MapSearchClientInner() {
         >
           <Link
             href={backHref}
-            className="flex items-center gap-1.5 text-sm font-medium flex-shrink-0 transition-colors hover:text-[var(--teal)]"
+            className="hidden md:flex items-center gap-1.5 text-sm font-medium flex-shrink-0 transition-colors hover:text-[var(--teal)]"
             style={{ color: 'var(--text-mid)' }}
           >
             <LayoutList size={15} />
             <span className="hidden sm:inline">Back to list</span>
           </Link>
 
-          <div className="w-px self-stretch flex-shrink-0" style={{ background: 'var(--border)' }} />
+          <div className="w-px self-stretch flex-shrink-0 hidden md:block" style={{ background: 'var(--border)' }} />
 
-          <span className="text-sm flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
+          <span className="text-sm flex-shrink-0 hidden md:inline" style={{ color: 'var(--text-muted)' }}>
             {commuteResults ? `${commuteResults.length.toLocaleString()} within ${commute.minutes} min` : loading && pins.length === 0 ? 'Loading…' : `${(capped ? total : pins.length).toLocaleString()} properties`}
           </span>
 
           <div className="w-px self-stretch flex-shrink-0 hidden md:block" style={{ background: 'var(--border)' }} />
 
           {/* View toggle / list collapse — top-right on phones, far right on desktop */}
-          <div className="flex items-center gap-1 ml-auto flex-shrink-0 md:order-last">
+          <div className="hidden md:flex items-center gap-1 ml-auto flex-shrink-0 md:order-last">
             {/* Desktop: collapse the results panel */}
             <button
               onClick={() => setPanelOpen(o => !o)}
@@ -411,17 +504,32 @@ function MapSearchClientInner() {
           </div>
 
           {/* One box: jump the map to a place, or search listings by keyword */}
-          <MapPlaceSearch
-            query={query}
-            onQueryChange={setQuery}
-            onSubmitKeyword={submitQuery}
-            onClear={clearSearch}
-            place={place}
-            onPlace={goToPlace}
-          />
+          <div className="flex items-center gap-2 w-full md:contents">
+            <MapPlaceSearch
+              query={query}
+              onQueryChange={setQuery}
+              onSubmitKeyword={submitQuery}
+              onClear={clearSearch}
+              place={place}
+              onPlace={goToPlace}
+            />
+            {/* Phones: every filter lives in a bottom sheet */}
+            <button
+              type="button"
+              onClick={() => setSheetOpen(true)}
+              aria-label="Filters"
+              className="md:hidden relative flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center"
+              style={{ border: '1px solid var(--border)', background: sheetCount ? 'rgba(203,1,1,0.08)' : 'var(--surface)', color: sheetCount ? 'var(--teal)' : 'var(--text-mid)' }}
+            >
+              <SlidersHorizontal size={17} />
+              {sheetCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold flex items-center justify-center text-white" style={{ background: 'var(--teal)' }}>{sheetCount}</span>
+              )}
+            </button>
+          </div>
 
           {/* Filters: their own scrollable row on phones so the search box above keeps the full width */}
-          <div className="flex items-center gap-2 w-full overflow-x-auto md:w-auto md:contents [&>*]:flex-shrink-0 pb-0.5 md:pb-0" style={{ scrollbarWidth: 'none' }}>
+          <div className="hidden md:contents">
           {/* Purpose */}
           <div className="flex gap-1 flex-shrink-0">
             <Pill active={filters.listingType === 'sale'} onClick={() => setFilter('listingType', filters.listingType === 'sale' ? '' : 'sale')} className="px-2.5 py-1.5">Buy</Pill>
@@ -498,7 +606,7 @@ function MapSearchClientInner() {
 
           {(activeCount > 0 || query) && (
             <button
-              onClick={() => { setFilters(f => ({ ...f, type: '', area: '', bedrooms: '', priceMin: 0, priceMax: 0, q: '', rentalStatus: '', availableWithin: 0 })); setQuery('') }}
+              onClick={clearAllFilters}
               className="text-xs flex-shrink-0 px-1"
               style={{ color: 'var(--text-muted)' }}
             >
@@ -540,7 +648,8 @@ function MapSearchClientInner() {
               pins={shownPins}
               selectedId={selectedId}
               hoverId={hoverId}
-              onSelect={setSelectedId}
+              onSelect={selectOne}
+              onStackSelect={ids => { setStackIds(ids); setSelectedId(ids[0]) }}
               onHover={setHoverId}
               onViewportChange={setViewport}
               drawMode={drawMode}
@@ -560,6 +669,20 @@ function MapSearchClientInner() {
               initialView={initialView}
               fitSignal={fitSignal}
             />
+
+            {/* Phones: switch between the map and the results list */}
+            {!only && !(selectedPin && mobileView === 'map') && (
+              <button
+                type="button"
+                onClick={() => setMobileView(v => v === 'map' ? 'list' : 'map')}
+                className="md:hidden absolute bottom-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold shadow-xl"
+                style={{ background: 'var(--text)', color: 'var(--surface)' }}
+              >
+                {mobileView === 'map'
+                  ? <><List size={15} /> List · {(commuteResults ? commuteResults.length : capped ? total : pins.length).toLocaleString()}</>
+                  : <><MapIcon size={15} /> Map</>}
+              </button>
+            )}
 
             {only && !loading && (
               <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 rounded-full pl-4 pr-1.5 py-1.5 shadow-lg max-w-[calc(100%-1.5rem)]"
@@ -637,7 +760,11 @@ function MapSearchClientInner() {
                 {selectedPin && drawMode === 'none' && (
                   <PinPreviewCard
                     pin={selectedPin}
-                    onClose={() => setSelectedId(null)}
+                    onClose={() => selectOne(null)}
+                    stack={stackIds && selectedId && stackIds.includes(selectedId) ? {
+                      index: stackIds.indexOf(selectedId), total: stackIds.length,
+                      go: (d: number) => setSelectedId(stackIds[(stackIds.indexOf(selectedId) + d + stackIds.length) % stackIds.length]),
+                    } : undefined}
                     onStreetView={p => engineRef.current?.openStreetView(p.lat, p.lng) ?? Promise.resolve(false)}
                     routes={routes}
                     routesLoading={routesLoading}

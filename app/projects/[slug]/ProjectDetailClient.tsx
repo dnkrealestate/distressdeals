@@ -7,19 +7,20 @@ import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowLeft, MapPin, CalendarClock, Wallet, BedDouble, Bath, Home, ShieldCheck, Phone, Building2, MessageCircleHeart, MessageCircle, Share2,
-  ChevronDown, ChevronUp, TrainFront, GraduationCap, ShoppingBag, Landmark as LandmarkIcon, Plane, Search, Loader2, Navigation, Maximize2, Tag, Clock, X, Map as MapIcon,
+  BadgeCheck, Info, ChevronDown, ChevronUp, HeartPulse, TrainFront, GraduationCap, ShoppingBag, Landmark as LandmarkIcon, Plane, Search, Loader2, Navigation, Maximize2, Tag, Clock, X, Map as MapIcon,
 } from 'lucide-react'
 import Navbar from '@/components/layouts/Navbar'
 import Footer from '@/components/layouts/Footer'
 import ProjectInterestModal from '@/components/buyer/ProjectInterestModal'
 import { projectAPI } from '@/lib/api'
 import { COMPANY_PHONE_DISPLAY, telHref, whatsappHref } from '@/lib/contact'
-import { formatPrice, cn, timeAgo } from '@/lib/utils'
+import { formatPrice, cn, timeAgo, isHandedOver } from '@/lib/utils'
 import { AMENITY_META } from '@/lib/amenities'
 import { haversineKm, formatDistanceKm, geocodePlace, type GeocodeResult } from '@/lib/distance'
 import type { Project } from '@/types'
 import RecentlyViewedCard from '@/components/buyer/RecentlyViewedCard'
 import AdSlot from '@/components/shared/AdSlot'
+import InfoBadge, { VERIFIED_NOTE, OFF_PLAN_NOTE } from '@/components/shared/InfoBadge'
 import ImageLightbox from '@/components/shared/ImageLightbox'
 import { Camera } from 'lucide-react'
 import { addRecentlyViewed } from '@/lib/recentlyViewed'
@@ -42,10 +43,10 @@ function landDepartmentFor(emirate?: string): string {
 }
 
 const LANDMARK_ICON: Record<string, any> = {
-  metro: TrainFront, school: GraduationCap, mall: ShoppingBag, landmark: LandmarkIcon, airport: Plane,
+  metro: TrainFront, school: GraduationCap, mall: ShoppingBag, landmark: LandmarkIcon, airport: Plane, hospital: HeartPulse,
 }
 const LANDMARK_LABEL: Record<string, string> = {
-  metro: 'Metro Stations', school: 'Schools', mall: 'Malls', landmark: 'Landmarks', airport: 'Airports',
+  metro: 'Metro Stations', school: 'Schools', mall: 'Malls', landmark: 'Landmarks', airport: 'Airports', hospital: 'Hospitals',
 }
 
 // Tabs are built from whatever floor-plan entries the admin added — no
@@ -428,6 +429,10 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
               <span className="text-sm font-semibold group-hover:underline" style={{ color: 'var(--teal)' }}>{project.developer}</span>
             </Link>
             <h1 className="heading-lg mb-2 leading-tight">{project.title}</h1>
+            <div className="flex items-center gap-1.5 flex-wrap mb-3">
+              <InfoBadge label="Verified" icon={BadgeCheck} title="Verified listing" message={VERIFIED_NOTE} style={{ background: 'rgba(22,163,74,0.10)', color: '#15803D', border: '1px solid rgba(22,163,74,0.25)' }} />
+              {project.status !== 'ready' && !isHandedOver(project) && <InfoBadge label="Off-plan" icon={Info} title="Off-plan initial sale" message={OFF_PLAN_NOTE} style={{ background: 'rgba(139,92,246,0.10)', color: '#7C3AED', border: '1px solid rgba(139,92,246,0.25)' }} />}
+            </div>
             <div className="flex items-center gap-3 flex-wrap mb-8">
               <p className="text-sm flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
                 <MapPin size={13} style={{ color: 'var(--teal)' }} />{project.area}, {project.city}
@@ -586,6 +591,8 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                       <Fact key={l} icon={Icon} label={l} value={v as string} />
                     ))}
                   </div>
+                  {/* DLD permit QR — only when there's permit data to show. */}
+                  {(project.permitQrImage || project.permitNumber) && (
                   <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
                     {project.permitQrImage ? (
                       <img
@@ -593,19 +600,16 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                         alt="DLD Permit QR code" width={90} height={90} className="rounded-lg object-cover"
                         style={{ border: '1px solid var(--border)' }}
                       />
-                    ) : project.permitNumber ? (
+                    ) : (
                       <img
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${encodeURIComponent(project.permitNumber)}`}
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${encodeURIComponent(project.permitNumber || "")}`}
                         alt="DLD Permit QR code" width={90} height={90} className="rounded-lg"
                         style={{ border: '1px solid var(--border)' }}
                       />
-                    ) : (
-                      <div className="w-[90px] h-[90px] rounded-lg flex items-center justify-center" style={{ background: 'var(--bg-alt)', border: '1px dashed var(--border)' }}>
-                        <LandmarkIcon size={22} style={{ color: 'var(--text-muted)', opacity: 0.4 }} />
-                      </div>
                     )}
                     <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>DLD Permit</p>
                   </div>
+                  )}
                 </div>
               </div>
             </div>

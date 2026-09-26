@@ -2,7 +2,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { useDropzone } from 'react-dropzone'
 import {
   UploadCloud, X, ImageIcon, Loader2, QrCode, Crosshair,
@@ -272,7 +272,7 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
     setType((v === 'residential' ? RESIDENTIAL_TYPES : COMMERCIAL_TYPES)[0].value)
   }
 
-  const { register, handleSubmit, getValues, setValue, watch, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, getValues, setValue, watch, control, formState: { errors } } = useForm<FormValues>({
     defaultValues: property ? {
       title: property.title, titleAr: property.titleAr, price: property.price,
       developer: property.developer, projectName: property.projectName, permitNumber: property.permitNumber,
@@ -677,7 +677,9 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
                 {errors.area && <p className="text-xs mt-1" style={{ color: '#FB7185' }}>Location is required</p>}
               </Field>
               <Field label="Community">
-                <CommunitySelect key={`community-${locationVersion}`} field={register('community')} value={watch('community')} emirate={watch('emirate')} list={communities} />
+                <Controller name="community" control={control} render={({ field }) => (
+                  <CommunitySelect value={field.value || ''} onChange={field.onChange} emirate={watch('emirate')} list={communities} />
+                )} />
               </Field>
               <Field label="Emirate">
                 <select key={`emirate-${locationVersion}`} className="select-field" {...register('emirate')}>

@@ -226,7 +226,7 @@ function ProjectsListClientInner() {
   const clearAll = () => setFilters(f => ({ ...f, area: '', developer: '', status: '', emirate: '', type: '', priceMin: 0, priceMax: 0, handover: '', quarter: '' }))
 
   return (
-    <div className="page overflow-x-hidden">
+    <div className="page overflow-x-clip">
       <Navbar />
       <ProjectCompareBar />
 
@@ -247,7 +247,8 @@ function ProjectsListClientInner() {
       </div>
 
       {/* ── Modern floating filter card ──────────────────── */}
-      <div className="wrap pt-6 pb-2 lg:sticky lg:top-20 z-30">
+      {/* Scrolls away with the page, like the for-sale page — only the sidebar ad sticks. */}
+      <div className="wrap pt-6 pb-2 relative z-30">
         <div
           className="rounded-3xl p-4 sm:p-5"
           style={{
@@ -485,8 +486,10 @@ function ProjectsListClientInner() {
           <aside className="hidden xl:flex flex-col gap-5 flex-shrink-0 w-[300px]">
             <TopDevelopersCard developers={developers} />
             <RecentlyViewedCard />
-            {/* Not sticky here — the pinned filter card above is too tall to leave room for a 600px banner. */}
-            <AdSlot placement="listings" variant="tall" />
+            {/* Sticks under the navbar, same as the for-sale page. */}
+            <div className="sticky" style={{ top: 88 }}>
+              <AdSlot placement="listings" variant="tall" />
+            </div>
           </aside>
         </div>
       </section>

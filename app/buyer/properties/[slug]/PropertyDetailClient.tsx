@@ -22,6 +22,7 @@ import Footer from '@/components/layouts/Footer'
 import PropertyCard from '@/components/buyer/PropertyCard'
 import RecentlyViewedCard from '@/components/buyer/RecentlyViewedCard'
 import AdSlot from '@/components/shared/AdSlot'
+import InfoBadge, { OFF_PLAN_NOTE } from '@/components/shared/InfoBadge'
 import RentalBadge from '@/components/buyer/RentalBadge'
 import { rentalLabel } from '@/lib/rental'
 import LeadModal from '../../LeadModal'
@@ -311,7 +312,7 @@ export default function PropertyDetailClient({ property }: { property: Property 
                     {property.listingType === 'sale' ? 'For Sale' : 'For Rent'}
                   </span>
                   {property.listingType === 'rent' && <RentalBadge property={property} className="!text-xs !px-2.5 !py-1" />}
-                  {property.completion === 'off_plan' && <span className="badge badge-purple">Off-Plan</span>}
+                  {property.completion === 'off_plan' && <InfoBadge label="Off-Plan" title="Off-plan initial sale" message={OFF_PLAN_NOTE} className="badge-purple" />}
                   {property.isFeatured && (
                     <span className="badge" style={{ background: 'var(--grad)', color: '#fff', border: 'none' }}>
                       ✦ Featured
@@ -565,6 +566,8 @@ export default function PropertyDetailClient({ property }: { property: Property 
                           </div>
                         ))}
                       </div>
+                      {/* DLD permit QR — only when there's permit data to show. */}
+                      {(property.permitQrImage || property.permitNumber) && (
                       <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
                         {property.permitQrImage ? (
                           <img
@@ -572,19 +575,16 @@ export default function PropertyDetailClient({ property }: { property: Property 
                             alt="DLD Permit QR code" width={90} height={90} className="rounded-lg object-cover"
                             style={{ border: '1px solid var(--border)' }}
                           />
-                        ) : property.permitNumber ? (
+                        ) : (
                           <img
-                            src={`https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${encodeURIComponent(property.permitNumber)}`}
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${encodeURIComponent(property.permitNumber || "")}`}
                             alt="DLD Permit QR code" width={90} height={90} className="rounded-lg"
                             style={{ border: '1px solid var(--border)' }}
                           />
-                        ) : (
-                          <div className="w-[90px] h-[90px] rounded-lg flex items-center justify-center" style={{ background: 'var(--bg-alt)', border: '1px dashed var(--border)' }}>
-                            <Landmark size={22} style={{ color: 'var(--text-muted)', opacity: 0.4 }} />
-                          </div>
                         )}
                         <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>DLD Permit</p>
                       </div>
+                      )}
                     </div>
                   </div>
                 </div>

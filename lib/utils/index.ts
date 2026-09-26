@@ -81,3 +81,13 @@ export function propertyStatusColor(status: string): string {
 export function numberWithCommas(n: number): string {
   return n.toLocaleString('en-AE')
 }
+// Handover date already passed → still listed, but no longer a "New Project" / off-plan. Mirrors the backend rule:
+// the current quarter still counts as upcoming, a year without a quarter counts until the year ends.
+export function isHandedOver(p: { handoverYear?: number | null; handoverQuarter?: string | null }, now = new Date()): boolean {
+  if (!p.handoverYear) return false
+  const y = now.getFullYear(), q = Math.floor(now.getMonth() / 3) + 1
+  if (p.handoverYear < y) return true
+  if (p.handoverYear > y) return false
+  const pq = Number(String(p.handoverQuarter || '').replace(/\D/g, '')) || 0
+  return pq > 0 && pq < q
+}

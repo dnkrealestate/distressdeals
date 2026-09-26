@@ -27,6 +27,9 @@ interface Props {
   selectedId: string | null
   hoverId: string | null
   onSelect: (id: string | null) => void
+  // Several listings at the very same spot (one project with several phases/units): the map shows one marker with
+  // the count; clicking it hands the page all of them (ids, in order).
+  onStackSelect?: (ids: string[]) => void
   onHover: (id: string | null) => void
   onViewportChange: (v: ViewState) => void
   drawMode: DrawMode
@@ -59,6 +62,7 @@ const BRAND = '#CB0101'
 type RenderItem =
   | { key: string; kind: 'pin'; lat: number; lng: number; pin: MapPin; color?: string }
   | { key: string; kind: 'cluster'; lat: number; lng: number; pins: MapPin[] }
+  | { key: string; kind: 'stack'; lat: number; lng: number; pins: MapPin[] }
 
 // ── Overlay layer that owns every price pill and cluster bubble ─────────────
 // One OverlayView (not one per marker) so 1000 pins is a single DOM subtree
@@ -70,7 +74,7 @@ function createPinLayer(g: any) {
     items: RenderItem[] = []
     selectedId: string | null = null
     hoverId: string | null = null
-    handlers: { onPin: (p: MapPin) => void; onCluster: (pins: MapPin[]) => void; onHover: (id: string | null) => void }
+    handlers: { onPin: (p: MapPin) => void; onCluster: (pins: MapPin[]) => void; onStack: (pins: MapPin[]) => void; onHover: (id: string | null) => void }
 
     constructor(handlers: PinLayer['handlers']) {
       super()
@@ -112,6 +116,7 @@ function createPinLayer(g: any) {
         e.stopPropagation()
         const it = (anchor as any).__item as RenderItem
         if (it.kind === 'pin') this.handlers.onPin(it.pin)
+        else if (it.kind === 'stack') this.handlers.onStack(it.pins)
         else this.handlers.onCluster(it.pins)
       })
       anchor.addEventListener('mouseenter', () => {
@@ -129,6 +134,21 @@ function createPinLayer(g: any) {
     private paint(anchor: HTMLElement, item: RenderItem) {
       const inner = anchor.firstChild as HTMLElement
       ;(anchor as any).__item = item
+      if (item.kind === 'stack') {
+        const n = item.pins.length
+        const allProjects = item.pins.every(p => p.kind === 'project')
+        const from = item.pins.reduce((m, p) => (p.price && p.price < m.price ? p : m), item.pins[0])
+        inner.className = 'map-pin map-stack'
+        inner.style.background = ''
+        inner.innerHTML = ''
+        const count = document.createElement('span')
+        count.className = 'map-stack-count'
+        count.textContent = String(n)
+        inner.appendChild(count)
+        inner.appendChild(document.createTextNode(` ${allProjects ? 'projects' : 'listings'} · from ${compactPrice(from)}`))
+        inner.title = `${n} ${allProjects ? 'projects' : 'listings'} at this location — click to see them`
+        return
+      }
       if (item.kind === 'cluster') {
         const n = item.pins.length
         const size = Math.round(Math.min(64, 34 + Math.log2(n) * 7))
@@ -169,6 +189,12 @@ function createPinLayer(g: any) {
       this.els.forEach(el => {
         const it = (el as any).__item as RenderItem
         const inner = el.firstChild as HTMLElement
+        if (it.kind === 'stack') {
+          const sel = it.pins.some(p => p.id === this.selectedId)
+          inner.classList.toggle('is-selected', sel)
+          el.style.zIndex = sel ? '1000' : '5'
+          return
+        }
         if (it.kind !== 'pin') { el.style.zIndex = '1'; return }
         const selected = it.pin.id === this.selectedId
         const hover = it.pin.id === this.hoverId
@@ -200,16 +226,26 @@ function buildItems(
   heat: ((p: MapPin) => string) | null, clustering: boolean,
 ): RenderItem[] {
   const single = (p: MapPin): RenderItem => ({ key: p.id, kind: 'pin', lat: p.lat, lng: p.lng, pin: p, color: heat ? heat(p) : undefined })
+  // Listings on (practically) the same coordinate — ~10 m — can never be separated by zooming, so they always show
+  // as one "N projects" marker.
+  const spot = (p: MapPin) => `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`
+  const bySpot = new Map<string, MapPin[]>()
+  pins.forEach(p => { const k = spot(p); const g2 = bySpot.get(k); if (g2) g2.push(p); else bySpot.set(k, [p]) })
+  const stackOf = (group: MapPin[], k: string): RenderItem => ({ key: `s:${k}:${group.length}`, kind: 'stack', lat: group[0].lat, lng: group[0].lng, pins: group })
   const zoom = map.getZoom() ?? 11
   const proj = map.getProjection()
-  if (!clustering || !proj || zoom >= CLUSTER_MAX_ZOOM || pins.length < 2) return pins.map(single)
+  if (!clustering || !proj || zoom >= CLUSTER_MAX_ZOOM || pins.length < 2) {
+    const out: RenderItem[] = []
+    bySpot.forEach((group, k) => out.push(group.length > 1 ? stackOf(group, k) : single(group[0])))
+    return out
+  }
 
   const scale = 2 ** zoom
   const cells = new Map<string, MapPin[]>()
   const items: RenderItem[] = []
   for (const p of pins) {
     // The selected pin always stays visible on its own.
-    if (p.id === selectedId) { items.push(single(p)); continue }
+    if (p.id === selectedId && bySpot.get(spot(p))!.length === 1) { items.push(single(p)); continue }
     const pt = proj.fromLatLngToPoint(new g.maps.LatLng(p.lat, p.lng))
     const key = `${Math.floor((pt.x * scale) / CLUSTER_CELL_PX)}:${Math.floor((pt.y * scale) / CLUSTER_CELL_PX)}`
     const bucket = cells.get(key)
@@ -217,6 +253,8 @@ function buildItems(
   }
   cells.forEach((group, key) => {
     if (group.length === 1) { items.push(single(group[0])); return }
+    // Everything in this cell sits on one spot → a stack (zooming in would never split it).
+    if (group.every(p => spot(p) === spot(group[0]))) { items.push(stackOf(group, spot(group[0]))); return }
     const lat = group.reduce((s, p) => s + p.lat, 0) / group.length
     const lng = group.reduce((s, p) => s + p.lng, 0) / group.length
     items.push({ key: `c:${key}:${group.length}`, kind: 'cluster', lat, lng, pins: group })
@@ -246,6 +284,22 @@ export default function MapEngine(props: Props) {
   const theme = useMapTheme()
 
   // ── Rebuild pills/clusters from current props ────────────────────────────
+  // Fit the map to a set of bounds safely: waits until the map box has a real size (on phones it can still be 0 px
+  // high when results arrive — fitting then zooms all the way in: "no imagery here"), scales the padding to the
+  // screen, and caps the zoom once the map has settled.
+  const pendingFit = useRef<any>(null)
+  const fitSafely = useCallback((b: any, maxPad = 70) => {
+    const map = mapRef.current, g = gRef.current, el = containerRef.current
+    if (!map || !g || !el) return
+    const w = el.clientWidth, h = el.clientHeight
+    if (w < 80 || h < 80) { pendingFit.current = { b, maxPad }; return }
+    pendingFit.current = null
+    const pad = Math.max(20, Math.min(maxPad, Math.round(Math.min(w, h) * 0.12)))
+    // Phones: the bottom nav and floating buttons cover the lower edge — keep pins clear of them.
+    map.fitBounds(b, w < 768 ? { top: pad, left: pad, right: pad, bottom: pad + 90 } : pad)
+    g.maps.event.addListenerOnce(map, 'idle', () => { if ((map.getZoom() ?? 0) > 16) map.setZoom(16) })
+  }, [])
+
   const rebuild = useCallback(() => {
     const map = mapRef.current, layer = layerRef.current, g = gRef.current
     if (!map || !layer || !g) return
@@ -334,7 +388,11 @@ export default function MapEngine(props: Props) {
 
     // The page can resize the map's box (collapsing the results panel) — tell Google to re-measure.
     if (typeof ResizeObserver !== 'undefined') {
-      resizeObserverRef.current = new ResizeObserver(() => g.maps.event.trigger(map, 'resize'))
+      resizeObserverRef.current = new ResizeObserver(() => {
+        g.maps.event.trigger(map, 'resize')
+        // A fit that was waiting for the map to get its size.
+        if (pendingFit.current) { const { b, maxPad } = pendingFit.current; fitSafely(b, maxPad) }
+      })
       resizeObserverRef.current.observe(containerRef.current)
     }
 
@@ -348,6 +406,11 @@ export default function MapEngine(props: Props) {
         // Pins sharing (almost) one coordinate can't be pulled apart by fitting bounds — just zoom in.
         if (Math.abs(ne.lat() - sw.lat()) < 1e-5 && Math.abs(ne.lng() - sw.lng()) < 1e-5) map.setZoom(Math.min(20, (map.getZoom() ?? 11) + 3))
         else map.fitBounds(b, 90)
+      },
+      onStack: (pins: MapPin[]) => {
+        const ids = pins.map(p => p.id)
+        if (propsRef.current.onStackSelect) propsRef.current.onStackSelect(ids)
+        else propsRef.current.onSelect(ids[0])
       },
       onHover: (id: string | null) => propsRef.current.onHover(id),
     })
@@ -455,10 +518,10 @@ export default function MapEngine(props: Props) {
     const pins = propsRef.current.pins
     if (pins.length === 0) return
     pins.forEach(p => b.extend({ lat: p.lat, lng: p.lng }))
-    map.fitBounds(b, 70)
-    if ((map.getZoom() ?? 0) > 16) map.setZoom(16)
+    fitSafely(b)
+    // status too: results often arrive before the map has loaded (phones especially) — fit once it's ready.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.fitSignal])
+  }, [props.fitSignal, status])
 
   // ── Drawing tools ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -547,8 +610,7 @@ export default function MapEngine(props: Props) {
       if (!map || !g || pins.length === 0) return
       const b = new g.maps.LatLngBounds()
       pins.forEach(p => b.extend({ lat: p.lat, lng: p.lng }))
-      map.fitBounds(b, 70)
-      if ((map.getZoom() ?? 0) > 16) map.setZoom(16)
+      fitSafely(b)
     },
     panTo(lat, lng, minZoom) {
       const map = mapRef.current

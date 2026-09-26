@@ -139,6 +139,53 @@ export async function getPlaceDetails(placeId: string, sessionToken?: any): Prom
   })
 }
 
+// ── Nearby places (project landmarks) ───────────────────────────────────
+export type NearbyKind = 'metro' | 'hospital' | 'school' | 'mall' | 'airport' | 'landmark'
+export interface NearbyPlace { placeId: string; name: string; address?: string; lat: number; lng: number; reviews: number }
+
+// How each kind is searched. Nearest-first for everyday places; airports and major sights by prominence within a
+// wide radius (the nearest "airport" is otherwise a helipad), then sorted by distance by the caller.
+// Google tags many small businesses with these types (a psychiatry clinic as "hospital", an online shop as
+// "shopping_mall"), so apart from metro stations the search is by prominence within a radius, and only well-known
+// places are kept: enough Google reviews and a name that fits.
+interface NearbyQuery { type: string; keyword?: string; radius?: number; minReviews?: number; name?: RegExp; notName?: RegExp; prefer?: RegExp; fallback?: { type: string; keyword: string } }
+const NEARBY_QUERY: Record<NearbyKind, NearbyQuery> = {
+  metro:    { type: 'subway_station', fallback: { type: 'transit_station', keyword: 'metro station' } },
+  hospital: { type: 'hospital', keyword: 'hospital', radius: 15000, minReviews: 150, name: /hospital|medical city|healthcare city|medical cent(er|re)|clinic/i, prefer: /hospital/i, notName: /psychiatr|dental|pharmacy|\blab\b|laborator|veterinar|pet\b/i },
+  school:   { type: 'school', keyword: 'school', radius: 12000, minReviews: 25, name: /school|academy|college|institute|university|lyc[eé]e|gems|dess|kings'?|repton|nord anglia/i, notName: /nursery|early childhood|driving|dance|tuition|training cent|wellness|well-?being|fighting|martial|karate|taekwondo|boxing|jiu|gym|fitness|yoga|swim|music|language cent|coaching/i },
+  mall:     { type: 'shopping_mall', keyword: 'mall', radius: 10000, minReviews: 500, notName: /supermarket|hypermarket|online|\bstore\b|\bshop\b/i },
+  airport:  { type: 'airport', keyword: 'international airport', radius: 90000, name: /airport/i, notName: /department|office|authority|lounge|parking|cargo|terminal building|club|academy/i },
+  landmark: { type: 'tourist_attraction', radius: 20000, minReviews: 1500 },
+}
+
+export async function nearbyPlaces(center: { lat: number; lng: number }, kind: NearbyKind): Promise<NearbyPlace[]> {
+  const places = await loadPlaces()
+  const service = new places.PlacesService(document.createElement('div'))
+  const g = (window as any).google
+  const run = (type: string, keyword?: string, radius?: number) => new Promise<NearbyPlace[]>((resolve, reject) => {
+    const req: any = { location: new g.maps.LatLng(center.lat, center.lng), type, language: 'en' }
+    if (keyword) req.keyword = keyword
+    if (radius) req.radius = radius
+    else req.rankBy = g.maps.places.RankBy.DISTANCE
+    service.nearbySearch(req, (res: any[] | null, status: string) => {
+      if (status === 'ZERO_RESULTS') return resolve([])
+      if (status !== 'OK' || !res) return reject(new Error(status))
+      resolve(res.filter(r => r.geometry?.location).map(r => ({
+        placeId: r.place_id, name: r.name, address: r.vicinity, reviews: r.user_ratings_total || 0,
+        lat: r.geometry.location.lat(), lng: r.geometry.location.lng(),
+      })))
+    })
+  })
+  const q = NEARBY_QUERY[kind]
+  let list = await run(q.type, q.keyword, q.radius)
+  if (!list.length && q.fallback) list = await run(q.fallback.type, q.fallback.keyword)
+  const good = list.filter(p => (!q.name || q.name.test(p.name)) && !(q.notName && q.notName.test(p.name)) && p.reviews >= (q.minReviews || 0))
+  // Too strict for a quiet area? Fall back to the name rules alone rather than show nothing.
+  const preferred = q.prefer ? good.filter(p => q.prefer!.test(p.name)) : []
+  if (preferred.length >= 3) return preferred
+  return good.length >= 2 ? good : list.filter(p => (!q.name || q.name.test(p.name)) && !(q.notName && q.notName.test(p.name)))
+}
+
 export type MapStatus = 'loading' | 'ready' | 'missing-key' | 'error'
 
 // Loads the Maps script and reports where it got to. `onReady` runs once,

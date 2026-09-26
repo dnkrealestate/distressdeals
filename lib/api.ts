@@ -268,6 +268,7 @@ export const projectAPI = {
   getTypeStats:   (params?: any) => api.get('/projects/type-stats', { params }),
   // Staff: every project with who added / last edited it.
   manageAll:      (params?: any) => api.get('/projects/manage/all', { params }),
+  manageOne:      (id: string) => api.get(`/projects/manage/${id}`),
   trackShare: (id: string) => api.post(`/projects/${id}/share`),
   getAnalytics: (id: string) => api.get(`/projects/${id}/analytics`),
   aiDescription: (data: any) => api.post('/projects/ai-description', data, { timeout: 90000 }),

@@ -170,7 +170,7 @@ function CommunityContentForm({ community, initialName, onClose, onSaved }: { co
           <button type="button" onClick={() => draft.guard(onClose)} className="btn-ghost btn-sm p-2"><X size={14} /></button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto p-6 space-y-4">
+        <form {...draft.touchProps} onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto p-6 space-y-4">
           {draft.banner}
           {draft.dialog}
           {/* 1. Find it on the map  2. Let AI write it */}

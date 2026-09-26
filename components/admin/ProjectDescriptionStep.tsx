@@ -1,6 +1,6 @@
 'use client'
 import { useMemo, useState } from 'react'
-import BlockEditor, { Block, blocksToHtml, htmlToBlocks, blocksHaveContent } from '@/components/shared/BlockEditor'
+import RichEditor from '@/components/shared/RichEditor'
 import AiWriterCard, { type Tone, type Length } from '@/components/admin/seo/AiWriterCard'
 import SeoAppearancePanel, { type SeoFields } from '@/components/admin/seo/SeoAppearancePanel'
 import { projectAPI } from '@/lib/api'
@@ -19,10 +19,10 @@ export interface ProjectFacts {
 }
 
 export default function ProjectDescriptionStep({
-  blocks, onBlocksChange, seo, onSeoChange, getFacts, slug, onJump,
+  html, onHtmlChange, seo, onSeoChange, getFacts, slug, onJump,
 }: {
-  blocks: Block[]
-  onBlocksChange: (b: Block[]) => void
+  html: string
+  onHtmlChange: (html: string) => void
   seo: ProjectSeo
   onSeoChange: (s: ProjectSeo) => void
   getFacts: () => ProjectFacts
@@ -34,8 +34,7 @@ export default function ProjectDescriptionStep({
   const [generating, setGenerating] = useState(false)
   // Re-read on every render, so the chips reflect edits made in earlier steps.
   const facts = getFacts()
-  const html = useMemo(() => blocksToHtml(blocks), [blocks])
-  const hasContent = blocksHaveContent(blocks)
+  const hasContent = useMemo(() => !!html.replace(/<[^>]*>/g, '').trim() || /<(img|table)\b/i.test(html), [html])
 
   const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
   const inputs = [
@@ -58,7 +57,7 @@ export default function ProjectDescriptionStep({
     try {
       const res = await projectAPI.aiDescription({ ...facts, focusKeyword: seo.focusKeyword.trim() || undefined, tone, length })
       const d = res.data.data
-      onBlocksChange(htmlToBlocks(d.html))
+      onHtmlChange(d.html)
       onSeoChange({
         focusKeyword: seo.focusKeyword.trim() || d.focusKeyword || '',
         metaTitle: d.metaTitle || seo.metaTitle,
@@ -86,12 +85,12 @@ export default function ProjectDescriptionStep({
         generating={generating} hasContent={hasContent} onGenerate={generate}
       />
 
-      <div className="card p-6">
+      <div className="card p-6 overflow-visible">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold text-sm" style={{ color: 'var(--text)' }}>Description</h3>
           <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{words} words</span>
         </div>
-        <BlockEditor blocks={blocks} onChange={onBlocksChange} />
+        <RichEditor value={html} onChange={onHtmlChange} placeholder="Write about the project — or let the AI draft it above, then edit here." />
       </div>
 
       <SeoAppearancePanel

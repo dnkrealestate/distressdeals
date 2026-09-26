@@ -196,6 +196,20 @@ function projectsApply(f: PropertyFilters, forced?: 'sale' | 'rent'): boolean {
   return !f.bedrooms && !f.bathrooms && !f.sizeMin && !f.sizeMax && !f.rentalStatus && !f.availableWithin
 }
 
+// Which slice of each kind page `page` shows (po/jo = offsets, pr/j = counts). Projects take up to PROJECTS_PER_PAGE
+// slots, properties the rest; when one kind is used up the other fills the page.
+function slicePlan(page: number, P: number, J: number) {
+  let po = 0, jo = 0
+  for (let pg = 1; ; pg++) {
+    let j = Math.min(PROJECTS_PER_PAGE, J - jo)
+    const pr = Math.min(PER_PAGE - j, P - po)
+    j = Math.min(PER_PAGE - pr, J - jo)
+    if (pg >= page) return { po, jo, pr, j }
+    po += pr; jo += j
+    if (pr + j === 0) return { po, jo, pr: 0, j: 0 }
+  }
+}
+
 const PROJECT_STATUS_FOR: Record<string, string> = { ready: 'ready', off_plan: 'upcoming,under_construction' }
 
 const COMPLETION_TABS = [
@@ -261,7 +275,6 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
   const [totalPages, setTotalPages] = useState(initialTotalPages ?? 1)
   const [projects, setProjects] = useState<Project[]>([])
   const [projectTotal, setProjectTotal] = useState(0)
-  const [projectPages, setProjectPages] = useState(0)
   const [loading,    setLoading]    = useState(!initialProperties?.length)
   const [view,       setView]       = useState<'grid'|'list'|'map'>('list')
 
@@ -299,51 +312,56 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
     limit:       PER_PAGE,
   })
 
-  const fetchProperties = useCallback(async () => {
+  // One list, exactly PER_PAGE cards a page: up to PROJECTS_PER_PAGE new projects plus properties; once either kind
+  // runs out the other fills the page. Each page's slice is worked out from both totals and fetched by offset.
+  const fetchList = useCallback(async () => {
     setLoading(true)
+    const page = filters.page || 1
+    const clean: any = {}
+    Object.entries(filters).forEach(([k, v]) => { if (v && k !== 'page' && k !== 'limit') clean[k] = v })
+    const withProjects = projectsApply(filters, forcedListingType)
+    const pParams: Record<string, any> = {}
+    if (filters.area) pParams.area = filters.area
+    if (filters.community) pParams.community = filters.community
+    if (filters.type) pParams.type = filters.type
+    if (filters.q) pParams.q = filters.q
+    if (filters.priceMin) pParams.priceMin = filters.priceMin
+    if (filters.priceMax) pParams.priceMax = filters.priceMax
+    if (filters.completion) pParams.status = PROJECT_STATUS_FOR[filters.completion]
+
+    const getProps = (offset: number, limit: number) => propertyAPI.getAll({ ...clean, offset, limit })
+      .then(r => r.data.success ? r.data.data : null)
+    const getProjs = (offset: number, limit: number) => withProjects
+      ? projectAPI.getAll({ ...pParams, offset, limit }).then(r => r.data.success ? r.data.data : null).catch(() => null)
+      : Promise.resolve({ data: [], total: 0 })
     try {
-      const clean: any = {}
-      Object.entries(filters).forEach(([k, v]) => { if (v) clean[k] = v })
-      const res = await propertyAPI.getAll(clean)
-      if (res.data.success) {
-        setProperties(res.data.data.data)
-        setTotal(res.data.data.total)
-        setTotalPages(res.data.data.totalPages)
-      }
+      // First guess: nobody ran out on earlier pages — fetch enough from the usual offsets to fill this page.
+      const guess = slicePlan(page, Infinity, Infinity)
+      let [pr, pj] = await Promise.all([getProps(guess.po, PER_PAGE), getProjs(guess.jo, PER_PAGE)])
+      if (!pr) throw new Error('properties')
+      const P = pr.total || 0, J = pj?.total || 0
+      const plan = slicePlan(page, P, J)
+      // Someone did run out earlier → the offsets shift; fetch the exact slices.
+      if (plan.po !== guess.po && plan.pr > 0) pr = (await getProps(plan.po, plan.pr)) || pr
+      if (plan.jo !== guess.jo && plan.j > 0) pj = await getProjs(plan.jo, plan.j)
+      const propsPart = plan.po !== guess.po ? pr.data : pr.data.slice(0, plan.pr)
+      const projsPart = plan.jo !== guess.jo ? (pj?.data || []) : (pj?.data || []).slice(0, plan.j)
+      setProperties(propsPart.slice(0, plan.pr))
+      setProjects(projsPart.slice(0, plan.j))
+      setTotal(P)
+      setProjectTotal(J)
+      setTotalPages(Math.max(1, Math.ceil((P + J) / PER_PAGE)))
     } catch {
-      setProperties(Array(12).fill(null))
+      setProperties([]); setProjects([])
     } finally {
       setLoading(false)
     }
-  }, [filters])
-
-  useEffect(() => { fetchProperties() }, [fetchProperties])
-
-  // New projects matching the same search, a few per page, mixed into the list below.
-  useEffect(() => {
-    if (!projectsApply(filters, forcedListingType)) { setProjects([]); setProjectTotal(0); setProjectPages(0); return }
-    let cancelled = false
-    const params: Record<string, any> = { page: filters.page || 1, limit: PROJECTS_PER_PAGE }
-    if (filters.area) params.area = filters.area
-    if (filters.community) params.community = filters.community
-    if (filters.type) params.type = filters.type
-    if (filters.q) params.q = filters.q
-    if (filters.priceMin) params.priceMin = filters.priceMin
-    if (filters.priceMax) params.priceMax = filters.priceMax
-    if (filters.completion) params.status = PROJECT_STATUS_FOR[filters.completion]
-    projectAPI.getAll(params)
-      .then(r => {
-        if (cancelled || !r.data.success) return
-        setProjects(r.data.data.data || [])
-        setProjectTotal(r.data.data.total || 0)
-        setProjectPages(r.data.data.totalPages || 0)
-      })
-      .catch(() => { if (!cancelled) { setProjects([]); setProjectTotal(0); setProjectPages(0) } })
-    return () => { cancelled = true }
   }, [filters, forcedListingType])
 
+  useEffect(() => { fetchList() }, [fetchList])
+
   const listItems = mixListings(properties, projects, filters.sortBy || 'recommended')
-  const pageCount = Math.max(totalPages, projectPages)
+  const pageCount = totalPages
 
   // PropertyFinder-style "Apartments 1,234 · Villas 567 …" counts row —
   // reflects every active filter EXCEPT the type filter itself (that's the
@@ -766,10 +784,10 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
                 <Pagination
                   page={filters.page || 1}
                   totalPages={pageCount}
-                  onChange={p => setFilter('page', p)}
-                  total={total}
+                  onChange={p => setFilters(f => ({ ...f, page: p }))}
+                  total={total + projectTotal}
                   perPage={PER_PAGE}
-                  itemLabel={total === 1 ? 'property' : 'properties'}
+                  itemLabel={total + projectTotal === 1 ? 'listing' : 'listings'}
                 />
               </>
             )}

@@ -11,6 +11,7 @@ import {
 
 import { useAuthStore }      from '@/store/authStore'
 import { useFavoritesStore } from '@/store/favoritesStore'
+import InfoBadge, { OFF_PLAN_NOTE } from '@/components/shared/InfoBadge'
 import { useCompareStore }   from '@/store/compareStore'
 import { formatPrice, formatArea, cn, rentSuffix } from '@/lib/utils'
 import ImageSlider            from '@/components/buyer/ImageSlider'
@@ -144,7 +145,7 @@ export default function PropertyCard({
             <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
               <ListingBadge type={p.listingType} />
               {p.listingType === 'rent' && <RentalBadge property={p} onImage />}
-              {p.completion === 'off_plan' && <span className="badge badge-purple text-[10px]">Off-Plan</span>}
+              {p.completion === 'off_plan' && <InfoBadge label="Off-Plan" title="Off-plan initial sale" message={OFF_PLAN_NOTE} className="badge-purple" />}
               {p.isFeatured && (
                 <span className="badge text-[10px]" style={{ background: 'rgba(203,1,1,0.20)', color: '#CB0101', border: '1px solid rgba(203,1,1,0.40)' }}>
                   ✦ Featured
@@ -251,7 +252,7 @@ export default function PropertyCard({
             {p.listingType === 'rent' && <RentalBadge property={p} onImage />}
 
             {p.completion === 'off_plan' && (
-              <span className="badge badge-purple text-[10px]">Off-Plan</span>
+              <InfoBadge label="Off-Plan" title="Off-plan initial sale" message={OFF_PLAN_NOTE} className="badge-purple" />
             )}
 
             {p.isFeatured && (

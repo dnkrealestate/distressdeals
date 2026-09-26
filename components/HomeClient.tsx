@@ -15,14 +15,15 @@ import Navbar       from '@/components/layouts/Navbar'
 import Footer       from '@/components/layouts/Footer'
 import SearchBar    from '@/components/buyer/SearchBar'
 import PropertyCard from '@/components/buyer/PropertyCard'
+import ProjectCard from '@/components/buyer/ProjectCard'
 import BlogSection  from '@/components/BlogSection'
 import MarketWatchSection from '@/components/MarketWatchSection'
 import FeaturedProjectsSection from '@/components/FeaturedProjectsSection'
 import MapExploreSection from '@/components/MapExploreSection'
 import MortgageSection from '@/components/MortgageSection'
-import { propertyAPI, homepageAPI, communityContentAPI } from '@/lib/api'
+import { propertyAPI, homepageAPI, communityContentAPI, projectAPI } from '@/lib/api'
 import { HOME_ICON_MAP, DEFAULT_HOME_ICON } from '@/lib/homeIcons'
-import type { Property, HomepageContent, CommunityContentWithStats } from '@/types'
+import type { Property, Project, HomepageContent, CommunityContentWithStats } from '@/types'
 
 /* ─── DATA ──────────────────────────────────────────────────── */
 // Icons are purely cosmetic and keyed by area name — the actual listing
@@ -164,7 +165,9 @@ function WhyCard({ icon, title, description }: { icon: string; title: string; de
 /* ─── HOME PAGE ─────────────────────────────────────────────── */
 export default function HomeClient({ content }: { content: HomepageContent }) {
   const [hlIdx,   setHlIdx]   = useState(0)
-  const [featured, setFeatured] = useState<Property[]>([])
+  // Featured section: featured properties, topped up with the newest listings (then new projects) so it's never
+  // empty or half-full. null = still loading.
+  const [featured, setFeatured] = useState<({ kind: 'property'; item: Property } | { kind: 'project'; item: Project })[] | null>(null)
   const [areaStats, setAreaStats] = useState<AreaStat[] | null>(null)
   const [communities, setCommunities] = useState<CommunityContentWithStats[]>([])
   const heroRef = useRef<HTMLElement>(null)
@@ -177,9 +180,25 @@ export default function HomeClient({ content }: { content: HomepageContent }) {
   }, [headlines.length])
 
   useEffect(() => {
-    propertyAPI.getFeatured()
-      .then(r => { if (r.data.success) setFeatured(r.data.data.data || []) })
-      .catch(() => {})
+    const SLOTS = 6
+    ;(async () => {
+      const get = (p: Promise<any>) => p.then(r => (r.data.success ? r.data.data.data || [] : [])).catch(() => [])
+      const [feat, latest] = await Promise.all([get(propertyAPI.getFeatured()), get(propertyAPI.getAll({ sortBy: 'newest', limit: SLOTS }))])
+      const seen = new Set<string>()
+      const props = [...feat, ...latest].filter((p: Property) => p && !seen.has(p._id) && seen.add(p._id)).slice(0, SLOTS)
+      const items: NonNullable<typeof featured> = props.map((p: Property) => ({ kind: 'property' as const, item: p }))
+      if (items.length < SLOTS) {
+        // Featured projects first, then the newest ones — until all slots are filled.
+        const [featProjects, latestProjects] = await Promise.all([
+          get(projectAPI.getAll({ limit: SLOTS, featured: 'true' })),
+          get(projectAPI.getAll({ limit: SLOTS })),
+        ])
+        ;[...featProjects, ...latestProjects].forEach((p: Project) => {
+          if (items.length < SLOTS && p && !seen.has(p._id)) { seen.add(p._id); items.push({ kind: 'project', item: p }) }
+        })
+      }
+      setFeatured(items)
+    })()
   }, [])
 
   useEffect(() => {
@@ -592,6 +611,7 @@ export default function HomeClient({ content }: { content: HomepageContent }) {
       )}
 
       {/* ─── FEATURED PROPERTIES ───────────────────────────── */}
+      {!(featured && featured.length === 0) && (
       <section className="section section-alt">
         <div className="wrap">
           <motion.div
@@ -613,20 +633,25 @@ export default function HomeClient({ content }: { content: HomepageContent }) {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {(featured.length > 0 ? featured : Array(6).fill(null)).map((p, i) => (
-              <motion.div
-                key={p?._id || i}
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.08 }}
-              >
-                <PropertyCard property={p} loading={!p} />
-              </motion.div>
-            ))}
+            {featured === null
+              ? Array.from({ length: 6 }).map((_, i) => <PropertyCard key={i} property={undefined} loading />)
+              : featured.map((entry, i) => (
+                <motion.div
+                  key={entry.item._id}
+                  initial={{ opacity: 0, y: 24 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.08 }}
+                >
+                  {entry.kind === 'project'
+                    ? <ProjectCard project={entry.item} markAsProject />
+                    : <PropertyCard property={entry.item} />}
+                </motion.div>
+              ))}
           </div>
         </div>
       </section>
+      )}
 
       {/* ─── EXPLORE ON THE MAP — right after the property listings ─── */}
       <MapExploreSection onCta={() => trackCta('map_banner')} />

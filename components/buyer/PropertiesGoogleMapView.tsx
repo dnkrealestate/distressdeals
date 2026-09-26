@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search } from 'lucide-react'
+import { Search, X } from 'lucide-react'
 import { formatPrice, rentSuffix } from '@/lib/utils'
 import { DUBAI_CENTER, baseMapOptions, useGoogleMapsStatus, useMapTheme, type MapBounds } from '@/lib/googleMaps'
 import { MAP_STYLES } from '@/lib/mapStyles'
@@ -76,6 +76,8 @@ export default function PropertiesGoogleMapView({
   const programmaticRef = useRef(false)
   const [showSearchHere, setShowSearchHere] = useState(false)
   const [fittedOnce, setFittedOnce] = useState(false)
+  // Listings sharing one spot → one "N projects" marker; clicking it lists them here.
+  const [stack, setStack] = useState<MapPin[] | null>(null)
   const theme = useMapTheme()
 
   // Init once, as soon as the Maps script is available.
@@ -106,8 +108,18 @@ export default function PropertiesGoogleMapView({
     overlaysRef.current = []
 
     const withCoords = pins.filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng))
-    withCoords.forEach(p => {
+    const spots = new Map<string, MapPin[]>()
+    withCoords.forEach(p => { const k = `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`; const l = spots.get(k); if (l) l.push(p); else spots.set(k, [p]) })
+    spots.forEach(group => {
+      const p = group[0]
       const position = new g.maps.LatLng(p.lat, p.lng)
+      if (group.length > 1) {
+        const allProjects = group.every(x => x.kind === 'project')
+        const from = Math.min(...group.map(x => x.price || Infinity))
+        const label = `${group.length} ${allProjects ? 'projects' : 'listings'} · from ${formatPrice(from)}`
+        overlaysRef.current.push(createPriceOverlay(g, map, position, label, `${group.length} at this location`, () => setStack(group), true))
+        return
+      }
       const isProject = p.kind === 'project'
       const label = isProject ? `From ${formatPrice(p.price)}` : `${formatPrice(p.price)}${rentSuffix({ listingType: p.lt, rentFrequency: p.rf })}`
       overlaysRef.current.push(
@@ -147,6 +159,32 @@ export default function PropertiesGoogleMapView({
       <div ref={containerRef} className="w-full h-full" style={{ background: 'var(--bg-alt)' }} />
 
       <MapStatusOverlay status={status} />
+
+      {stack && (
+        <div className="absolute left-3 right-3 bottom-3 sm:right-auto sm:w-[360px] z-[1000] rounded-2xl shadow-2xl overflow-hidden"
+          style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+          <div className="flex items-center justify-between px-4 py-2.5" style={{ borderBottom: '1px solid var(--border)' }}>
+            <p className="text-xs font-bold" style={{ color: 'var(--text)' }}>{stack.length} at this location</p>
+            <button onClick={() => setStack(null)} aria-label="Close" className="p-1 hover:opacity-70" style={{ color: 'var(--text-muted)' }}><X size={15} /></button>
+          </div>
+          <div className="max-h-72 overflow-y-auto">
+            {stack.map(p => (
+              <a key={p.id} href={pinHref(p)} className="flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--bg-alt)]" style={{ borderBottom: '1px solid var(--border-soft)' }}>
+                <div className="w-14 h-11 rounded-lg overflow-hidden flex-shrink-0" style={{ background: 'var(--bg-alt)' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  {p.img && <img src={p.img} alt="" className="w-full h-full object-cover" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold truncate" style={{ color: 'var(--text)' }}>{p.title}</p>
+                  <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>
+                    {p.kind === 'project' ? 'From ' : ''}{formatPrice(p.price)}{p.bedsLabel ? ` · ${p.bedsLabel} bed` : ''}{p.handover ? ` · ${p.handover}` : ''}
+                  </p>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
 
       {status === 'ready' && showSearchHere && (
         <button

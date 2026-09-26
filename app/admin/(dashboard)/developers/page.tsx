@@ -153,6 +153,7 @@ function DeveloperForm({ developer, onClose, onSaved }: { developer: Developer |
         </div>
 
         <form
+          {...draft.touchProps}
           onSubmit={handleSubmit(onSubmit)}
           onKeyDown={e => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') e.preventDefault() }}
           className="flex-1 overflow-y-auto p-6 space-y-5"

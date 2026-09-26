@@ -1,6 +1,6 @@
 import { cache } from 'react'
 import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
+import { notFound, permanentRedirect } from 'next/navigation'
 import { projectAPI } from '@/lib/api'
 import ProjectDetailClient from './ProjectDetailClient'
 import type { Project } from '@/types'
@@ -35,6 +35,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 export default async function ProjectDetailPage({ params }: { params: { slug: string } }) {
   const project = await getProject(params.slug)
   if (!project) notFound()
+  // Opened by an address it had before being renamed — send visitors (and search engines) to the current one.
+  if (project.slug && project.slug !== params.slug.toLowerCase()) permanentRedirect(`/projects/${project.slug}`)
 
   const jsonLd = {
     '@context': 'https://schema.org',

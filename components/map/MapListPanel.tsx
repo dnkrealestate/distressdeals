@@ -123,7 +123,7 @@ export default function MapListPanel({
                     <img src={p.img} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
                   )}
                   {p.kind === 'project' && (
-                    <span className="absolute bottom-1.5 left-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full text-white" style={{ background: '#8B5CF6' }}>New Project</span>
+                    <span className="absolute bottom-1.5 left-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full text-white" style={{ background: '#8B5CF6' }}>{p.handedOver ? 'Project' : 'New Project'}</span>
                   )}
                   {p.featured && (
                     <span className="absolute top-1.5 left-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full text-white" style={{ background: 'var(--grad)' }}>★ Featured</span>

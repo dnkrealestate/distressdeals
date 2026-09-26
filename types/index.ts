@@ -204,7 +204,7 @@ export interface Project {
   amenities?: Record<string, boolean>
   floorPlans?: { label: string; image: string; bedrooms?: string; size?: string; price?: number }[]
   masterPlan?: { image: string; description?: string }
-  landmarks?: { name: string; category: 'metro' | 'school' | 'mall' | 'landmark' | 'airport'; lat: number; lng: number }[]
+  landmarks?: { name: string; category: 'metro' | 'school' | 'mall' | 'landmark' | 'airport' | 'hospital'; lat: number; lng: number }[]
   videos?: { platform: 'youtube' | 'vimeo' | 'dailymotion' | '3d_view'; url: string; title?: string }[]
 }
 

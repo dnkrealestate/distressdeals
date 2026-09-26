@@ -1,9 +1,9 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
-import type { UseFormRegisterReturn } from 'react-hook-form'
 import { communityContentAPI } from '@/lib/api'
+import SearchSelect, { type SearchOption } from './SearchSelect'
 
 export interface CommunityOption { name: string; area?: string; emirate?: string }
 
@@ -43,52 +43,35 @@ export function matchCommunity(list: CommunityOption[], ...candidates: (string |
   return null
 }
 
-export default function CommunitySelect({
-  field, value, emirate, list: given,
-}: {
-  field: UseFormRegisterReturn
-  value?: string
+// Searchable community picker — type to narrow the list; grouped by emirate (the listing's own emirate first).
+export default function CommunitySelect({ value, onChange, emirate, list: given }: {
+  value: string
+  onChange: (v: string) => void
   emirate?: string          // this emirate's communities are listed first
   list?: CommunityOption[]  // pass the parent's copy when it also uses the list; otherwise it loads its own
 }) {
   const own = useCommunities()
   const list = given ?? own
-  const groups = new Map<string, CommunityOption[]>()
-  for (const c of list) {
-    const e = c.emirate || 'Dubai'
-    if (!groups.has(e)) groups.set(e, [])
-    groups.get(e)!.push(c)
-  }
-  const order = [...groups.keys()].sort((a, b) => (a === emirate ? -1 : b === emirate ? 1 : a.localeCompare(b)))
-  const known = list.some(c => c.name === value)
-
-  // When the directory arrives the options are rebuilt, and a browser drops a <select>'s selection when its chosen
-  // <option> node is replaced — put the saved value back once the new options have rendered.
-  const selectRef = useRef<HTMLSelectElement | null>(null)
-  useEffect(() => {
-    if (selectRef.current && value && selectRef.current.value !== value) selectRef.current.value = value
-  }, [list, value])
+  const options = useMemo<SearchOption[]>(() => {
+    const order = (e?: string) => (e === emirate ? '0' : '1') + (e || 'Dubai')
+    return [...list]
+      .sort((a, b) => order(a.emirate).localeCompare(order(b.emirate)) || a.name.localeCompare(b.name))
+      .map(c => ({ value: c.name, label: c.name, hint: c.area && c.area !== c.name ? `in ${c.area}` : undefined, group: c.emirate || 'Dubai' }))
+  }, [list, emirate])
 
   return (
-    <div>
-      <select className="select-field" {...field} ref={el => { field.ref(el); selectRef.current = el }}>
-        <option value="">— None —</option>
-        {/* A saved value that isn't in the directory (older listings) still shows, instead of silently blanking. */}
-        {value && !known && <option value={value}>{value}</option>}
-        {order.map(e => (
-          <optgroup key={e} label={e}>
-            {groups.get(e)!.sort((a, b) => a.name.localeCompare(b.name)).map(c => (
-              <option key={c.name} value={c.name}>{c.name}{c.area && c.area !== c.name ? ` · ${c.area}` : ''}</option>
-            ))}
-          </optgroup>
-        ))}
-      </select>
-      <p className="text-[11px] mt-1.5" style={{ color: 'var(--text-muted)' }}>
-        Not in the list?{' '}
-        <Link href="/admin/communities?new=1" target="_blank" className="inline-flex items-center gap-0.5 font-semibold hover:underline" style={{ color: 'var(--teal)' }}>
-          <Plus size={11} /> Add new community
+    <SearchSelect
+      value={value || ''}
+      onChange={onChange}
+      options={options}
+      placeholder="— None —"
+      searchPlaceholder="Search communities…"
+      emptyText="No community with that name"
+      footer={
+        <Link href="/admin/communities?new=1" target="_blank" className="inline-flex items-center gap-1 font-semibold hover:underline" style={{ color: 'var(--teal)' }}>
+          <Plus size={12} /> Add new community
         </Link>
-      </p>
-    </div>
+      }
+    />
   )
 }

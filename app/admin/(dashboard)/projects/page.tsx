@@ -2,10 +2,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
+import SearchSelect from '@/components/shared/SearchSelect'
+import NearbyLandmarkFinder from '@/components/admin/NearbyLandmarkFinder'
+import Pagination from '@/components/shared/Pagination'
 import { useDropzone } from 'react-dropzone'
 import {
-  Plus, X, Trash2, Pencil, Building2, UploadCloud, Loader2, Star, Eye, QrCode, Save,
+  Plus, X, Trash2, Pencil, Building2, UploadCloud, Loader2, Star, Eye, QrCode, Save, Search, LayoutList, LayoutGrid,
   BarChart3, MessageCircleHeart, Share2, Map as MapIcon, Crosshair, UserRound, ChevronLeft, ChevronRight, GripVertical,
   Image as ImagePlaceholder, Video as VideoIcon, LayoutGrid as MasterPlanIcon,
 } from 'lucide-react'
@@ -17,12 +20,11 @@ import { AMENITY_META, AMENITY_GROUPS } from '@/lib/amenities'
 import { reverseGeocode, type GeocodeResult } from '@/lib/distance'
 import { LocationSearch } from '@/components/shared/LocationSearch'
 import StepIndicator from '@/components/shared/StepIndicator'
-import { Block, htmlToBlocks, blocksToHtml } from '@/components/shared/BlockEditor'
 import ProjectDescriptionStep, { type ProjectSeo, type ProjectFacts } from '@/components/admin/ProjectDescriptionStep'
 import { PerformanceStats } from '@/components/admin/PerformanceStats'
 import type { Project, Developer } from '@/types'
 import toast from 'react-hot-toast'
-import { useFormDraft } from '@/lib/useFormDraft'
+import { useFormDraft, listDrafts, removeDraft, timeAgoShort } from '@/lib/useFormDraft'
 
 const LocationPickerMap = dynamic(() => import('@/components/shared/LocationPickerMap'), {
   ssr: false,
@@ -35,6 +37,7 @@ const LANDMARK_CATEGORIES = [
   { value: 'mall',     label: 'Mall'          },
   { value: 'landmark', label: 'Landmark'      },
   { value: 'airport',  label: 'Airport'       },
+  { value: 'hospital', label: 'Hospital'      },
 ]
 
 const VIDEO_PLATFORMS = [
@@ -143,7 +146,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 // ══════════════════════════ Form ══════════════════════════
 
-function ProjectForm({ project, onClose, onSaved }: { project: Project | null; onClose: () => void; onSaved: () => void }) {
+function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project | null; draftKey?: string; onClose: () => void; onSaved: () => void }) {
   const [step, setStep] = useState<number>(1)
   const [uploadTab, setUploadTab] = useState<'images' | 'floorplans' | 'masterplan' | 'videos'>('images')
 
@@ -151,7 +154,7 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
   const [uploadingCover, setUploadingCover] = useState(false)
   const [gallery, setGallery] = useState<string[]>(project?.images?.map(i => i.url) || [])
   const [uploadingGallery, setUploadingGallery] = useState(false)
-  const [blocks, setBlocks] = useState<Block[]>(() => htmlToBlocks(project?.description || ''))
+  const [descriptionHtml, setDescriptionHtml] = useState(project?.description || '')
   const [seo, setSeo] = useState<ProjectSeo>({
     metaTitle: project?.metaTitle || '', metaDescription: project?.metaDescription || '', focusKeyword: project?.focusKeyword || '',
     keywords: project?.seoKeywords || [],
@@ -186,7 +189,10 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
   const [locationVersion, setLocationVersion] = useState(0)
 
   useEffect(() => {
-    developerAPI.getAll().then(r => { if (r.data.success) setDevelopers(r.data.data || []) }).catch(() => {})
+    const load = () => developerAPI.getAll().then(r => { if (r.data.success) setDevelopers(r.data.data || []) }).catch(() => {})
+    load()
+    window.addEventListener('focus', load)
+    return () => window.removeEventListener('focus', load)
   }, [])
 
   const [draftDeveloper, setDraftDeveloper] = useState('')
@@ -279,7 +285,7 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
     maxSize: 5 * 1024 * 1024, multiple: false,
   })
 
-  const { register, handleSubmit, setValue, getValues, watch, reset, formState: { errors } } = useForm({
+  const { register, handleSubmit, setValue, getValues, watch, reset, control, formState: { errors } } = useForm({
     defaultValues: {
       title:           project?.title || '',
       developer:       project?.developer || '',
@@ -307,17 +313,17 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
   // Draft: everything typed, picked or uploaded is kept until the project is saved (lib/useFormDraft) — restored on
   // reopen, and closing / leaving with changes asks "save as draft?". The "Save draft" button saves on demand.
   const draft = useFormDraft({
-    key: `project:${project?._id || 'new'}`,
+    key: draftKey || `project:${project?._id || 'new'}`,
     values: {
-      ...watch(), coverImage, gallery, blocks, seo, permitQrImage, amenities, floorPlans,
+      ...watch(), coverImage, gallery, descriptionHtml, seo, permitQrImage, amenities, floorPlans,
       masterPlanImage, masterPlanDescription, landmarks, videos,
     },
     onRestore: d => {
-      const { coverImage: c, gallery: g, blocks: b, seo: so, permitQrImage: q, amenities: am, floorPlans: fp,
+      const { coverImage: c, gallery: g, descriptionHtml: dh, seo: so, permitQrImage: q, amenities: am, floorPlans: fp,
         masterPlanImage: mi, masterPlanDescription: md, landmarks: lm, videos: v, ...fields } = d as any
       setDraftDeveloper(fields.developer || '')
       reset(fields)
-      setCoverImage(c || ''); setGallery(g || []); if (b?.length) setBlocks(b); if (so) setSeo(so)
+      setCoverImage(c || ''); setGallery(g || []); if (typeof dh === 'string') setDescriptionHtml(dh); if (so) setSeo(so)
       setPermitQrImage(q || ''); setAmenities(am || {}); setFloorPlans(fp || []); setMasterPlanImage(mi || '')
       setMasterPlanDescription(md || ''); setLandmarks(lm || []); setVideos(v || [])
       if (fields.area) setLocatedIn(`${fields.emirate || 'Dubai'} / ${fields.area}`)
@@ -433,7 +439,7 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
     setSubmitting(true)
     const payload: any = {
       title: data.title, developer: data.developer,
-      description: blocksToHtml(blocks),
+      description: descriptionHtml,
       coverImage, images: gallery.map(url => ({ url })),
       area: data.area, community: data.community || undefined, city: data.city, emirate: data.emirate,
       priceFrom: Number(data.priceFrom), priceTo: data.priceTo !== '' ? Number(data.priceTo) : undefined,
@@ -465,7 +471,8 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
     }
 
     try {
-      if (project) await projectAPI.update(project._id, payload)
+      // JSON drops undefined keys, so an emptied field would never reach the server — send null to clear it.
+      if (project) await projectAPI.update(project._id, Object.fromEntries(Object.entries(payload).map(([k, v]) => [k, v === undefined ? null : v])))
       else await projectAPI.create(payload)
       toast.success(project ? 'Updated' : 'Created')
       draft.clear()
@@ -521,6 +528,7 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
         </div>
 
         <form
+          {...draft.touchProps}
           onSubmit={handleSubmit(onSubmit, onInvalid)}
           onKeyDown={e => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') e.preventDefault() }}
           className="flex-1 min-h-0 overflow-y-auto p-6"
@@ -531,7 +539,7 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
 
           {/* ── Step 1 — Details ─────────────────────────────────── */}
           <div className={cn('space-y-5', step !== 1 && 'hidden')}>
-            <div className="card p-6">
+            <div className="card p-6 overflow-visible">
               <h3 className="font-bold text-sm mb-5" style={{ color: 'var(--text)' }}>Project Basics</h3>
               <div className="space-y-4">
                 <div>
@@ -542,16 +550,25 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
                   {errors.title && <p className="text-xs mt-1" style={{ color: '#FB7185' }}>Title is required</p>}
                 </div>
                 <Field label="Developer *">
-                  <select className="select-field w-full" {...register('developer', { required: true })}>
-                    <option value="">Select a developer…</option>
-                    {/* Keyed by name, and the saved developer is always one of them: when the list arrives its <option>
-                        stays the same DOM node, so the browser never drops the selection (that was the live-site bug). */}
-                    {developerOptions.map(o => <option key={o.name} value={o.name}>{o.label}</option>)}
-                  </select>
+                  {/* Type to search. Its value lives in the form state (Controller), so the choice can't be dropped while
+                      the developer list loads (the old live-site bug with a plain <select>). */}
+                  <Controller name="developer" control={control} rules={{ required: true }} render={({ field }) => (
+                    <SearchSelect
+                      value={field.value || ''}
+                      onChange={field.onChange}
+                      invalid={!!errors.developer}
+                      placeholder="Select a developer…"
+                      searchPlaceholder="Search developers…"
+                      emptyText="No developer with that name"
+                      options={developerOptions.map(o => ({ value: o.name, label: o.label }))}
+                      footer={
+                        <a href="/admin/developers" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-semibold hover:underline" style={{ color: 'var(--teal)' }}>
+                          <Plus size={12} /> Add new developer
+                        </a>
+                      }
+                    />
+                  )} />
                   {errors.developer && <p className="text-xs mt-1" style={{ color: '#FB7185' }}>Developer is required</p>}
-                  <a href="/admin/developers" target="_blank" rel="noopener noreferrer" className="text-xs inline-block mt-1.5" style={{ color: 'var(--teal)' }}>
-                    + Add a new developer
-                  </a>
                 </Field>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Field label="Type">
@@ -584,7 +601,7 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
               </div>
             </div>
 
-            <div className="card p-6">
+            <div className="card p-6 overflow-visible">
               <h3 className="font-bold text-sm mb-5" style={{ color: 'var(--text)' }}>Location and Address</h3>
               <div className="space-y-4">
                 <Field label="Location *">
@@ -620,7 +637,9 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
                     {errors.area && <p className="text-xs mt-1" style={{ color: '#FB7185' }}>Area is required</p>}
                   </Field>
                   <Field label="Community">
-                    <CommunitySelect key={`community-${locationVersion}`} field={register('community')} value={watch('community')} emirate={watch('emirate')} list={communities} />
+                    <Controller name="community" control={control} render={({ field }) => (
+                      <CommunitySelect value={field.value || ''} onChange={field.onChange} emirate={watch('emirate')} list={communities} />
+                    )} />
                   </Field>
                   <Field label="City">
                     <input className="input" {...register('city')} />
@@ -645,6 +664,13 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
 
                 <div className="pt-2" style={{ borderTop: '1px solid var(--border-soft)' }}>
                   <Field label="Nearby Landmarks (for distance calculations on the project page)">
+                    <NearbyLandmarkFinder
+                      key={`finder-${locationVersion}`}
+                      lat={Number(watch('lat')) || undefined}
+                      lng={Number(watch('lng')) || undefined}
+                      added={landmarks.map(l => l.name)}
+                      onAdd={l => setLandmarks(list => [...list, { name: l.name, category: l.category, lat: String(l.lat), lng: String(l.lng) }])}
+                    />
                     <div className="space-y-2">
                       {landmarks.map((lm, i) => (
                         <div key={i} className="flex items-center gap-2">
@@ -680,7 +706,7 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
               </div>
             </div>
 
-            <div className="card p-6">
+            <div className="card p-6 overflow-visible">
               <h3 className="font-bold text-sm mb-5" style={{ color: 'var(--text)' }}>Project Details</h3>
               <div className="space-y-4">
                 <Field label="Reference Number">
@@ -747,7 +773,7 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
           {/* ── Step 2 — Amenities ───────────────────────────────── */}
           <div className={cn('space-y-5', step !== 2 && 'hidden')}>
             {AMENITY_GROUPS.map(group => (
-              <div key={group.title} className="card p-6">
+              <div key={group.title} className="card p-6 overflow-visible">
                 <h3 className="font-bold text-sm mb-4" style={{ color: 'var(--text)' }}>{group.title}</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {group.keys.map(key => {
@@ -783,7 +809,7 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
 
           {/* ── Step 3 — Uploads ─────────────────────────────────── */}
           <div className={cn('space-y-5', step !== 3 && 'hidden')}>
-            <div className="card p-6">
+            <div className="card p-6 overflow-visible">
               <div className="flex gap-2 mb-5 flex-wrap" style={{ borderBottom: '1px solid var(--border)' }}>
                 {([
                   { v: 'images', l: 'Images', icon: ImagePlaceholder },
@@ -1026,7 +1052,7 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
           {/* ── Step 4 — Description (last, so the AI can use everything entered before it) ── */}
           <div className={cn('space-y-5', step !== 4 && 'hidden')}>
             <ProjectDescriptionStep
-              blocks={blocks} onBlocksChange={setBlocks}
+              html={descriptionHtml} onHtmlChange={setDescriptionHtml}
               seo={seo} onSeoChange={setSeo}
               getFacts={getFacts} slug={project?.slug} onJump={setStep}
             />
@@ -1046,19 +1072,101 @@ function ProjectForm({ project, onClose, onSaved }: { project: Project | null; o
 
 // ══════════════════════════ Page ══════════════════════════
 
+type ListFacets = {
+  developers: string[]; types: string[]
+  creators: { id: string; name: string; displayId?: string; count: number }[]
+  statuses: Record<string, number>
+}
+const SORT_OPTIONS = [
+  { value: 'newest', label: 'Newest first' }, { value: 'updated', label: 'Recently updated' }, { value: 'oldest', label: 'Oldest first' },
+  { value: 'price_asc', label: 'Price: low → high' }, { value: 'price_desc', label: 'Price: high → low' },
+  { value: 'views', label: 'Most viewed' }, { value: 'title', label: 'Name A → Z' },
+]
+const PAGE_SIZES = [10, 20, 50, 100]
+const LIST_PREFS = 'dd-admin-projects-view'
+
+function readPrefs(): { view: 'list' | 'grid'; limit: number } {
+  try { const p = JSON.parse(localStorage.getItem(LIST_PREFS) || '{}'); return { view: p.view === 'grid' ? 'grid' : 'list', limit: PAGE_SIZES.includes(p.limit) ? p.limit : 20 } }
+  catch { return { view: 'list', limit: 20 } }
+}
+
+// Handover date already passed → the website hides the project (backend liveProjects). Mirrors that rule.
+function handedOver(p: Pick<Project, 'handoverYear' | 'handoverQuarter'>) {
+  if (!p.handoverYear) return false
+  const now = new Date(), y = now.getFullYear(), q = Math.floor(now.getMonth() / 3) + 1
+  if (p.handoverYear < y) return true
+  if (p.handoverYear > y) return false
+  const pq = Number(String(p.handoverQuarter || '').replace(/\D/g, '')) || 0
+  return pq > 0 && pq < q
+}
+
 export default function AdminProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState<Project | null | 'new'>(null)
+  // Drafts are kept in this browser (lib/useFormDraft). New projects: "project:new:<id>" (older: "project:new");
+  // unsaved edits to a project: "project:<projectId>".
+  const [draftKey, setDraftKey] = useState<string | undefined>()
+  const [drafts, setDrafts] = useState<{ key: string; values: any; savedAt: number }[]>([])
+  const refreshDrafts = useCallback(() => setDrafts(listDrafts('project:')), [])
+  useEffect(() => { refreshDrafts() }, [refreshDrafts])
+  const draftForProject = (id: string) => drafts.find(d => d.key === `project:${id}`)
+  const startNew = () => { setDraftKey(`project:new:${Date.now().toString(36)}`); setEditing('new') }
+  const editProject = (p: Project) => { setDraftKey(undefined); setEditing(p) }
+  const continueDraft = async (d: { key: string }) => {
+    if (d.key.startsWith('project:new')) { setDraftKey(d.key); setEditing('new'); return }
+    try {
+      const r = await projectAPI.manageOne(d.key.slice('project:'.length))
+      setDraftKey(d.key); setEditing(r.data.data)
+    } catch {
+      toast.error('That project no longer exists — the draft can be discarded')
+    }
+  }
+  const discardDraft = (d: { key: string; values: any }) => {
+    if (!confirm(`Discard the draft "${d.values?.title || 'Untitled project'}"? This can't be undone.`)) return
+    removeDraft(d.key); refreshDrafts()
+  }
+  const closeForm = () => { setEditing(null); setDraftKey(undefined); setTimeout(refreshDrafts, 50) }
   const [perfProject, setPerfProject] = useState<Project | null>(null)
+  const [total, setTotal] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
+  const [facets, setFacets] = useState<ListFacets>({ developers: [], types: [], creators: [], statuses: {} })
+
+  // Search / filters / paging. View and page size are remembered in this browser.
+  const [q, setQ] = useState('')
+  const [search, setSearch] = useState('')
+  const [developer, setDeveloper] = useState('')
+  const [type, setType] = useState('')
+  const [status, setStatus] = useState('')
+  const [addedBy, setAddedBy] = useState('')
+  const [featured, setFeatured] = useState(false)
+  const [sort, setSort] = useState('newest')
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(20)
+  const [view, setView] = useState<'list' | 'grid'>('list')
+  useEffect(() => { const p = readPrefs(); setView(p.view); setLimit(p.limit) }, [])
+  useEffect(() => { try { localStorage.setItem(LIST_PREFS, JSON.stringify({ view, limit })) } catch { /* ignore */ } }, [view, limit])
+
+  // Typing waits a moment before searching.
+  useEffect(() => { const t = setTimeout(() => setSearch(q.trim()), 350); return () => clearTimeout(t) }, [q])
+  // Any filter change starts again from page 1.
+  useEffect(() => { setPage(1) }, [search, developer, type, status, addedBy, featured, sort, limit])
 
   const load = useCallback(() => {
     setLoading(true)
-    projectAPI.manageAll({ limit: 200 })
-      .then(r => { if (r.data.success) setProjects(r.data.data.data || []) })
+    projectAPI.manageAll({
+      q: search || undefined, developer: developer || undefined, type: type || undefined, status: status || undefined,
+      addedBy: addedBy || undefined, featured: featured ? 'true' : undefined, sort, page, limit,
+    })
+      .then(r => {
+        if (!r.data.success) return
+        const d = r.data.data
+        setProjects(d.data || []); setTotal(d.total || 0); setTotalPages(d.totalPages || 1)
+        if (d.facets) setFacets(d.facets)
+      })
       .catch(() => toast.error('Failed to load projects'))
       .finally(() => setLoading(false))
-  }, [])
+  }, [search, developer, type, status, addedBy, featured, sort, page, limit])
 
   useEffect(() => { load() }, [load])
 
@@ -1068,53 +1176,221 @@ export default function AdminProjectsPage() {
     catch (err: any) { toast.error(err?.error || 'Failed to delete') }
   }
 
+  const filtersOn = !!(q || developer || type || status || addedBy || featured || sort !== 'newest')
+  const clearFilters = () => { setQ(''); setDeveloper(''); setType(''); setStatus(''); setAddedBy(''); setFeatured(false); setSort('newest') }
+  const allCount = Object.values(facets.statuses).reduce((a, b) => a + b, 0)
+  const typeLabel = (v: string) => TYPE_OPTIONS.find(t => t.value === v)?.label || v.replace(/_/g, ' ')
+
+  const Actions = ({ project }: { project: Project }) => (
+    <div className="flex items-center gap-1 flex-shrink-0">
+      <a href={`/projects/${project.slug}`} target="_blank" rel="noopener noreferrer" className="btn-ghost btn-sm p-2" title="View on website"><Eye size={13} /></a>
+      <button onClick={() => setPerfProject(project)} className="btn-ghost btn-sm p-2" title="Performance"><BarChart3 size={13} /></button>
+      <button onClick={() => editProject(project)} className="btn-ghost btn-sm p-2" title="Edit"><Pencil size={13} /></button>
+      <button onClick={() => remove(project)} className="btn-ghost btn-sm p-2" style={{ color: '#FB7185' }} title="Delete"><Trash2 size={13} /></button>
+    </div>
+  )
+  const StatusBadge = ({ s }: { s: string }) => (
+    <span className="badge badge-gray capitalize whitespace-nowrap">{s.replace('_', ' ')}</span>
+  )
+
   return (
     <div>
-      <header className="flex items-center justify-between px-7 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
+      <header className="flex items-center justify-between gap-3 px-7 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
         <div>
           <h1 className="text-lg font-bold" style={{ color: 'var(--text)' }}>Projects</h1>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Off-plan & new development listings</p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Off-plan & new development listings · {allCount.toLocaleString()} in total</p>
         </div>
-        <button onClick={() => setEditing('new')} className="btn-primary btn-sm gap-2">
+        <button onClick={startNew} className="btn-primary btn-sm gap-2">
           <Plus size={13} /> New Project
         </button>
       </header>
 
-      <div className="p-7">
-        {loading ? (
-          <div className="space-y-3">{Array(4).fill(null).map((_, i) => <div key={i} className="shimmer h-16 rounded-2xl" />)}</div>
-        ) : projects.length === 0 ? (
-          <div className="text-center py-16">
-            <Building2 size={28} style={{ color: 'var(--text-muted)', opacity: 0.4 }} className="mx-auto mb-3" />
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No projects yet</p>
+      <div className="p-4 sm:p-7 space-y-4">
+        {drafts.length > 0 && (
+          <div className="card p-4" style={{ borderColor: 'rgba(245,158,11,0.45)', background: 'rgba(245,158,11,0.05)' }}>
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <p className="text-sm font-semibold flex items-center gap-2" style={{ color: 'var(--text)' }}>
+                <Save size={14} style={{ color: '#D97706' }} /> Drafts · {drafts.length}
+              </p>
+              <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Saved in this browser — not on the website until you save the project</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5">
+              {drafts.map(d => {
+                const isNew = d.key.startsWith('project:new')
+                const img = d.values?.coverImage || d.values?.gallery?.[0]
+                return (
+                  <div key={d.key} className="flex items-center gap-3 rounded-xl p-2.5" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                    <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center" style={{ background: 'var(--bg-alt)' }}>
+                      {img ? <img src={img} alt="" className="w-full h-full object-cover" /> : <Building2 size={16} style={{ color: 'var(--text-muted)', opacity: 0.5 }} />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>{d.values?.title || 'Untitled project'}</p>
+                      <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>
+                        {isNew ? 'New project' : 'Unsaved changes'}{d.values?.developer ? ` · ${d.values.developer}` : ''} · saved {timeAgoShort(d.savedAt)}
+                      </p>
+                    </div>
+                    <button onClick={() => continueDraft(d)} className="btn-primary btn-sm px-2.5 flex-shrink-0">Continue</button>
+                    <button onClick={() => discardDraft(d)} className="btn-ghost btn-sm p-2 flex-shrink-0" style={{ color: '#FB7185' }} title="Discard draft"><Trash2 size={13} /></button>
+                  </div>
+                )
+              })}
+            </div>
           </div>
-        ) : (
-          <div className="space-y-2">
+        )}
+
+        {/* Status tabs */}
+        <div className="flex gap-1.5 overflow-x-auto pb-0.5" style={{ scrollbarWidth: 'none' }}>
+          {[{ value: '', label: 'All' }, ...STATUS_OPTIONS].map(s => {
+            const n = s.value ? facets.statuses[s.value] || 0 : allCount
+            const on = status === s.value
+            return (
+              <button key={s.value || 'all'} onClick={() => setStatus(s.value)}
+                className="px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex-shrink-0"
+                style={on ? { background: 'var(--grad)', color: '#fff' } : { color: 'var(--text-mid)', border: '1px solid var(--border)' }}>
+                {s.label} · {n}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Search + filters */}
+        <div className="card p-3 sm:p-4 space-y-3 overflow-visible">
+          <div className="flex flex-col lg:flex-row gap-2.5">
+            <div className="input-glass flex items-center gap-2 h-11 px-3 rounded-xl flex-1 min-w-0">
+              <Search size={15} style={{ color: 'var(--teal)', flexShrink: 0 }} />
+              <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search name, reference (DD-P-…), area, community or developer…"
+                className="bg-transparent flex-1 text-sm outline-none min-w-0" style={{ color: 'var(--text)' }} />
+              {q && <button onClick={() => setQ('')} style={{ color: 'var(--text-muted)' }} aria-label="Clear search"><X size={14} /></button>}
+            </div>
+            <div className="flex gap-2">
+              <select className="select-field h-11 text-sm" value={sort} onChange={e => setSort(e.target.value)} aria-label="Sort">
+                {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+              <div className="flex rounded-xl overflow-hidden flex-shrink-0" style={{ border: '1px solid var(--border)' }}>
+                {(['list', 'grid'] as const).map(v => (
+                  <button key={v} onClick={() => setView(v)} title={v === 'list' ? 'List view' : 'Grid view'} aria-pressed={view === v}
+                    className="w-11 h-11 flex items-center justify-center transition-colors"
+                    style={view === v ? { background: 'rgba(203,1,1,0.10)', color: 'var(--teal)' } : { color: 'var(--text-muted)' }}>
+                    {v === 'list' ? <LayoutList size={16} /> : <LayoutGrid size={16} />}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+            <SearchSelect value={developer} onChange={setDeveloper} placeholder="All developers" searchPlaceholder="Search developers…"
+              options={facets.developers.map(d => ({ value: d, label: d }))} />
+            <select className="select-field text-sm" value={type} onChange={e => setType(e.target.value)} aria-label="Property type">
+              <option value="">All property types</option>
+              {facets.types.map(t => <option key={t} value={t}>{typeLabel(t)}</option>)}
+            </select>
+            <select className="select-field text-sm" value={addedBy} onChange={e => setAddedBy(e.target.value)} aria-label="Added by">
+              <option value="">Added by anyone</option>
+              <option value="me">Added by me</option>
+              {facets.creators.map(c => (
+                <option key={c.id} value={c.id}>{c.name}{c.displayId ? ` (${c.displayId})` : ''} · {c.count}</option>
+              ))}
+            </select>
+            <div className="flex items-center justify-between gap-2">
+              <label className="flex items-center gap-2 text-sm cursor-pointer" style={{ color: 'var(--text-mid)' }}>
+                <input type="checkbox" checked={featured} onChange={e => setFeatured(e.target.checked)} /> Featured only
+              </label>
+              {filtersOn && (
+                <button onClick={clearFilters} className="text-xs font-semibold hover:underline flex items-center gap-1" style={{ color: 'var(--teal)' }}>
+                  <X size={12} /> Clear filters
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+          {loading ? 'Loading…' : `${total.toLocaleString()} ${total === 1 ? 'project' : 'projects'}${filtersOn ? ' match' : ''}`}
+        </p>
+
+        {loading ? (
+          <div className={view === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4' : 'space-y-2.5'}>
+            {Array.from({ length: 6 }).map((_, i) => <div key={i} className={cn('shimmer rounded-2xl', view === 'grid' ? 'h-72' : 'h-20')} />)}
+          </div>
+        ) : projects.length === 0 ? (
+          <div className="card text-center py-16">
+            <Building2 size={28} style={{ color: 'var(--text-muted)', opacity: 0.4 }} className="mx-auto mb-3" />
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{filtersOn ? 'No projects match these filters' : 'No projects yet'}</p>
+            {filtersOn && <button onClick={clearFilters} className="btn-ghost btn-sm mt-3">Clear filters</button>}
+          </div>
+        ) : view === 'list' ? (
+          <div className="space-y-2.5">
             {projects.map(project => (
-              <div key={project._id} className="card p-4 flex items-center gap-4">
-                <div className="w-14 h-14 rounded-xl flex-shrink-0 overflow-hidden" style={{ background: 'var(--bg-alt)' }}>
-                  {project.coverImage && <img src={project.coverImage} alt="" className="w-full h-full object-cover" />}
+              <div key={project._id} className="card p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                <div className="flex items-center gap-4 flex-1 min-w-0">
+                  <div className="w-16 h-16 rounded-xl flex-shrink-0 overflow-hidden" style={{ background: 'var(--bg-alt)' }}>
+                    {(project.coverImage || project.images?.[0]?.url) && <img src={project.coverImage || project.images[0].url} alt="" className="w-full h-full object-cover" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate flex items-center gap-1.5" style={{ color: 'var(--text)' }}>
+                      {project.title}
+                      {project.isFeatured && <Star size={11} style={{ color: '#F59E0B' }} fill="#F59E0B" />}
+                    </p>
+                    <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>
+                      {project.referenceId && <span className="font-mono">{project.referenceId} · </span>}
+                      {project.developer} · {project.type ? `${typeLabel(project.type)} · ` : ''}{project.area} · from {formatPrice(project.priceFrom)}
+                      {' · '}<Eye size={10} className="inline" /> {project.views}
+                    </p>
+                    <ProjectAuthorship project={project} className="mt-0.5 truncate" />
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate flex items-center gap-1.5" style={{ color: 'var(--text)' }}>
-                    {project.title}
-                    {project.isFeatured && <Star size={11} style={{ color: '#F59E0B' }} fill="#F59E0B" />}
-                  </p>
-                  <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>
-                    {project.referenceId && <span className="font-mono">{project.referenceId} · </span>}
-                    {project.developer} · {project.area} · from {formatPrice(project.priceFrom)}
-                    {' · '}<Eye size={10} className="inline" /> {project.views}
-                  </p>
-                  <ProjectAuthorship project={project} className="mt-0.5 truncate" />
-                </div>
-                <span className="badge badge-gray capitalize">{project.status.replace('_', ' ')}</span>
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <button onClick={() => setPerfProject(project)} className="btn-ghost btn-sm p-2" title="Performance"><BarChart3 size={13} /></button>
-                  <button onClick={() => setEditing(project)} className="btn-ghost btn-sm p-2"><Pencil size={13} /></button>
-                  <button onClick={() => remove(project)} className="btn-ghost btn-sm p-2" style={{ color: '#FB7185' }}><Trash2 size={13} /></button>
+                <div className="flex items-center justify-between sm:justify-end gap-2 flex-wrap">
+                  {draftForProject(project._id) && <span className="badge text-[10px] whitespace-nowrap" style={{ background: 'rgba(245,158,11,0.12)', color: '#B45309', border: 'none' }}>Unsaved draft</span>}
+                  {handedOver(project) && <span className="badge text-[10px] whitespace-nowrap" style={{ background: 'rgba(225,29,72,0.10)', color: '#E11D48', border: 'none' }} title="Handover date has passed — still on the website, but no longer marked New Project / off-plan.">Handover passed</span>}
+                  <StatusBadge s={project.status} />
+                  <Actions project={project} />
                 </div>
               </div>
             ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            {projects.map(project => (
+              <div key={project._id} className="card overflow-hidden flex flex-col">
+                <div className="relative h-40" style={{ background: 'var(--bg-alt)' }}>
+                  {(project.coverImage || project.images?.[0]?.url) && <img src={project.coverImage || project.images[0].url} alt="" className="absolute inset-0 w-full h-full object-cover" />}
+                  <span className="absolute top-2.5 left-2.5 badge text-[10px] capitalize" style={{ background: 'rgba(255,255,255,0.94)', color: '#0F172A', border: 'none' }}>{project.status.replace('_', ' ')}</span>
+                  <div className="absolute bottom-2.5 left-2.5 flex gap-1.5 flex-wrap">
+                    {handedOver(project) && <span className="badge text-[10px]" style={{ background: 'rgba(225,29,72,0.92)', color: '#fff', border: 'none' }}>Handover passed</span>}
+                    {draftForProject(project._id) && <span className="badge text-[10px]" style={{ background: 'rgba(245,158,11,0.95)', color: '#fff', border: 'none' }}>Unsaved draft</span>}
+                  </div>
+                  {project.isFeatured && <span className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.94)' }}><Star size={12} style={{ color: '#F59E0B' }} fill="#F59E0B" /></span>}
+                </div>
+                <div className="p-4 flex flex-col flex-1 min-w-0">
+                  <p className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>{project.title}</p>
+                  <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{project.developer} · {project.area}</p>
+                  <p className="text-sm font-bold grad-text mt-1.5">From {formatPrice(project.priceFrom)}</p>
+                  <p className="text-[11px] mt-1 truncate" style={{ color: 'var(--text-muted)' }}>
+                    {project.referenceId && <span className="font-mono">{project.referenceId} · </span>}{project.type ? typeLabel(project.type) : '—'} · <Eye size={10} className="inline" /> {project.views}
+                  </p>
+                  <ProjectAuthorship project={project} className="mt-1 truncate" />
+                  <div className="mt-auto pt-3 flex justify-end" style={{ borderTop: '1px solid var(--border-soft)', marginTop: 12 }}>
+                    <Actions project={project} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Page size + pages */}
+        {!loading && total > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+            <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+              Show
+              <select className="select-field h-9 py-0 text-xs" value={limit} onChange={e => setLimit(Number(e.target.value))} aria-label="Projects per page">
+                {PAGE_SIZES.map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+              per page
+            </label>
+            <div className="[&>nav]:mt-0">
+              <Pagination page={page} totalPages={totalPages} onChange={setPage} total={total} perPage={limit} itemLabel={total === 1 ? 'project' : 'projects'} />
+            </div>
           </div>
         )}
       </div>
@@ -1122,9 +1398,11 @@ export default function AdminProjectsPage() {
       <AnimatePresence>
         {editing && (
           <ProjectForm
+            key={draftKey || (editing === 'new' ? 'new' : editing._id)}
             project={editing === 'new' ? null : editing}
-            onClose={() => setEditing(null)}
-            onSaved={load}
+            draftKey={draftKey}
+            onClose={closeForm}
+            onSaved={() => { load(); refreshDrafts() }}
           />
         )}
       </AnimatePresence>

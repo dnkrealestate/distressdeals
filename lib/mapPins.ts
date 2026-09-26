@@ -31,6 +31,7 @@ export interface MapPin {
   sizeLabel?: string       // e.g. "650 - 1,850 sqft"
   dev?: string             // developer
   handover?: string        // e.g. "Q4 2028"
+  handedOver?: boolean     // handover date passed — still shown, just not as "New Project"
   // Set by the drive-time search: how long it takes to drive here from each searched place.
   drive?: { tags: string[]; secs: (number | null)[]; meters: (number | null)[] }
 }

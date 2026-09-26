@@ -24,11 +24,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Each fetch is isolated — one failing source (e.g. the API being briefly
   // down) shouldn't take the whole sitemap down with it.
+  // The API pages its results (up to 50 properties / 100 projects per request), so walk every page.
+  const allPages = async (get: (page: number) => Promise<any>, max = 40): Promise<any[]> => {
+    const out: any[] = []
+    for (let page = 1; page <= max; page++) {
+      const d = await get(page).then(r => r.data.data).catch(() => null)
+      const rows = d?.data || []
+      out.push(...rows)
+      if (!rows.length || page >= (d?.totalPages || 1)) break
+    }
+    return out
+  }
   const [properties, posts, articles, projects] = await Promise.all([
-    propertyAPI.getAll({ limit: 1000 }).then(r => r.data.data?.data || []).catch(() => []),
+    allPages(page => propertyAPI.getAll({ limit: 50, page })),
     blogAPI.getAll({ limit: 500 }).then(r => r.data.data?.data || r.data.data || []).catch(() => []),
     newsAPI.getAll({ limit: 500 }).then(r => r.data.data?.data || r.data.data || []).catch(() => []),
-    projectAPI.getAll({ limit: 500 }).then(r => r.data.data?.data || r.data.data || []).catch(() => []),
+    allPages(page => projectAPI.getAll({ limit: 100, page })),
   ])
 
   const areas = await propertyAPI.getAreaStats(200).then(r => r.data.data || []).catch(() => [])

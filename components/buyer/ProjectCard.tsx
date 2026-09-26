@@ -5,8 +5,9 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { MapPin, BedDouble, Bath, Home, Maximize2, Wallet, CalendarClock, MessageCircleHeart, ArrowRight, Heart, GitCompare } from 'lucide-react'
-import { formatPrice } from '@/lib/utils'
+import { BadgeCheck, Info, MapPin, BedDouble, Bath, Home, Maximize2, Wallet, CalendarClock, MessageCircleHeart, ArrowRight, Heart, GitCompare } from 'lucide-react'
+import { formatPrice, isHandedOver } from '@/lib/utils'
+import InfoBadge, { VERIFIED_NOTE, OFF_PLAN_NOTE } from '@/components/shared/InfoBadge'
 import ImageSlider from '@/components/buyer/ImageSlider'
 import { SpecPill } from '@/components/buyer/SpecPill'
 import ProjectInterestModal from '@/components/buyer/ProjectInterestModal'
@@ -134,13 +135,21 @@ function StartingPrice({ project, size }: { project: Project; size: string }) {
   )
 }
 
-// "by DAMAC" under the project name.
+// "by DAMAC" under the project name, with the Verified / Off-plan marks (each explains itself when clicked).
 function ByDeveloper({ project }: { project: Project }) {
-  if (!project.developer) return null
+  const offPlan = project.status !== 'ready' && !isHandedOver(project)
   return (
-    <p className="text-xs mb-2.5 truncate" style={{ color: 'var(--text-muted)' }}>
-      by <span className="font-semibold" style={{ color: 'var(--teal)' }}>{project.developer}</span>
-    </p>
+    <div className="flex items-center gap-1.5 flex-wrap mb-2.5 min-w-0">
+      {project.developer && (
+        <p className="text-xs truncate mr-0.5" style={{ color: 'var(--text-muted)' }}>
+          by <span className="font-semibold" style={{ color: 'var(--teal)' }}>{project.developer}</span>
+        </p>
+      )}
+      <InfoBadge label="Verified" icon={BadgeCheck} title="Verified listing" message={VERIFIED_NOTE}
+                  style={{ background: 'rgba(22,163,74,0.10)', color: '#15803D', border: '1px solid rgba(22,163,74,0.25)' }} />
+      {offPlan && <InfoBadge label="Off-plan" icon={Info} title="Off-plan initial sale" message={OFF_PLAN_NOTE}
+                  style={{ background: 'rgba(139,92,246,0.10)', color: '#7C3AED', border: '1px solid rgba(139,92,246,0.25)' }} />}
+    </div>
   )
 }
 
@@ -149,7 +158,8 @@ function ByDeveloper({ project }: { project: Project }) {
 function Badges({ project, markAsProject }: { project: Project; markAsProject?: boolean }) {
   return (
     <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5">
-      {markAsProject && (
+      {/* Only while it's still new — a project past its handover date stays listed without this mark. */}
+      {markAsProject && !isHandedOver(project) && (
         <span className="badge text-[10px] font-semibold" style={{ background: 'rgba(168,85,247,0.92)', color: '#fff', border: 'none' }}>
           New Project
         </span>
@@ -159,7 +169,8 @@ function Badges({ project, markAsProject }: { project: Project; markAsProject?: 
         className="badge text-[10px] capitalize"
         style={{ background: 'rgba(255,255,255,0.94)', color: '#0F172A', border: 'none' }}
       >
-        {project.status.replace('_', ' ')}
+        {/* Past its handover date it's no longer "upcoming" / "under construction". */}
+        {isHandedOver(project) ? 'Handed over' : project.status.replace('_', ' ')}
       </span>
     </div>
   )

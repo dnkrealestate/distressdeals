@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { ArrowUpRight, Bath, Bed, Eye, Heart, Maximize2, Navigation, X } from 'lucide-react'
+import { ArrowUpRight, Bath, Bed, ChevronLeft, ChevronRight, Eye, Heart, Maximize2, Navigation, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '@/store/authStore'
 import { useFavoritesStore } from '@/store/favoritesStore'
@@ -15,9 +15,11 @@ import type { ResolvedPlace } from '@/lib/placeSearch'
 // "worth opening?" without leaving the map, plus the map-only actions
 // (Street View, directions).
 export default function PinPreviewCard({
-  pin, onClose, onStreetView, routes, routesLoading, routesError, hasStart, fromPlace, onFromPlace,
+  pin, onClose, onStreetView, routes, routesLoading, routesError, hasStart, fromPlace, onFromPlace, stack,
 }: {
   pin: MapPin
+  // Set when this pin is one of several at the same spot: "‹ 2 of 5 ›".
+  stack?: { index: number; total: number; go: (delta: number) => void }
   onClose: () => void
   onStreetView: (pin: MapPin) => Promise<boolean>
   // Directions to this property — the route lines themselves are drawn on the map by the page.
@@ -49,6 +51,14 @@ export default function PinPreviewCard({
       className="absolute z-20 left-3 right-3 bottom-3 sm:left-4 sm:right-auto sm:w-[380px] rounded-2xl overflow-hidden shadow-2xl"
       style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
     >
+      {stack && (
+        <div className="flex items-center justify-between gap-2 px-3 py-1.5 text-[11px] font-semibold"
+          style={{ background: 'rgba(124,58,237,0.08)', color: '#6D28D9', borderBottom: '1px solid var(--border)' }}>
+          <button type="button" onClick={() => stack.go(-1)} aria-label="Previous at this location" className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-white/60"><ChevronLeft size={14} /></button>
+          <span>{stack.index + 1} of {stack.total} at this location</span>
+          <button type="button" onClick={() => stack.go(1)} aria-label="Next at this location" className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-white/60"><ChevronRight size={14} /></button>
+        </div>
+      )}
       <div className="flex">
         <div className="relative w-[132px] flex-shrink-0" style={{ background: 'var(--bg-alt)' }}>
           {pin.img && (
@@ -59,7 +69,7 @@ export default function PinPreviewCard({
             className="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
             style={{ background: 'var(--grad)' }}
           >
-            {isProject ? 'New Project' : pin.lt === 'rent' ? 'For Rent' : 'For Sale'}
+            {isProject ? (pin.handedOver ? 'Project' : 'New Project') : pin.lt === 'rent' ? 'For Rent' : 'For Sale'}
           </span>
           {pin.lt === 'rent' && (
             <span className="absolute bottom-2 left-2">

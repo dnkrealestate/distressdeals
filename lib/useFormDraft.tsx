@@ -19,6 +19,22 @@ const write = (key: string, values: unknown) => {
 }
 const remove = (key: string) => { try { localStorage.removeItem(PREFIX + key) } catch { /* ignore */ } }
 
+/** Every saved draft whose key starts with `prefix` (e.g. "project:"), newest first — for "Drafts" lists. */
+export function listDrafts<T = any>(prefix: string): { key: string; values: T; savedAt: number }[] {
+  if (typeof window === 'undefined') return []
+  const out: { key: string; values: T; savedAt: number }[] = []
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i)
+      if (!k || !k.startsWith(PREFIX + prefix)) continue
+      const d = read<T>(k.slice(PREFIX.length))
+      if (d) out.push({ key: k.slice(PREFIX.length), values: d.values, savedAt: d.savedAt })
+    }
+  } catch { /* storage unavailable */ }
+  return out.sort((a, b) => b.savedAt - a.savedAt)
+}
+export const removeDraft = (key: string) => remove(key)
+
 export function timeAgoShort(ts: number) {
   const m = Math.round((Date.now() - ts) / 60000)
   if (m < 1) return 'just now'
@@ -36,7 +52,27 @@ export function useFormDraft<T extends object>({ key, values, onRestore }: {
   const initial = useRef<string | null>(null)
   if (initial.current === null) initial.current = JSON.stringify(values)
   const current = JSON.stringify(values)
-  const dirty = current !== initial.current
+  const currentRef = useRef(current)
+  currentRef.current = current
+  // Only the person's own edits count. Fields that tidy their value up right after the form opens (the description
+  // editor, a list that loads, a remembered choice) would otherwise look like changes and trigger "save as draft?"
+  // on a form nobody touched. So: snapshot the form at their first keypress / click / paste / drop inside it
+  // (touchProps, spread on the <form>), and compare against that.
+  const baseline = useRef<string | null>(null)
+  const [touched, setTouched] = useState(false)
+  const restored = useRef(false)
+  const dirty = restored.current ? current !== initial.current : touched && current !== baseline.current
+  const touch = useCallback(() => {
+    if (baseline.current !== null) return
+    baseline.current = currentRef.current
+    setTouched(true)
+  }, [])
+  // Input/change too (autofill, pasted values): the capture phase runs before the field's own handler, so the
+  // snapshot is still the value from before this edit.
+  const touchProps = {
+    onKeyDownCapture: touch, onPointerDownCapture: touch, onPasteCapture: touch, onDropCapture: touch,
+    onInputCapture: touch, onChangeCapture: touch,
+  }
 
   const [restoredAt, setRestoredAt] = useState<number | null>(null)
   const [pending, setPending] = useState<(() => void) | null>(null)
@@ -50,7 +86,7 @@ export function useFormDraft<T extends object>({ key, values, onRestore }: {
   // Bring back an earlier draft once, on open.
   useEffect(() => {
     const d = read<T>(key)
-    if (d && JSON.stringify(d.values) !== initial.current) { onRestore(d.values); setRestoredAt(d.savedAt) }
+    if (d && JSON.stringify(d.values) !== initial.current) { restored.current = true; onRestore(d.values); setRestoredAt(d.savedAt) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key])
 
@@ -91,7 +127,9 @@ export function useFormDraft<T extends object>({ key, values, onRestore }: {
     if (dirtyRef.current && !finished.current) setPending(() => leave)
     else leave()
   }, [])
-  const discardDraft = useCallback(() => { remove(key); setRestoredAt(null) }, [key])
+  const discardDraft = useCallback(() => {
+    remove(key); setRestoredAt(null); restored.current = false; baseline.current = null; setTouched(false)
+  }, [key])
   /** Save the draft right now (the "Save draft" button) — autosave does this too, this is just explicit. */
   const saveNow = useCallback(() => { write(key, JSON.parse(current)); return Date.now() }, [key, current])
 
@@ -131,5 +169,5 @@ export function useFormDraft<T extends object>({ key, values, onRestore }: {
     </div>
   ) : null
 
-  return { dirty, clear, guard, dialog, banner, onDiscard, saveNow }
+  return { dirty, clear, guard, dialog, banner, onDiscard, saveNow, touchProps }
 }
