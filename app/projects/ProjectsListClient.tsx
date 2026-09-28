@@ -286,7 +286,8 @@ function ProjectsListClientInner({ bottom }: { bottom?: React.ReactNode }) {
       {/* ── Filter bar: every filter as a dropdown; sticks to the top once the search box scrolls away ── */}
       <div className={cn('z-30', pastSearch ? 'sticky top-16' : 'relative')}
         style={pastSearch ? { background: 'var(--surface)', borderBottom: '1px solid var(--border)', boxShadow: '0 8px 20px -14px rgba(15,23,42,0.25)' } : undefined}>
-        <div className={cn('wrap flex items-center gap-2 flex-wrap', pastSearch ? 'py-3' : 'pb-1')}>
+        {/* One row that slides sideways on phones (same as /for-sale); wraps on larger screens. Dropdown panels are portals, so the scroll doesn't clip them. */}
+        <div className={cn('wrap flex items-center gap-2 flex-nowrap overflow-x-auto overflow-y-hidden scrollbar-hide lg:flex-wrap lg:overflow-visible', pastSearch ? 'py-3' : 'pb-1')}>
           <FilterDropdown label={STATUSES.find(x => x.value === filters.status && x.value)?.label || 'Status'} icon={Layers} active={!!filters.status} widthClass="w-60">
             {close => (
               <div className="flex flex-col gap-1">
@@ -356,7 +357,7 @@ function ProjectsListClientInner({ bottom }: { bottom?: React.ReactNode }) {
             )}
           </FilterDropdown>
           {activeFilterCount > 0 && (
-            <button onClick={clearAll} className="text-xs font-semibold px-2 inline-flex items-center gap-1" style={{ color: 'var(--teal)' }}>
+            <button onClick={clearAll} className="text-xs font-semibold px-2 inline-flex items-center gap-1 flex-shrink-0 whitespace-nowrap" style={{ color: 'var(--teal)' }}>
               <X size={12} /> Clear ({activeFilterCount})
             </button>
           )}

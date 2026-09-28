@@ -20,6 +20,7 @@ const NAV_RIGHT = [
 // which are staff-only areas with their own separate navigation.
 function shouldHide(pathname: string): boolean {
   if (pathname.startsWith('/admin') || pathname.startsWith('/seller')) return true
+  if (pathname.startsWith('/auth/verify-phone')) return true   // shown inside the mobile app
   if (/^\/buyer\/properties\/[^/]+$/.test(pathname)) return true
   if (/^\/projects\/[^/]+$/.test(pathname)) return true
   return false

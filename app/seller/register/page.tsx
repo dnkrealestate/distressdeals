@@ -15,6 +15,11 @@ import FacebookSignInButton from '@/components/auth/FacebookSignInButton'
 import { Logo } from '@/components/shared/Logo'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
+import type { ConfirmationResult } from 'firebase/auth'
+import { firebasePhoneEnabled, sendPhoneCode, confirmPhoneCode, phoneAuthError, toE164, useResendCooldown } from '@/lib/firebase'
+
+// Firebase SMS when the web app is configured; otherwise the WhatsApp code from our backend.
+const VIA = firebasePhoneEnabled ? 'SMS' : 'WhatsApp'
 
 const STEPS = ['Account', 'Verify Phone', 'Complete']
 
@@ -28,6 +33,23 @@ export default function SellerRegisterPage() {
   const [otp,      setOtp]      = useState(['','','','','',''])
   const [loading,  setLoading]  = useState(false)
   const [phoneSubmitting, setPhoneSubmitting] = useState(false)
+  const [confirmation, setConfirmation] = useState<ConfirmationResult | null>(null)
+  const [resending, setResending] = useState(false)
+  const [cooldown, startCooldown] = useResendCooldown()
+
+  // Sends the code through whichever channel is live.
+  const sendCode = async (rawPhone: string) => {
+    if (firebasePhoneEnabled) {
+      const e164 = toE164(rawPhone)
+      if (!e164) throw { error: 'Enter your phone number with the country code, e.g. +971 50 123 4567' }
+      try { setConfirmation(await sendPhoneCode(e164, 'otp-recaptcha')) }
+      catch (err) { throw { error: phoneAuthError(err) } }
+    } else {
+      await authAPI.sendOtp(rawPhone)
+    }
+    setOtp(['','','','','',''])
+    startCooldown()
+  }
 
   const { register, handleSubmit, formState: { errors } } = useForm()
   const { register: registerPhone, handleSubmit: handlePhoneSubmit, formState: { errors: phoneErrors } } = useForm()
@@ -36,13 +58,21 @@ export default function SellerRegisterPage() {
     setLoading(true)
     try {
       await authRegister({ ...data, role: 'seller' })
-      setPhone(data.phone)
-      await authAPI.sendOtp(data.phone)
-      setOtpSent(true)
-      toast.success('OTP sent to your WhatsApp!')
-      setStep(1)
     } catch (err: any) {
       toast.error(err?.error || 'Registration failed')
+      setLoading(false)
+      return
+    }
+    try {
+      setPhone(data.phone)
+      await sendCode(data.phone)
+      setOtpSent(true)
+      toast.success(`Code sent by ${VIA}!`)
+      setStep(1)
+    } catch (err: any) {
+      toast.error(err?.error || 'Could not send the code')
+      setOtpSent(false)
+      setStep(1)
     } finally {
       setLoading(false)
     }
@@ -59,12 +89,14 @@ export default function SellerRegisterPage() {
   }
 
   const submitPhone = async (data: any) => {
+    if (confirmation && cooldown > 0 && toE164(data.phone) === toE164(phone)) { setOtpSent(true); return }
+    if (cooldown > 0) { toast.error(`Please wait ${cooldown}s before requesting another code`); return }
     setPhoneSubmitting(true)
     try {
-      await authAPI.sendOtp(data.phone)
+      await sendCode(data.phone)
       setPhone(data.phone)
       setOtpSent(true)
-      toast.success('OTP sent to your WhatsApp!')
+      toast.success(`Code sent by ${VIA}!`)
     } catch (err: any) {
       toast.error(err?.error || 'Failed to send OTP')
     } finally {
@@ -85,19 +117,35 @@ export default function SellerRegisterPage() {
     if (code.length < 6) { toast.error('Enter 6-digit OTP'); return }
     setLoading(true)
     try {
-      await authAPI.verifyOtp(code)
+      if (firebasePhoneEnabled) {
+        if (!confirmation) { toast.error('Request a new code first'); return }
+        let idToken: string
+        try { idToken = await confirmPhoneCode(confirmation, code) }
+        catch (err) { toast.error(phoneAuthError(err)); return }
+        const res = await authAPI.verifyPhoneFirebase(idToken)
+        if (res.data?.data?.user) useAuthStore.getState().setUser(res.data.data.user)
+      } else {
+        const res = await authAPI.verifyOtp(code)
+        if (res.data?.data?.user) useAuthStore.getState().setUser(res.data.data.user)
+      }
       toast.success('Phone verified!')
       setStep(2)
-    } catch {
-      toast.error('Invalid OTP. Please try again.')
+    } catch (err: any) {
+      toast.error(err?.error || 'Invalid code. Please try again.')
     } finally {
       setLoading(false)
     }
   }
 
   const resendOtp = async () => {
-    await authAPI.sendOtp(phone)
-    toast.success('OTP resent to your WhatsApp')
+    if (cooldown > 0) return
+    setResending(true)
+    try {
+      await sendCode(phone)
+      toast.success(`Code resent by ${VIA}`)
+    } catch (err: any) {
+      toast.error(err?.error || 'Could not resend the code')
+    } finally { setResending(false) }
   }
 
   return (
@@ -136,7 +184,7 @@ export default function SellerRegisterPage() {
 
           <div className="space-y-4">
             {[
-              { icon: ShieldCheck,  text: 'WhatsApp OTP verification for security'          },
+              { icon: ShieldCheck,  text: `${VIA} OTP verification for security` },
               { icon: Building2,    text: 'Expert team reviews & approves your listing'  },
               { icon: CheckCircle2, text: 'Reach thousands of verified buyers instantly' },
             ].map(({ icon: Icon, text }) => (
@@ -193,7 +241,7 @@ export default function SellerRegisterPage() {
                   <FacebookSignInButton onAuthenticated={onSocialAuthenticated} role="seller" />
                 </div>
                 <p className="text-xs mb-6" style={{ color: 'var(--text-muted)' }}>
-                  Signing up with Google or Facebook still requires WhatsApp phone verification below.
+                  Signing up with Google or Facebook still requires phone verification by {VIA} code.
                 </p>
 
                 <div className="flex items-center gap-3 mb-6">
@@ -226,7 +274,7 @@ export default function SellerRegisterPage() {
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold mb-1.5 block" style={{ color: 'var(--text-mid)' }}>WhatsApp Phone *</label>
+                    <label className="text-xs font-semibold mb-1.5 block" style={{ color: 'var(--text-mid)' }}>{firebasePhoneEnabled ? 'Mobile Number' : 'WhatsApp Phone'} *</label>
                     <div className="input-glass flex items-center gap-2 h-12 px-4 rounded-xl">
                       <Phone size={15} style={{ color: 'var(--teal)', flexShrink: 0 }} />
                       <input {...register('phone', { required: 'Phone is required' })}
@@ -235,7 +283,7 @@ export default function SellerRegisterPage() {
                     </div>
                     <p className="text-xs mt-1.5 flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
                       <MessageCircle size={11} style={{ color: 'var(--green)' }} />
-                      OTP verification will be sent to this WhatsApp number
+                      A verification code will be sent to this number by {VIA}
                     </p>
                     {errors.phone && <p className="text-xs mt-1" style={{ color: '#FB7185' }}>{errors.phone.message as string}</p>}
                   </div>
@@ -275,12 +323,12 @@ export default function SellerRegisterPage() {
                 <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style={{ background: 'rgba(203,1,1,0.10)', border: '1px solid rgba(203,1,1,0.20)' }}>
                   <Phone size={24} style={{ color: 'var(--teal)' }} />
                 </div>
-                <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--text)' }}>Add Your WhatsApp Number</h1>
-                <p className="muted mb-7">Your account needs a verified WhatsApp number before you can list properties.</p>
+                <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--text)' }}>{firebasePhoneEnabled ? 'Add Your Mobile Number' : 'Add Your WhatsApp Number'}</h1>
+                <p className="muted mb-7">Your account needs a verified phone number before you can list properties.</p>
 
                 <form onSubmit={handlePhoneSubmit(submitPhone)} className="space-y-4">
                   <div>
-                    <label className="text-xs font-semibold mb-1.5 block" style={{ color: 'var(--text-mid)' }}>WhatsApp Phone *</label>
+                    <label className="text-xs font-semibold mb-1.5 block" style={{ color: 'var(--text-mid)' }}>{firebasePhoneEnabled ? 'Mobile Number' : 'WhatsApp Phone'} *</label>
                     <div className="input-glass flex items-center gap-2 h-12 px-4 rounded-xl">
                       <Phone size={15} style={{ color: 'var(--teal)', flexShrink: 0 }} />
                       <input {...registerPhone('phone', { required: 'Phone is required' })}
@@ -293,7 +341,7 @@ export default function SellerRegisterPage() {
                   <button type="submit" disabled={phoneSubmitting} className="btn-primary w-full py-3.5 disabled:opacity-60">
                     {phoneSubmitting
                       ? <span className="flex items-center gap-2 justify-center"><span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />Sending…</span>
-                      : <><MessageCircle size={15} /> Send WhatsApp OTP</>}
+                      : <><MessageCircle size={15} /> Send {VIA} Code</>}
                   </button>
                 </form>
               </motion.div>
@@ -304,7 +352,7 @@ export default function SellerRegisterPage() {
                 <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style={{ background: 'rgba(203,1,1,0.10)', border: '1px solid rgba(203,1,1,0.20)' }}>
                   <MessageCircle size={24} style={{ color: 'var(--teal)' }} />
                 </div>
-                <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--text)' }}>Verify via WhatsApp</h1>
+                <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--text)' }}>Verify via {VIA}</h1>
                 <p className="muted mb-2">We sent a 6-digit code to</p>
                 <p className="font-semibold mb-8" style={{ color: 'var(--teal)' }}>{phone}</p>
 
@@ -313,6 +361,14 @@ export default function SellerRegisterPage() {
                     <input key={i} id={`otp-${i}`} type="text" inputMode="numeric"
                       maxLength={1} value={digit}
                       onChange={e => handleOtpChange(i, e.target.value)}
+                      onPaste={e => {
+                        const d = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
+                        if (d.length < 2) return
+                        e.preventDefault()
+                        setOtp(Array.from({ length: 6 }, (_, k) => d[k] || ''))
+                        document.getElementById(`otp-${Math.min(d.length, 5)}`)?.focus()
+                      }}
+                      autoComplete={i === 0 ? 'one-time-code' : 'off'}
                       onKeyDown={e => { if (e.key === 'Backspace' && !digit && i > 0) document.getElementById(`otp-${i-1}`)?.focus() }}
                       className="w-full aspect-square text-center text-lg font-bold rounded-xl border transition-all outline-none"
                       style={{
@@ -332,7 +388,9 @@ export default function SellerRegisterPage() {
 
                 <p className="text-center text-xs" style={{ color: 'var(--text-muted)' }}>
                   Didn't receive it?{' '}
-                  <button onClick={resendOtp} className="font-semibold transition-colors" style={{ color: 'var(--teal)' }}>Resend OTP</button>
+                  <button onClick={resendOtp} disabled={resending || cooldown > 0} className="font-semibold transition-colors disabled:opacity-60" style={{ color: 'var(--teal)' }}>{resending ? 'Sending…' : cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend code'}</button>
+                  {' · '}
+                  <button onClick={() => setOtpSent(false)} className="font-semibold" style={{ color: 'var(--teal)' }}>Change number</button>
                 </p>
               </motion.div>
             )}
@@ -353,6 +411,7 @@ export default function SellerRegisterPage() {
               </motion.div>
             )}
           </AnimatePresence>
+          <div id="otp-recaptcha" />
         </div>
       </div>
     </div>

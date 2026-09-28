@@ -54,6 +54,7 @@ export const authAPI = {
   appleAuth:        (data: any) => api.post('/auth/apple', data),
   sendOtp:          (phone: string) => api.post('/auth/send-otp', { phone }),
   verifyOtp:        (otp: string) => api.post('/auth/verify-otp', { otp }),
+  verifyPhoneFirebase: (idToken: string) => api.post('/auth/verify-phone-firebase', { idToken }),
   // Forgot password: a WhatsApp code to the registered number doubles as proof of ownership and reset authorization.
   sendForgotPasswordOtp: (phone: string) => api.post('/auth/forgot-password/send-otp', { phone }),
   resetPasswordWithOtp:  (phone: string, otp: string, password: string) => api.post('/auth/forgot-password/reset', { phone, otp, password }),
