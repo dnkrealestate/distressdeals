@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   MapPin, Bed, Bath, Maximize2, Car, Building2,
-  Heart, Share2, GitCompare, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, X,
+  Bookmark, Share2, GitCompare, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, X,
   CheckCircle2, Phone, MessageCircle, Send,
   Star, Shield, Award, ZoomIn, Video,
   Clock, Building, Waves, Dumbbell, ConciergeBell, Sofa, Calendar, Layers, Tag,
@@ -22,6 +22,7 @@ import Footer from '@/components/layouts/Footer'
 import PropertyCard from '@/components/buyer/PropertyCard'
 import RecentlyViewedCard from '@/components/buyer/RecentlyViewedCard'
 import AdSlot from '@/components/shared/AdSlot'
+import DistanceCalculator from '@/components/shared/DistanceCalculator'
 import InfoBadge, { OFF_PLAN_NOTE } from '@/components/shared/InfoBadge'
 import RentalBadge from '@/components/buyer/RentalBadge'
 import { rentalLabel } from '@/lib/rental'
@@ -344,11 +345,11 @@ export default function PropertyDetailClient({ property }: { property: Property 
               <div className="flex items-center gap-2 flex-shrink-0">
                 <button onClick={() => { if (!isAuthenticated) { window.location.href='/auth/login'; return }; toggleFavorite(property._id) }}
                   className="btn-ghost p-2.5" style={fav ? { borderColor: 'rgba(244,63,94,0.35)', color: '#FB7185', background: 'rgba(244,63,94,0.06)' } : undefined}>
-                  <Heart size={16} fill={fav ? 'currentColor' : 'none'} />
+                  <Bookmark size={16} fill={fav ? 'currentColor' : 'none'} /> <span className="text-sm font-semibold ml-1.5">{fav ? 'Saved' : 'Save'}</span>
                 </button>
                 <button onClick={() => addToCompare(property)}
                   className="btn-ghost p-2.5" style={inCmp ? { borderColor: 'rgba(203,1,1,0.40)', color: 'var(--teal)', background: 'rgba(203,1,1,0.06)' } : undefined}>
-                  <GitCompare size={16} />
+                  <GitCompare size={16} /> <span className="text-sm font-semibold ml-1.5">{inCmp ? 'In compare' : 'Compare'}</span>
                 </button>
                 <button onClick={share} className="btn-ghost p-2.5">
                   <Share2 size={16} />
@@ -533,6 +534,7 @@ export default function PropertyDetailClient({ property }: { property: Property 
                       <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)', height: 320 }}>
                         <LocationMap lat={coords.lat} lng={coords.lng} />
                       </div>
+                      <div className="mt-5"><DistanceCalculator lat={coords.lat} lng={coords.lng} /></div>
                       <a
                         href={`https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`}
                         target="_blank" rel="noopener noreferrer"

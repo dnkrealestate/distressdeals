@@ -3,19 +3,19 @@ import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'rea
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
-import { LayoutList, List, Map as MapIcon, PanelLeftClose, PanelLeftOpen, Search, Home, SlidersHorizontal, X } from 'lucide-react'
+import { LayoutList, List, Map as MapIcon, Navigation, PanelLeftClose, PanelLeftOpen, Search, Home, SlidersHorizontal, X } from 'lucide-react'
 import Navbar from '@/components/layouts/Navbar'
 import { Pill, FilterDropdown, DropdownOption, TYPES, AREAS, BEDS, PRICES } from '@/components/buyer/PropertyFilterBar'
 import MapListPanel from '@/components/map/MapListPanel'
 import PinPreviewCard from '@/components/map/PinPreviewCard'
 import { MapToolbar, RadiusControl, LayersControl, HeatLegend } from '@/components/map/MapTools'
 import type { MapEngineHandle } from '@/components/map/MapEngine'
-import { propertyAPI } from '@/lib/api'
+import { propertyAPI, projectAPI } from '@/lib/api'
 import { AVAILABILITY_FILTERS, AVAILABLE_WITHIN } from '@/lib/rental'
 import MapPlaceSearch from '@/components/map/MapPlaceSearch'
 import type { ResolvedPlace } from '@/lib/placeSearch'
 import CommutePanel, { type CommuteState } from '@/components/map/CommutePanel'
-import { fetchDriveTimes, fetchRoute, reachKm, withinReach, type DriveOrigin, type RouteView } from '@/lib/driveTime'
+import { fetchDriveTimes, fetchRoute, formatDrive, formatKm, reachKm, withinReach, type DriveOrigin, type RouteInfo, type RouteView } from '@/lib/driveTime'
 import { DUBAI_CENTER, type MapBounds } from '@/lib/googleMaps'
 import {
   areaToParams, boundsContain, computeStats, decodeAreaFromUrl, encodeAreaForUrl, inBounds, padBounds, sortPins,
@@ -142,6 +142,29 @@ function MapSearchClientInner() {
   const activeCount = [filters.type, filters.area, filters.bedrooms, filters.priceMin, filters.rentalStatus, filters.availableWithin].filter(Boolean).length
 
   const [onlyKind, onlySlug] = only.split(':')
+  // Opened for one project: its nearby landmarks go on the map around it.
+  const [landmarks, setLandmarks] = useState<{ name: string; category: string; lat: number; lng: number }[]>([])
+  useEffect(() => {
+    if (onlyKind !== 'project' || !onlySlug) { setLandmarks([]); return }
+    let alive = true
+    projectAPI.getOne(onlySlug)
+      .then(r => { if (alive && r.data.success) setLandmarks((r.data.data.landmarks || []).filter((l: any) => l.name && Number.isFinite(Number(l.lat)) && Number.isFinite(Number(l.lng))).map((l: any) => ({ ...l, lat: Number(l.lat), lng: Number(l.lng) }))) })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [onlyKind, onlySlug])
+  // Tapping a landmark: the fastest driving route from the project to it, with time and distance.
+  const [landmarkRoute, setLandmarkRoute] = useState<{ name: string; category: string; route: RouteInfo | null; loading: boolean; error?: boolean } | null>(null)
+  const routeToLandmark = (l: { name: string; category: string; lat: number; lng: number }) => {
+    const from = pins[0]
+    if (!from) return
+    setLandmarkRoute({ name: l.name, category: l.category, route: null, loading: true })
+    fetchRoute({ lat: from.lat, lng: from.lng }, { lat: l.lat, lng: l.lng })
+      .then(route => setLandmarkRoute(cur => (cur && cur.name === l.name ? { ...cur, route, loading: false } : cur)))
+      .catch(() => setLandmarkRoute(cur => (cur && cur.name === l.name ? { ...cur, loading: false, error: true } : cur)))
+  }
+  useEffect(() => { if (!only) setLandmarkRoute(null) }, [only])
+  // Refit once they arrive, so the project and its landmarks are all in view.
+  useEffect(() => { if (landmarks.length) setFitSignal(n => n + 1) }, [landmarks.length])
   const backHref =
     only ? (onlyKind === 'project' ? `/projects/${onlySlug}` : `/buyer/properties/${onlySlug}`) :
     filters.listingType === 'rent' ? '/for-rent' :
@@ -663,8 +686,10 @@ function MapSearchClientInner() {
               colorMode={colorMode}
               clustering={clustering}
               userLocation={userLocation}
+              landmarks={only ? landmarks : undefined}
+              onLandmarkSelect={routeToLandmark}
               commutePlaces={commuteOrigins.length ? commuteOrigins : fromPlace ? [{ tag: 'A', label: fromPlace.label, lat: fromPlace.lat, lng: fromPlace.lng }] : []}
-              routes={routes.map(r => ({ tag: r.origin.tag, path: r.route.path }))}
+              routes={landmarkRoute?.route ? [{ tag: 'A', path: landmarkRoute.route.path }] : routes.map(r => ({ tag: r.origin.tag, path: r.route.path }))}
               onStreetViewChange={setStreetViewOpen}
               initialView={initialView}
               fitSignal={fitSignal}
@@ -682,6 +707,24 @@ function MapSearchClientInner() {
                   ? <><List size={15} /> List · {(commuteResults ? commuteResults.length : capped ? total : pins.length).toLocaleString()}</>
                   : <><MapIcon size={15} /> Map</>}
               </button>
+            )}
+
+            {/* Route to a tapped landmark */}
+            {only && landmarkRoute && (
+              <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 rounded-2xl pl-4 pr-2 py-2 shadow-lg max-w-[calc(100%-1.5rem)]"
+                style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(29,78,216,0.10)' }}>
+                  <Navigation size={15} style={{ color: '#1D4ED8' }} />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-[11px]" style={{ color: 'var(--text-muted)' }}>Fastest route to</span>
+                  <span className="block text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>{landmarkRoute.name}</span>
+                </span>
+                <span className="text-sm font-bold whitespace-nowrap" style={{ color: '#1D4ED8' }}>
+                  {landmarkRoute.loading ? 'Finding route…' : landmarkRoute.route ? `${formatDrive(landmarkRoute.route.duration)} · ${formatKm(landmarkRoute.route.distance)}` : 'No route found'}
+                </span>
+                <button onClick={() => setLandmarkRoute(null)} className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 hover:bg-[var(--bg-alt)]" aria-label="Close route"><X size={14} /></button>
+              </div>
             )}
 
             {only && !loading && (

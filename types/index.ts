@@ -167,7 +167,7 @@ export interface HomepageContent {
   heroShadeColor2?: string
 }
 
-export interface ContentCard { icon?: string; title: string; body: string; meta?: string }
+export interface ContentCard { icon?: string; title: string; body: string; meta?: string; image?: string }
 export interface ContentSection { heading: string; body?: string; cards?: ContentCard[] }
 export interface ContentPageData {
   _id?: string

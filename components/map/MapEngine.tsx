@@ -46,6 +46,10 @@ interface Props {
   userLocation: { lat: number; lng: number } | null
   // The places of a drive-time search, drawn as lettered dots (A / B).
   commutePlaces?: { tag: string; label: string; lat: number; lng: number }[]
+  // A project's nearby landmarks (metro, schools, malls…) — shown around it when the map is opened for that project.
+  landmarks?: { name: string; category: string; lat: number; lng: number }[]
+  // A landmark was tapped — the page draws the fastest route to it.
+  onLandmarkSelect?: (l: { name: string; category: string; lat: number; lng: number }) => void
   // Road routes to draw (one line per start point) — the directions to the selected property.
   routes?: { tag: string; path: [number, number][] }[]
   // Fired when Street View opens/closes, so the page can hide its own overlays while it is up.
@@ -275,6 +279,8 @@ export default function MapEngine(props: Props) {
   const userDotRef = useRef<any>(null)
   const placeMarkerRef = useRef<any>(null)
   const commuteMarkersRef = useRef<any[]>([])
+  const landmarkMarkersRef = useRef<any[]>([])
+  const landmarkInfoRef = useRef<any>(null)
   const routeLinesRef = useRef<any[]>([])
   const areaOverlayRef = useRef<any>(null)
   const lastAreaKeyRef = useRef('')
@@ -471,6 +477,42 @@ export default function MapEngine(props: Props) {
     }))
   }, [props.commutePlaces, status])
 
+  // Landmarks around a project: a small coloured marker per category; tap for the name and distance.
+  useEffect(() => {
+    const map = mapRef.current, g = gRef.current
+    if (!map || !g) return
+    landmarkMarkersRef.current.forEach(m => m.setMap(null))
+    landmarkMarkersRef.current = []
+    const COLORS: Record<string, string> = { metro: '#2563EB', school: '#16A34A', mall: '#DB2777', hospital: '#DC2626', airport: '#0891B2', landmark: '#D97706' }
+    const GLYPH: Record<string, string> = { metro: 'M', school: 'S', mall: '🛍', hospital: '+', airport: '✈', landmark: '★' }
+    const origin = propsRef.current.pins[0]
+    const km = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+      const R = 6371, dLat = (b.lat - a.lat) * Math.PI / 180, dLng = (b.lng - a.lng) * Math.PI / 180
+      const x = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2
+      return 2 * R * Math.asin(Math.sqrt(x))
+    }
+    landmarkMarkersRef.current = (props.landmarks ?? []).filter(l => Number.isFinite(l.lat) && Number.isFinite(l.lng) && (l.lat || l.lng)).map(l => {
+      const m = new g.maps.Marker({
+        map, position: { lat: l.lat, lng: l.lng }, title: l.name, zIndex: 25,
+        label: { text: GLYPH[l.category] || '•', color: '#fff', fontSize: '11px', fontWeight: '700' },
+        icon: { path: g.maps.SymbolPath.CIRCLE, scale: 11, fillColor: COLORS[l.category] || '#475569', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2.5 },
+      })
+      m.addListener('click', () => {
+        propsRef.current.onLandmarkSelect?.(l)
+        landmarkInfoRef.current?.close()
+        const d = origin ? km(origin, l) : null
+        const dist = d === null ? '' : d < 1 ? `${Math.round(d * 1000)} m away` : `${d.toFixed(1)} km away`
+        const div = document.createElement('div')
+        div.style.cssText = 'font:600 12px system-ui;padding:2px 4px;max-width:200px'
+        div.textContent = l.name
+        if (dist) { const s = document.createElement('div'); s.style.cssText = 'font-weight:400;color:#64748b;margin-top:2px'; s.textContent = `${l.category.charAt(0).toUpperCase() + l.category.slice(1)} · ${dist}`; div.appendChild(s) }
+        landmarkInfoRef.current = new g.maps.InfoWindow({ content: div })
+        landmarkInfoRef.current.open({ map, anchor: m })
+      })
+      return m
+    })
+  }, [props.landmarks, props.pins, status])
+
   // Directions: each route is a white casing under a coloured line, then the map frames all of them.
   useEffect(() => {
     const map = mapRef.current, g = gRef.current
@@ -518,6 +560,8 @@ export default function MapEngine(props: Props) {
     const pins = propsRef.current.pins
     if (pins.length === 0) return
     pins.forEach(p => b.extend({ lat: p.lat, lng: p.lng }))
+    // A single project with its landmarks: frame them all together.
+    ;(propsRef.current.landmarks ?? []).forEach(l => { if (l.lat || l.lng) b.extend({ lat: l.lat, lng: l.lng }) })
     fitSafely(b)
     // status too: results often arrive before the map has loaded (phones especially) — fit once it's ready.
     // eslint-disable-next-line react-hooks/exhaustive-deps

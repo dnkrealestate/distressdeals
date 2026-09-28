@@ -5,6 +5,9 @@ import { blogAPI } from '@/lib/api'
 import BlogDetailClient from './BlogDetailClient'
 import type { BlogPost } from '@/types'
 
+// Edited in the admin — serve the latest version (rebuilt at most every 60 s).
+export const revalidate = 60
+
 // Memoized per-request so generateMetadata and the page body share one fetch
 // — getBlogPost increments a view counter server-side, so fetching twice
 // would double-count every single page load.

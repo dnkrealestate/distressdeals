@@ -13,7 +13,7 @@ const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 60_000, ret
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const { token, fetchMe } = useAuthStore()
-  const { dark } = useThemeStore()
+  const { dark, syncSystem } = useThemeStore()
 
   useEffect(() => {
     if (token) fetchMe()
@@ -37,7 +37,27 @@ export function Providers({ children }: { children: React.ReactNode }) {
     useFavoritesStore.getState().fetchFavorites()
   }, [token])
 
-  // Apply the persisted theme to <html data-theme="..."> so the CSS variables switch.
+  // Browsers change a focused number field's value on mouse-wheel — so scrolling the page after typing a year or a
+  // price silently changed it. Everywhere on the site: scrolling over a focused number field just scrolls the page.
+  useEffect(() => {
+    const onWheel = (e: WheelEvent) => {
+      const el = e.target as HTMLElement | null
+      if (el instanceof HTMLInputElement && el.type === 'number' && document.activeElement === el) el.blur()
+    }
+    document.addEventListener('wheel', onWheel, { capture: true, passive: true })
+    return () => document.removeEventListener('wheel', onWheel, { capture: true } as any)
+  }, [])
+
+  // Follow the device's light/dark setting (and its changes) until the visitor picks one with the toggle.
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    syncSystem(mq.matches)
+    const onChange = (e: MediaQueryListEvent) => syncSystem(e.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [syncSystem])
+
+  // Apply the theme to <html data-theme="..."> so the CSS variables switch.
   useEffect(() => {
     if (typeof document !== 'undefined') {
       document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light')

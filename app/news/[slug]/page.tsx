@@ -5,6 +5,9 @@ import { newsAPI } from '@/lib/api'
 import NewsDetailClient from './NewsDetailClient'
 import type { NewsItem } from '@/types'
 
+// Edited in the admin — serve the latest version (rebuilt at most every 60 s).
+export const revalidate = 60
+
 const getItem = cache(async (slug: string): Promise<NewsItem | null> => {
   try {
     const res = await newsAPI.getOne(slug)

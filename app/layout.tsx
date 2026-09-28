@@ -9,6 +9,7 @@ import { GoogleTagHead, GoogleTagNoScript } from '@/components/GoogleTags'
 import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import ContactClickTracker from '@/components/ContactClickTracker'
+import { THEME_BOOT_SCRIPT } from '@/store/themeStore'
 
 // Canonical www — the actual live domain (non-www 301s to this), so metadataBase (and therefore every relative
 // `alternates.canonical` across the app) must resolve here too, not to a URL that immediately redirects away.
@@ -58,8 +59,13 @@ const organizationJsonLd = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
+        {/* We have our own dark theme — tells browsers not to auto-darken the page. */}
+        <meta name="color-scheme" content="light dark" />
+        {/* Pick light/dark before the first paint (device setting, or the visitor's own choice). */}
+        {/* eslint-disable-next-line react/no-danger */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
         {/* eslint-disable-next-line react/no-danger */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
       </head>

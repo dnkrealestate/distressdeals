@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Home, TrendingUp, Plus, Eye, Heart,
+  Home, TrendingUp, Plus, Eye, Bookmark,
   Search, MoreVertical, Pencil, Trash2, XCircle,
   AlertCircle, Building2, Clock, MessageSquare, Loader2, Sparkles,
   Bed, Bath, Maximize2, Tag,
@@ -315,7 +315,7 @@ export default function SellerListingsPage() {
                       <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Leads</span>
                     </div>
                     <div className="flex flex-col items-center gap-0.5">
-                      <span className="flex items-center gap-1 font-semibold"><Heart size={13} style={{ color: '#FB7185' }} />{p.stats?.favorites || 0}</span>
+                      <span className="flex items-center gap-1 font-semibold"><Bookmark size={13} style={{ color: '#FB7185' }} />{p.stats?.favorites || 0}</span>
                       <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Saved</span>
                     </div>
                   </div>

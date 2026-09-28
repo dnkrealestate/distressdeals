@@ -4,6 +4,9 @@ import { resolveSeo } from '@/lib/seo'
 import HomeClient from '@/components/HomeClient'
 import type { HomepageContent } from '@/types'
 
+// Homepage content, featured lists and search links come from the admin / database — refresh every 60 s.
+export const revalidate = 60
+
 export async function generateMetadata(): Promise<Metadata> {
   return resolveSeo('home', {
     title: 'Distress Sale Dubai | Distressed Property Deals UAE',

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, Suspense, Fragment } from 'react'
+import { useState, useEffect, useCallback, useRef, Suspense, Fragment } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
@@ -17,6 +17,8 @@ import { projectAPI } from '@/lib/api'
 import { UAE_EMIRATES } from '@/lib/constants'
 import type { Project } from '@/types'
 import { cn } from '@/lib/utils'
+import { FilterDropdown, DropdownOption, Pill } from '@/components/buyer/PropertyFilterBar'
+import { Map as MapIcon, Layers } from 'lucide-react'
 
 const STATUSES: { value: Project['status'] | ''; label: string }[] = [
   { value: '',                   label: 'All' },
@@ -178,6 +180,16 @@ function ProjectsListClientInner({ bottom }: { bottom?: React.ReactNode }) {
 
   const limit = 40 // projects per page
 
+  const searchWrapRef = useRef<HTMLDivElement>(null)
+  const [pastSearch, setPastSearch] = useState(false)
+  useEffect(() => {
+    const el = searchWrapRef.current
+    if (!el) return
+    const io = new IntersectionObserver(([e]) => setPastSearch(!e.isIntersecting && e.boundingClientRect.top < 0), { rootMargin: '-64px 0px 0px 0px', threshold: 0 })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+
   // Filter option sources — fetched once, independent of the active filters.
   useEffect(() => {
     projectAPI.getAreas().then(r => { if (r.data.success) setAreas(r.data.data) }).catch(() => {})
@@ -250,190 +262,132 @@ function ProjectsListClientInner({ bottom }: { bottom?: React.ReactNode }) {
         </p>
       </div>
 
-      {/* ── Modern floating filter card ──────────────────── */}
-      {/* Scrolls away with the page, like the for-sale page — only the sidebar ad sticks. */}
-      <div className="wrap pt-6 pb-2 relative z-30">
-        <div
-          className="rounded-3xl p-4 sm:p-5"
-          style={{
-            background: 'var(--surface)',
-            border: '1px solid var(--border)',
-            boxShadow: '0 12px 32px -12px rgba(15,23,42,0.18)',
-            backdropFilter: 'blur(16px)',
-          }}
-        >
-          {/* Search */}
-          <div className="input-glass flex items-center gap-2.5 h-12 px-4 rounded-2xl mb-4">
-            <Search size={16} style={{ color: 'var(--teal)', flexShrink: 0 }} />
+      {/* ── SEARCH — same model as the for-sale page ── */}
+      <div ref={searchWrapRef} className="wrap pt-6 pb-4">
+        <div className="flex items-center gap-2 p-2 rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: '0 12px 32px -14px rgba(15,23,42,0.22)' }}>
+          <div className="flex items-center gap-2.5 flex-1 min-w-0 h-12 px-3">
+            <Search size={18} style={{ color: 'var(--teal)', flexShrink: 0 }} />
             <input
-              type="text"
-              placeholder="Search by project name, developer, or area…"
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              className="bg-transparent flex-1 text-sm outline-none min-w-0"
-              style={{ color: 'var(--text)' }}
+              type="text" value={query} onChange={e => setQuery(e.target.value)}
+              placeholder="Search by project name, developer, community or area…"
+              className="bg-transparent flex-1 text-sm md:text-base outline-none min-w-0" style={{ color: 'var(--text)' }}
             />
-            {query && (
-              <button onClick={() => setQuery('')} style={{ background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}>
-                <X size={13} style={{ color: 'var(--text-muted)' }} />
-              </button>
+            {query && <button onClick={() => setQuery('')} aria-label="Clear search" style={{ color: 'var(--text-muted)' }}><X size={15} /></button>}
+          </div>
+          <Link href="/map-search" className="hidden sm:inline-flex items-center gap-1.5 h-12 px-4 rounded-xl text-sm font-semibold flex-shrink-0" style={{ border: '1px solid var(--border)', color: 'var(--text)' }}>
+            <MapIcon size={16} style={{ color: 'var(--teal)' }} /> Map
+          </Link>
+          <button onClick={() => setFilters(f => ({ ...f, q: query, page: 1 }))} className="btn-primary h-12 px-5 md:px-7 flex-shrink-0 gap-2">
+            <Search size={16} /> <span className="hidden sm:inline">Search</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ── Filter bar: every filter as a dropdown; sticks to the top once the search box scrolls away ── */}
+      <div className={cn('z-30', pastSearch ? 'sticky top-16' : 'relative')}
+        style={pastSearch ? { background: 'var(--surface)', borderBottom: '1px solid var(--border)', boxShadow: '0 8px 20px -14px rgba(15,23,42,0.25)' } : undefined}>
+        <div className={cn('wrap flex items-center gap-2 flex-wrap', pastSearch ? 'py-3' : 'pb-1')}>
+          <FilterDropdown label={STATUSES.find(x => x.value === filters.status && x.value)?.label || 'Status'} icon={Layers} active={!!filters.status} widthClass="w-60">
+            {close => (
+              <div className="flex flex-col gap-1">
+                {STATUSES.map(st => {
+                  const n = st.value ? statusStats.find(x => x.status === st.value)?.count || 0 : statusStatsTotal
+                  return <DropdownOption key={st.value || 'all'} active={filters.status === st.value} onClick={() => { setFilter('status', st.value); close() }}>{st.label} <span style={{ opacity: 0.55 }}>· {n.toLocaleString()}</span></DropdownOption>
+                })}
+              </div>
             )}
-          </div>
-
-          {/* Status pills + Area/Developer selects */}
-          <div className="flex flex-wrap items-center gap-2.5 justify-between">
-            <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto -mx-1 px-1 pb-0.5 sm:pb-0" style={{ scrollbarWidth: 'none' }}>
-              <StatusPill active={!filters.status} onClick={() => setFilter('status', '')}>
-                All <span style={{ opacity: 0.7 }}>· {statusStatsTotal.toLocaleString()}</span>
-              </StatusPill>
-              {STATUSES.filter(s => s.value).map(s => {
-                const count = statusStats.find(x => x.status === s.value)?.count || 0
-                if (!count) return null
-                return (
-                  <StatusPill key={s.value} active={filters.status === s.value} onClick={() => setFilter('status', filters.status === s.value ? '' : s.value)}>
-                    {s.label} <span style={{ opacity: 0.7 }}>· {count.toLocaleString()}</span>
-                  </StatusPill>
-                )
-              })}
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:items-center sm:w-auto sm:flex-shrink-0">
-              {/* Emirate */}
-              <div className="relative min-w-0">
-                <Globe2 size={13} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--teal)', pointerEvents: 'none' }} />
-                <select
-                  value={filters.emirate}
-                  onChange={e => setFilter('emirate', e.target.value)}
-                  className="select-field h-10 pl-8 pr-8 text-xs rounded-xl w-full sm:w-auto"
-                  style={{ color: filters.emirate ? 'var(--text)' : 'var(--text-muted)' }}
-                >
-                  <option value="">Any Emirate</option>
-                  {UAE_EMIRATES.map(e => <option key={e} value={e}>{e}</option>)}
-                </select>
-                <ChevronDown size={11} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+          </FilterDropdown>
+          <FilterDropdown label={filters.emirate || 'Emirate'} icon={Globe2} active={!!filters.emirate} widthClass="w-52">
+            {close => (
+              <div className="flex flex-col gap-1 max-h-72 overflow-y-auto">
+                <DropdownOption active={!filters.emirate} onClick={() => { setFilter('emirate', ''); close() }}>Any emirate</DropdownOption>
+                {UAE_EMIRATES.map(e => <DropdownOption key={e} active={filters.emirate === e} onClick={() => { setFilter('emirate', e); close() }}>{e}</DropdownOption>)}
               </div>
-
-              {/* Area */}
-              <div className="relative min-w-0">
-                <MapPin size={13} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--teal)', pointerEvents: 'none' }} />
-                <select
-                  value={filters.area}
-                  onChange={e => setFilter('area', e.target.value)}
-                  className="select-field h-10 pl-8 pr-8 text-xs rounded-xl w-full sm:w-auto"
-                  style={{ color: filters.area ? 'var(--text)' : 'var(--text-muted)' }}
-                >
-                  <option value="">Any Area</option>
-                  {areas.map(a => <option key={a} value={a}>{a}</option>)}
-                </select>
-                <ChevronDown size={11} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+            )}
+          </FilterDropdown>
+          <FilterDropdown label={filters.area || 'Area'} icon={MapPin} active={!!filters.area} widthClass="w-60">
+            {close => (
+              <div className="flex flex-col gap-1 max-h-72 overflow-y-auto">
+                <DropdownOption active={!filters.area} onClick={() => { setFilter('area', ''); close() }}>Any area</DropdownOption>
+                {areas.map(a => <DropdownOption key={a} active={filters.area === a} onClick={() => { setFilter('area', a); close() }}>{a}</DropdownOption>)}
               </div>
-
-              {/* Developer */}
-              <div className="relative min-w-0">
-                <Building2 size={13} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--teal)', pointerEvents: 'none' }} />
-                <select
-                  value={filters.developer}
-                  onChange={e => setFilter('developer', e.target.value)}
-                  className="select-field h-10 pl-8 pr-8 text-xs rounded-xl w-full sm:w-auto"
-                  style={{ color: filters.developer ? 'var(--text)' : 'var(--text-muted)' }}
-                >
-                  <option value="">Any Developer</option>
-                  {developers.map(d => <option key={d.developer} value={d.developer}>{d.developer} ({d.count})</option>)}
-                </select>
-                <ChevronDown size={11} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+            )}
+          </FilterDropdown>
+          <FilterDropdown label={filters.developer || 'Developer'} icon={Building2} active={!!filters.developer} widthClass="w-64">
+            {close => (
+              <div className="flex flex-col gap-1 max-h-72 overflow-y-auto">
+                <DropdownOption active={!filters.developer} onClick={() => { setFilter('developer', ''); close() }}>Any developer</DropdownOption>
+                {developers.map(d => <DropdownOption key={d.developer} active={filters.developer === d.developer} onClick={() => { setFilter('developer', d.developer); close() }}>{d.developer} <span style={{ opacity: 0.55 }}>· {d.count}</span></DropdownOption>)}
               </div>
-
-              {/* View toggle */}
-              <div className="flex items-center gap-2">
-              <div className="flex rounded-lg overflow-hidden flex-shrink-0" style={{ border: '1px solid var(--border)' }}>
-                {(['list', 'grid'] as const).map(v => (
-                  <button
-                    key={v}
-                    onClick={() => setView(v)}
-                    className="p-2 transition-colors"
-                    title={v === 'list' ? 'List view' : 'Grid view'}
-                    style={{
-                      background: view === v ? 'rgba(203,1,1,0.10)' : 'transparent',
-                      color:      view === v ? 'var(--teal)' : 'var(--text-muted)',
-                    }}
-                  >
-                    {v === 'list' ? <LayoutList size={15} /> : <Grid3X3 size={15} />}
-                  </button>
-                ))}
+            )}
+          </FilterDropdown>
+          <FilterDropdown
+            label={[filters.quarter, filters.handover ? (HANDOVER_CHOICES.find(h => h.k === filters.handover)?.l || handoverKeyLabel(filters.handover)) : ''].filter(Boolean).join(' · ') || 'Handover'}
+            icon={CalendarClock} active={!!(filters.handover || filters.quarter)} widthClass="w-64">
+            {close => (
+              <div className="space-y-3">
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest mb-2 font-semibold" style={{ color: 'var(--text-muted)' }}>Quarter</p>
+                  <div className="flex gap-1.5">
+                    {QUARTERS.map(q => <Pill key={q} active={filters.quarter === q} onClick={() => setFilter('quarter', filters.quarter === q ? '' : q)} className="flex-1 py-1.5">{q}</Pill>)}
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1 max-h-60 overflow-y-auto">
+                  {HANDOVER_CHOICES.map(h => <DropdownOption key={h.k || 'any'} active={filters.handover === h.k} onClick={() => { setFilter('handover', h.k); close() }}>{h.l}</DropdownOption>)}
+                </div>
               </div>
-
-              {activeFilterCount > 0 && (
-                <button
-                  onClick={clearAll}
-                  className="text-xs px-1"
-                  style={{ color: 'var(--text-muted)' }}
-                >
-                  Clear
-                </button>
-              )}
+            )}
+          </FilterDropdown>
+          <FilterDropdown
+            label={PRICE_CHOICES.find(pc => pc.min === filters.priceMin && pc.max === filters.priceMax && (pc.min || pc.max))?.l || (filters.priceMin || filters.priceMax ? 'Custom price' : 'Price')}
+            icon={Wallet} active={!!(filters.priceMin || filters.priceMax)} widthClass="w-52">
+            {close => (
+              <div className="flex flex-col gap-1">
+                {PRICE_CHOICES.map(pc => <DropdownOption key={pc.l} active={filters.priceMin === pc.min && filters.priceMax === pc.max} onClick={() => { setFilters(f => ({ ...f, priceMin: pc.min, priceMax: pc.max, page: 1 })); close() }}>{pc.min || pc.max ? `AED ${pc.l}` : pc.l}</DropdownOption>)}
               </div>
-            </div>
-          </div>
-
-          {/* Handover + budget + type — what off-plan buyers actually decide on */}
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-2.5 mt-3 pt-3" style={{ borderTop: '1px solid var(--border-soft)' }}>
-            <div className="relative min-w-0">
-              <CalendarClock size={13} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--teal)', pointerEvents: 'none' }} />
-              <select
-                value={filters.handover}
-                onChange={e => setFilter('handover', e.target.value)}
-                aria-label="Handover year"
-                className="select-field h-10 pl-8 pr-8 text-xs rounded-xl w-full sm:w-auto"
-                style={{ color: filters.handover ? 'var(--text)' : 'var(--text-muted)' }}
-              >
-                {HANDOVER_CHOICES.map(h => <option key={h.k} value={h.k}>{h.l}</option>)}
-                {filters.handover && !HANDOVER_CHOICES.some(h => h.k === filters.handover) && (
-                  <option value={filters.handover}>{handoverKeyLabel(filters.handover)}</option>
-                )}
-              </select>
-              <ChevronDown size={11} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
-            </div>
-
-            <div className="col-span-2 order-last sm:order-none flex items-center justify-between sm:justify-start gap-1" role="group" aria-label="Handover quarter">
-              {QUARTERS.map(q => (
-                <StatusPill key={q} active={filters.quarter === q} onClick={() => setFilter('quarter', filters.quarter === q ? '' : q)}>{q}</StatusPill>
-              ))}
-            </div>
-
-            <div className="relative min-w-0">
-              <Wallet size={13} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--teal)', pointerEvents: 'none' }} />
-              <select
-                value={`${filters.priceMin}-${filters.priceMax}`}
-                onChange={e => { const [a, b] = e.target.value.split('-').map(Number); setFilters(f => ({ ...f, priceMin: a, priceMax: b, page: 1 })) }}
-                aria-label="Starting price"
-                className="select-field h-10 pl-8 pr-8 text-xs rounded-xl w-full sm:w-auto"
-                style={{ color: filters.priceMin || filters.priceMax ? 'var(--text)' : 'var(--text-muted)' }}
-              >
-                {PRICE_CHOICES.map(pc => <option key={pc.l} value={`${pc.min}-${pc.max}`}>{pc.min || pc.max ? `AED ${pc.l}` : pc.l}</option>)}
-                {!PRICE_CHOICES.some(pc => pc.min === filters.priceMin && pc.max === filters.priceMax) && (
-                  <option value={`${filters.priceMin}-${filters.priceMax}`}>Custom range</option>
-                )}
-              </select>
-              <ChevronDown size={11} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
-            </div>
-
-            <div className="relative min-w-0">
-              <Home size={13} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--teal)', pointerEvents: 'none' }} />
-              <select
-                value={filters.type}
-                onChange={e => setFilter('type', e.target.value)}
-                aria-label="Unit type"
-                className="select-field h-10 pl-8 pr-8 text-xs rounded-xl w-full sm:w-auto"
-                style={{ color: filters.type ? 'var(--text)' : 'var(--text-muted)' }}
-              >
-                <option value="">Any type</option>
-                {TYPE_CHOICES.map(t => <option key={t.v} value={t.v}>{t.l}</option>)}
-              </select>
-              <ChevronDown size={11} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
-            </div>
+            )}
+          </FilterDropdown>
+          <FilterDropdown label={TYPE_CHOICES.find(t => t.v === filters.type)?.l || 'Type'} icon={Home} active={!!filters.type} widthClass="w-48">
+            {close => (
+              <div className="flex flex-col gap-1">
+                <DropdownOption active={!filters.type} onClick={() => { setFilter('type', ''); close() }}>Any type</DropdownOption>
+                {TYPE_CHOICES.map(t => <DropdownOption key={t.v} active={filters.type === t.v} onClick={() => { setFilter('type', t.v); close() }}>{t.l}</DropdownOption>)}
+              </div>
+            )}
+          </FilterDropdown>
+          {activeFilterCount > 0 && (
+            <button onClick={clearAll} className="text-xs font-semibold px-2 inline-flex items-center gap-1" style={{ color: 'var(--teal)' }}>
+              <X size={12} /> Clear ({activeFilterCount})
+            </button>
+          )}
+          <div className="ml-auto flex rounded-lg overflow-hidden flex-shrink-0" style={{ border: '1px solid var(--border)' }}>
+            {(['list', 'grid'] as const).map(v => (
+              <button key={v} onClick={() => setView(v)} className="p-2 transition-colors" title={v === 'list' ? 'List view' : 'Grid view'}
+                style={{ background: view === v ? 'rgba(203,1,1,0.10)' : 'transparent', color: view === v ? 'var(--teal)' : 'var(--text-muted)' }}>
+                {v === 'list' ? <LayoutList size={15} /> : <Grid3X3 size={15} />}
+              </button>
+            ))}
           </div>
         </div>
       </div>
+
+      {/* ── Status counts row (like the for-sale page's property-type counts) ── */}
+      {!pastSearch && (
+        <div className="wrap pt-3 flex items-center gap-2 overflow-x-auto overflow-y-hidden scrollbar-hide">
+          <StatusPill active={!filters.status} onClick={() => setFilter('status', '')}>
+            All <span style={{ opacity: 0.7 }}>· {statusStatsTotal.toLocaleString()}</span>
+          </StatusPill>
+          {STATUSES.filter(st => st.value).map(st => {
+            const count = statusStats.find(x => x.status === st.value)?.count || 0
+            if (!count) return null
+            return (
+              <StatusPill key={st.value} active={filters.status === st.value} onClick={() => setFilter('status', filters.status === st.value ? '' : st.value)}>
+                {st.label} <span style={{ opacity: 0.7 }}>· {count.toLocaleString()}</span>
+              </StatusPill>
+            )
+          })}
+        </div>
+      )}
 
       {/* ── Results + sidebar ─────────────────────────────── */}
       <section className="pt-8 pb-20">

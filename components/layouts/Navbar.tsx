@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
-  Heart, GitCompare, Menu, X,
+  Bookmark, GitCompare, Menu, X,
   ChevronDown, LogOut, Settings, User,
   LayoutDashboard, Sun, Moon, ArrowRight, ArrowLeft,
 } from 'lucide-react'
@@ -330,7 +330,7 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
 
                 {/* Favorites */}
                 <Link href="/buyer/favorites" className="relative btn-ghost btn-sm p-2.5">
-                  <Heart size={16} />
+                  <Bookmark size={16} />
                   {favorites.length > 0 && (
                     <span
                       className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-white text-[9px] font-bold flex items-center justify-center"

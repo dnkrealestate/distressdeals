@@ -21,11 +21,13 @@ import { reverseGeocode, type GeocodeResult } from '@/lib/distance'
 import { LocationSearch } from '@/components/shared/LocationSearch'
 import StepIndicator from '@/components/shared/StepIndicator'
 import ProjectFeatureTags from '@/components/admin/ProjectFeatureTags'
+import HandoverPicker from '@/components/admin/HandoverPicker'
 import ProjectDescriptionStep, { type ProjectSeo, type ProjectFacts } from '@/components/admin/ProjectDescriptionStep'
 import { PerformanceStats } from '@/components/admin/PerformanceStats'
 import type { Project, Developer } from '@/types'
 import toast from 'react-hot-toast'
 import { useFormDraft, listDrafts, removeDraft, timeAgoShort } from '@/lib/useFormDraft'
+
 
 const LocationPickerMap = dynamic(() => import('@/components/shared/LocationPickerMap'), {
   ssr: false,
@@ -303,8 +305,9 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
       bedrooms:        project?.bedrooms || '',
       bathrooms:       project?.bathrooms || '',
       sizeRange:       project?.sizeRange || '',
-      handoverQuarter: project?.handoverQuarter || '',
-      handoverYear:    project?.handoverYear || '',
+      // Older entries hold free text ('Q4-2029', 'Q2 ') — map to the dropdowns' values so nothing is lost on save.
+      handoverQuarter: (String(project?.handoverQuarter || '').toUpperCase().match(/Q[1-4]/) || [''])[0],
+      handoverYear:    project?.handoverYear || Number((String(project?.handoverQuarter || '').match(/(20\d{2})/) || [])[1]) || '',
       paymentPlan:     project?.paymentPlan || '',
       permitNumber:    project?.permitNumber || '',
       status:          project?.status || 'upcoming',
@@ -589,14 +592,15 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
                     </select>
                   </Field>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Field label="Handover Quarter">
-                    <input className="input" placeholder="e.g. Q4" {...register('handoverQuarter')} />
-                  </Field>
-                  <Field label="Handover Year">
-                    <input className="input" type="number" placeholder="e.g. 2027" {...register('handoverYear')} />
-                  </Field>
-                </div>
+                <Field label="Handover">
+                  <HandoverPicker
+                    quarter={watch('handoverQuarter') || ''} year={watch('handoverYear') || ''}
+                    onChange={({ quarter, year }) => {
+                      setValue('handoverQuarter', quarter, { shouldDirty: true })
+                      setValue('handoverYear', year as any, { shouldDirty: true })
+                    }}
+                  />
+                </Field>
                 <Field label="Payment Plan">
                   <input className="input" placeholder="e.g. 60/40 Post-Handover" {...register('paymentPlan')} />
                 </Field>

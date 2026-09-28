@@ -1,4 +1,5 @@
 'use client'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
@@ -19,8 +20,30 @@ function detailPage(pathname: string): boolean {
   return /^\/buyer\/properties\/[^/]+$/.test(pathname) || /^\/projects\/[^/]+$/.test(pathname)
 }
 
+// How far the page footer has come up into the screen — the buttons rise by that much, so they stop just above the
+// footer instead of sitting on top of it.
+function useFooterLift() {
+  const [lift, setLift] = useState(0)
+  useEffect(() => {
+    let raf = 0
+    const measure = () => {
+      raf = 0
+      const footer = document.querySelector('footer')
+      const top = footer ? footer.getBoundingClientRect().top : Infinity
+      setLift(Math.max(0, Math.round(window.innerHeight - top)))
+    }
+    const onChange = () => { if (!raf) raf = requestAnimationFrame(measure) }
+    measure()
+    window.addEventListener('scroll', onChange, { passive: true })
+    window.addEventListener('resize', onChange)
+    return () => { window.removeEventListener('scroll', onChange); window.removeEventListener('resize', onChange); if (raf) cancelAnimationFrame(raf) }
+  }, [])
+  return lift
+}
+
 export default function FloatingActions() {
   const pathname = usePathname()
+  const lift = useFooterLift()
   if (hidden(pathname) || detailPage(pathname)) return null
 
   return (
@@ -30,8 +53,9 @@ export default function FloatingActions() {
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6, duration: 0.45 }}
-        className="hidden md:flex fixed bottom-6 right-6 z-40 items-center gap-1.5 p-1.5 rounded-full"
+        className="hidden md:flex fixed right-6 z-40 items-center gap-1.5 p-1.5 rounded-full"
         style={{
+          bottom: 24 + lift,
           background: 'color-mix(in srgb, var(--surface) 88%, transparent)',
           backdropFilter: 'blur(14px)',
           WebkitBackdropFilter: 'blur(14px)',
@@ -65,7 +89,7 @@ export default function FloatingActions() {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.6, type: 'spring', stiffness: 260, damping: 20 }}
         className="md:hidden fixed right-4 z-40"
-        style={{ bottom: 'calc(84px + env(safe-area-inset-bottom))' }}
+        style={{ bottom: `calc(${84 + lift}px + env(safe-area-inset-bottom))` }}
       >
         <Link
           href="/map-search"

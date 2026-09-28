@@ -119,7 +119,7 @@ export default function FeaturedProjectsSection() {
         </motion.div>
 
         {/* Emirate tabs — filter the slider below without leaving the page */}
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide mb-8 pb-1">
+        <div className="flex gap-2 overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-hide mb-8 pb-1">
           <EmiratePill active={!emirate} onClick={() => setEmirate('')}>All Emirates</EmiratePill>
           {UAE_EMIRATES.map(e => (
             <EmiratePill key={e} active={emirate === e} onClick={() => setEmirate(emirate === e ? '' : e)}>
@@ -141,7 +141,7 @@ export default function FeaturedProjectsSection() {
             <div
               ref={trackRef}
               onScroll={updateScrollState}
-              className="flex gap-4 sm:gap-6 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth flex-1 pb-2"
+              className="flex gap-4 sm:gap-6 overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-hide snap-x snap-mandatory scroll-smooth flex-1 pb-2"
             >
               {projects.map((project, i) => (
                 <div key={project._id} className="flex-shrink-0 snap-start w-[78vw] max-w-[280px] sm:w-[340px] sm:max-w-none lg:w-[380px]">

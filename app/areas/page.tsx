@@ -2,6 +2,10 @@ import type { Metadata } from 'next'
 import { resolveSeo } from '@/lib/seo'
 import AreasListClient from './AreasListClient'
 
+// Content is edited in the admin — rebuild this page from the latest data at most every 60 s (otherwise a production
+// build freezes it at build time and edits never show).
+export const revalidate = 60
+
 export async function generateMetadata(): Promise<Metadata> {
   const seo = await resolveSeo('areas', {
     title: 'Dubai Area Guides: Average Prices by Community',

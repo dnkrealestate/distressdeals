@@ -2,6 +2,10 @@ import type { Metadata } from 'next'
 import { resolveSeo } from '@/lib/seo'
 import CommunitiesListClient from './CommunitiesListClient'
 
+// Content is edited in the admin — rebuild this page from the latest data at most every 60 s (otherwise a production
+// build freezes it at build time and edits never show).
+export const revalidate = 60
+
 export async function generateMetadata(): Promise<Metadata> {
   return resolveSeo('communities', {
     title: 'Dubai Communities Guide',

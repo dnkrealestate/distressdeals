@@ -5,7 +5,7 @@ import Link            from 'next/link'
 import { useRouter }   from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Heart, MapPin, Bed, Bath, Maximize2, Home,
+  Bookmark, MapPin, Bed, Bath, Maximize2, Home,
   GitCompare, MessageCircleHeart,
 } from 'lucide-react'
 
@@ -169,7 +169,7 @@ export default function PropertyCard({
                   className="w-8 h-8 rounded-full flex items-center justify-center transition-colors"
                   style={{ background: fav ? 'rgba(244,63,94,0.10)' : 'var(--bg-alt)', border: '1px solid var(--border)' }}
                 >
-                  <Heart size={13} fill={fav ? '#F43F5E' : 'none'} style={{ color: fav ? '#F43F5E' : 'var(--text-muted)' }} />
+                  <Bookmark size={13} fill={fav ? '#F43F5E' : 'none'} style={{ color: fav ? '#F43F5E' : 'var(--text-muted)' }} />
                 </motion.button>
                 <motion.button
                   whileTap={{ scale: 0.82 }}
@@ -280,7 +280,7 @@ export default function PropertyCard({
                 border:     '1px solid rgba(255,255,255,0.15)',
               }}
             >
-              <Heart
+              <Bookmark
                 size={13}
                 fill={fav ? 'white' : 'none'}
                 className="text-white"

@@ -514,3 +514,7 @@ body {
 
 /* Bottom sheets (phones) slide up */
 @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+/* Our own themes, declared so browsers draw form controls/scrollbars to match and never apply their own auto-dark. */
+[data-theme="light"] { color-scheme: light; }
+[data-theme="dark"] { color-scheme: dark; }

@@ -15,6 +15,9 @@ import LinkPagination from '@/components/shared/LinkPagination'
 import { HOME_ICON_MAP } from '@/lib/homeIcons'
 import type { CommunityContentWithStats, Property, Project } from '@/types'
 
+// Edited in the admin — serve the latest version (rebuilt at most every 60 s).
+export const revalidate = 60
+
 const SITE_URL = 'https://www.distressdealsuae.com'
 
 const getCommunity = cache(async (slug: string): Promise<CommunityContentWithStats | null> => {

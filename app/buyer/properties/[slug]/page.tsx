@@ -5,6 +5,9 @@ import { propertyAPI } from '@/lib/api'
 import PropertyDetailClient from './PropertyDetailClient'
 import type { Property } from '@/types'
 
+// Edited in the admin — serve the latest version (rebuilt at most every 60 s).
+export const revalidate = 60
+
 const getProperty = cache(async (slug: string): Promise<Property | null> => {
   try {
     const res = await propertyAPI.getOne(slug)

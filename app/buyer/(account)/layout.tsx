@@ -2,7 +2,7 @@
 import { useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { User, Heart, TrendingUp, CalendarClock, LogOut, Bell } from 'lucide-react'
+import { User, Bookmark, TrendingUp, CalendarClock, LogOut, Bell } from 'lucide-react'
 import Navbar from '@/components/layouts/Navbar'
 import Footer from '@/components/layouts/Footer'
 import { useAuthStore, useAuthHydrated } from '@/store/authStore'
@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils'
 
 const NAV = [
   { href: '/buyer/profile',   icon: User,          label: 'Profile'   },
-  { href: '/buyer/favorites', icon: Heart,          label: 'Favorites' },
+  { href: '/buyer/favorites', icon: Bookmark,       label: 'Saved' },
   { href: '/buyer/leads',     icon: TrendingUp,     label: 'My Leads'  },
   { href: '/buyer/tours',     icon: CalendarClock,  label: 'My Tours'  },
   { href: '/buyer/searches',  icon: Bell,           label: 'Alerts'    },

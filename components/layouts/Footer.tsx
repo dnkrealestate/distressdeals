@@ -205,7 +205,7 @@ export default function Footer() {
             © {year} Distress Deals UAE. All rights reserved.
           </p>
           <div className="flex items-center gap-5">
-            {['Privacy', 'Terms', 'Cookies', 'Sitemap'].map(l => (
+            {['About', 'Privacy', 'Terms', 'Cookies', 'Sitemap'].map(l => (
               <Link
                 key={l}
                 href={`/${l.toLowerCase()}`}

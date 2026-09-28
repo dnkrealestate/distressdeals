@@ -14,6 +14,9 @@ import { formatPrice } from '@/lib/utils'
 import { HOME_ICON_MAP } from '@/lib/homeIcons'
 import type { AreaStats, AreaContentWithStats, Property, Project } from '@/types'
 
+// Edited in the admin — serve the latest version (rebuilt at most every 60 s).
+export const revalidate = 60
+
 const SITE_URL = 'https://www.distressdealsuae.com'
 
 const getArea = cache(async (slug: string): Promise<AreaStats | null> => {

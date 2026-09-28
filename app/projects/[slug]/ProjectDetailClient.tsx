@@ -16,10 +16,12 @@ import { projectAPI } from '@/lib/api'
 import { COMPANY_PHONE_DISPLAY, telHref, whatsappHref } from '@/lib/contact'
 import { formatPrice, cn, timeAgo, isHandedOver } from '@/lib/utils'
 import { AMENITY_META } from '@/lib/amenities'
-import { haversineKm, formatDistanceKm, geocodePlace, type GeocodeResult } from '@/lib/distance'
+import { haversineKm, formatDistanceKm } from '@/lib/distance'
+import DistanceCalculator from '@/components/shared/DistanceCalculator'
 import type { Project } from '@/types'
 import RecentlyViewedCard from '@/components/buyer/RecentlyViewedCard'
 import AdSlot from '@/components/shared/AdSlot'
+import { ProjectSaveCompare } from '@/components/shared/SaveCompareButtons'
 import InfoBadge, { VERIFIED_NOTE, OFF_PLAN_NOTE } from '@/components/shared/InfoBadge'
 import ImageLightbox from '@/components/shared/ImageLightbox'
 import { Camera } from 'lucide-react'
@@ -93,9 +95,6 @@ function FloorPlanTabs({ floorPlans }: { floorPlans: NonNullable<Project['floorP
 
 /* ── Nearby distances + a free-text "how far is X" calculator ── */
 function NearbyDistances({ project }: { project: Project }) {
-  const [query, setQuery] = useState('')
-  const [searching, setSearching] = useState(false)
-  const [customResult, setCustomResult] = useState<{ place: GeocodeResult; km: number } | null>(null)
 
   const coords = project.coordinates
   const landmarks = project.landmarks || []
@@ -105,23 +104,6 @@ function NearbyDistances({ project }: { project: Project }) {
     return acc
   }, {} as Record<string, typeof landmarks>)
 
-  const calculateCustom = async () => {
-    if (!query.trim()) return
-    if (!coords) { toast.error("This project's exact location isn't set yet"); return }
-    setSearching(true)
-    setCustomResult(null)
-    try {
-      const results = await geocodePlace(query.trim())
-      if (results.length === 0) { toast.error('Place not found'); return }
-      const place = results[0]
-      const km = haversineKm(coords.lat, coords.lng, place.lat, place.lng)
-      setCustomResult({ place, km })
-    } catch {
-      toast.error('Failed to calculate distance — try again')
-    } finally {
-      setSearching(false)
-    }
-  }
 
   if (!coords && landmarks.length === 0) return null
 
@@ -139,37 +121,7 @@ function NearbyDistances({ project }: { project: Project }) {
       )}
 
       {/* Custom distance calculator */}
-      {coords && (
-        <div className="rounded-xl p-4 mb-6" style={{ background: 'var(--bg-alt)' }}>
-          <div className="flex items-center gap-2 mb-3">
-            <Navigation size={15} style={{ color: 'var(--teal)' }} />
-            <h4 className="font-semibold text-sm" style={{ color: 'var(--text)' }}>Calculate Distance to Any Place</h4>
-          </div>
-          <div className="flex gap-2">
-            <div className="input-glass flex-1 flex items-center gap-2 h-11 px-3 rounded-xl">
-              <Search size={14} style={{ color: 'var(--teal)', flexShrink: 0 }} />
-              <input
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && calculateCustom()}
-                placeholder="e.g. Dubai Mall, DXB Airport, JBR Beach…"
-                className="bg-transparent flex-1 text-sm outline-none min-w-0"
-                style={{ color: 'var(--text)' }}
-              />
-            </div>
-            <button onClick={calculateCustom} disabled={searching} className="btn-primary btn-sm flex-shrink-0 gap-1.5">
-              {searching ? <Loader2 size={13} className="animate-spin" /> : <Search size={13} />}
-              Calculate
-            </button>
-          </div>
-          {customResult && (
-            <div className="mt-3 flex items-center justify-between gap-3 p-3 rounded-xl" style={{ background: 'rgba(203,1,1,0.08)' }}>
-              <p className="text-xs truncate" style={{ color: 'var(--text-mid)' }}>{customResult.place.label}</p>
-              <p className="text-sm font-bold flex-shrink-0" style={{ color: 'var(--teal)' }}>{formatDistanceKm(customResult.km)}</p>
-            </div>
-          )}
-        </div>
-      )}
+      {coords && <DistanceCalculator lat={coords.lat} lng={coords.lng} />}
 
       {/* Pre-set landmarks, grouped by category */}
       {Object.keys(grouped).length > 0 && (
@@ -433,6 +385,7 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
               <InfoBadge label="Verified" icon={BadgeCheck} title="Verified listing" message={VERIFIED_NOTE} style={{ background: 'rgba(22,163,74,0.10)', color: '#15803D', border: '1px solid rgba(22,163,74,0.25)' }} />
               {project.status !== 'ready' && !isHandedOver(project) && <InfoBadge label="Off-plan" icon={Info} title="Off-plan initial sale" message={OFF_PLAN_NOTE} style={{ background: 'rgba(139,92,246,0.10)', color: '#7C3AED', border: '1px solid rgba(139,92,246,0.25)' }} />}
             </div>
+            <div className="mb-4"><ProjectSaveCompare project={project} /></div>
             <div className="flex items-center gap-3 flex-wrap mb-8">
               <p className="text-sm flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
                 <MapPin size={13} style={{ color: 'var(--teal)' }} />{project.area}, {project.city}

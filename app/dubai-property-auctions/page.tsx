@@ -6,6 +6,10 @@ import { resolveSeo } from '@/lib/seo'
 import { getContentPage } from '@/lib/contentPages'
 import { PAGE_KEY, FALLBACK_CONTENT } from './fallbackContent'
 
+// Content is edited in the admin — rebuild this page from the latest data at most every 60 s (otherwise a production
+// build freezes it at build time and edits never show).
+export const revalidate = 60
+
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.distressdealsuae.com'
 
 export async function generateMetadata(): Promise<Metadata> {

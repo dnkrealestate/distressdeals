@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { User, Mail, Phone, Shield, Heart, TrendingUp, Clock, CheckCircle2, Settings, Loader2 } from 'lucide-react'
+import { User, Mail, Phone, Shield, Bookmark, TrendingUp, Clock, CheckCircle2, Settings, Loader2 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useFavoritesStore } from '@/store/favoritesStore'
 import { userAPI, authAPI, leadAPI } from '@/lib/api'
@@ -110,7 +110,7 @@ export default function BuyerProfilePage() {
         </div>
         <div className="flex items-center gap-6 flex-shrink-0">
           {[
-            { icon: Heart,      label: 'Saved',     val: favorites.length },
+            { icon: Bookmark,      label: 'Saved',     val: favorites.length },
             { icon: TrendingUp, label: 'Enquiries', val: leadCount ?? '—' },
             { icon: Clock,      label: 'Member Since', val: formatDate(user?.createdAt || '') },
           ].map(({ icon: Icon, label, val }) => (

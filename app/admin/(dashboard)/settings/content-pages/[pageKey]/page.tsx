@@ -1,8 +1,8 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Plus, X, GripVertical, Save, RotateCcw, ExternalLink, ChevronLeft } from 'lucide-react'
-import { contentPageAPI } from '@/lib/api'
+import { Plus, X, GripVertical, Save, RotateCcw, ExternalLink, ChevronLeft, ImagePlus, Loader2 } from 'lucide-react'
+import { contentPageAPI, uploadAPI } from '@/lib/api'
 import { HOME_ICON_MAP, HOME_ICON_OPTIONS } from '@/lib/homeIcons'
 import type { ContentPageData, ContentSection, ContentCard, MiniStat } from '@/types'
 import toast from 'react-hot-toast'
@@ -53,6 +53,37 @@ function CardEditor({ card, onChange, onRemove }: { card: ContentCard; onChange:
       </div>
       <input className="input w-full" placeholder="Title" value={card.title} onChange={e => onChange({ title: e.target.value })} />
       <textarea className="input w-full" rows={2} placeholder="Body" value={card.body} onChange={e => onChange({ body: e.target.value })} />
+      <CardPhoto image={card.image} onChange={image => onChange({ image })} />
+    </div>
+  )
+}
+
+// Optional photo on a card (e.g. a founder's portrait on the About page) — uploaded as WebP to S3.
+function CardPhoto({ image, onChange }: { image?: string; onChange: (url: string | undefined) => void }) {
+  const [busy, setBusy] = useState(false)
+  const upload = async (file?: File) => {
+    if (!file) return
+    setBusy(true)
+    try {
+      const fd = new FormData(); fd.append('image', file)
+      const res = await uploadAPI.image(fd)
+      if (res.data.success) onChange(res.data.data.url); else toast.error('Upload failed')
+    } catch (err: any) { toast.error(err?.error || 'Upload failed') } finally { setBusy(false) }
+  }
+  return (
+    <div className="flex items-center gap-3">
+      {image ? (
+        <div className="relative w-16 h-16 rounded-xl overflow-hidden flex-shrink-0" style={{ border: '1px solid var(--border)' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={image} alt="" className="w-full h-full object-cover" />
+          <button type="button" onClick={() => onChange(undefined)} className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)', color: '#fff' }} aria-label="Remove photo"><X size={11} /></button>
+        </div>
+      ) : null}
+      <label className="btn-ghost btn-sm gap-2 cursor-pointer">
+        {busy ? <Loader2 size={13} className="animate-spin" /> : <ImagePlus size={13} />}
+        {image ? 'Change photo' : 'Add photo (optional)'}
+        <input type="file" accept="image/*" className="hidden" onChange={e => upload(e.target.files?.[0])} />
+      </label>
     </div>
   )
 }
@@ -188,7 +219,7 @@ export default function ContentPageEditor({ params }: { params: { pageKey: strin
           </div>
         </Section>
 
-        <Section title="Stats Strip" description="Optional row of stats shown under the hero. Leave empty to hide.">
+        <Section title="Stats Strip" description={pageKey === 'about' ? 'Not shown on the About page.' : 'Optional row of stats shown under the hero. Leave empty to hide.'}>
           <div className="space-y-2">
             {stats.map((s, i) => (
               <div key={i} className="flex items-center gap-2">

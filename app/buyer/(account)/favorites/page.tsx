@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Heart, Trash2, GitCompare, Search } from 'lucide-react'
+import { Bookmark, Trash2, GitCompare, Search } from 'lucide-react'
 import Link from 'next/link'
 import PropertyCard from '@/components/buyer/PropertyCard'
 import ProjectCard from '@/components/buyer/ProjectCard'
@@ -73,10 +73,10 @@ export default function FavoritesPage() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
           className="flex flex-col items-center justify-center py-20 text-center card">
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5" style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.20)' }}>
-            <Heart size={28} style={{ color: '#FB7185' }} />
+            <Bookmark size={28} style={{ color: '#FB7185' }} />
           </div>
           <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text)' }}>No favorites yet</h3>
-          <p className="muted mb-7 max-w-xs">Save properties and new projects you love by tapping the heart icon on any listing.</p>
+          <p className="muted mb-7 max-w-xs">Save properties and new projects you love by tapping the save icon on any listing.</p>
           <div className="flex gap-2 flex-wrap justify-center">
             <Link href="/for-sale" className="btn-primary"><Search size={15} /> Browse Properties</Link>
             <Link href="/projects" className="btn-outline">New Projects</Link>

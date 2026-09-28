@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { ArrowUpRight, Bath, Bed, ChevronLeft, ChevronRight, Eye, Heart, Maximize2, Navigation, X } from 'lucide-react'
+import { ArrowUpRight, Bath, Bed, ChevronLeft, ChevronRight, Eye, Bookmark, Maximize2, Navigation, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '@/store/authStore'
 import { useFavoritesStore } from '@/store/favoritesStore'
@@ -150,10 +150,10 @@ export default function PinPreviewCard({
         <button
           onClick={() => { if (!isAuthenticated) { window.location.href = '/auth/login'; return } isProject ? toggleProjectFavorite(pin.id) : toggleFavorite(pin.id) }}
           className={cn('btn-ghost btn-sm px-2.5')}
-          title={fav ? 'Remove from favorites' : 'Save to favorites'}
+          title={fav ? 'Remove from saved' : 'Save'}
           style={fav ? { color: '#F43F5E' } : undefined}
         >
-          <Heart size={13} fill={fav ? '#F43F5E' : 'none'} />
+          <Bookmark size={13} fill={fav ? '#F43F5E' : 'none'} />
         </button>
       </div>
     </div>

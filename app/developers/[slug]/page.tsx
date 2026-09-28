@@ -14,6 +14,9 @@ import FaqSection, { type Faq } from '@/components/shared/FaqSection'
 import LinkPagination from '@/components/shared/LinkPagination'
 import type { DeveloperWithStats, Project } from '@/types'
 
+// Edited in the admin — serve the latest version (rebuilt at most every 60 s).
+export const revalidate = 60
+
 const SITE_URL = 'https://www.distressdealsuae.com'
 
 const getDeveloper = cache(async (slug: string): Promise<DeveloperWithStats | null> => {

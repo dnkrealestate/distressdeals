@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { BadgeCheck, Info, MapPin, BedDouble, Bath, Home, Maximize2, Wallet, CalendarClock, MessageCircleHeart, ArrowRight, Heart, GitCompare } from 'lucide-react'
+import { BadgeCheck, Info, MapPin, BedDouble, Bath, Home, Maximize2, Wallet, CalendarClock, MessageCircleHeart, ArrowRight, Bookmark, GitCompare } from 'lucide-react'
 import { formatPrice, isHandedOver } from '@/lib/utils'
 import InfoBadge, { VERIFIED_NOTE, OFF_PLAN_NOTE } from '@/components/shared/InfoBadge'
 import ImageSlider from '@/components/buyer/ImageSlider'
@@ -91,7 +91,7 @@ function DeveloperBadge({ project }: { project: Project }) {
   )
 }
 
-// Heart + compare, same behaviour as on property cards.
+// Bookmark + compare, same behaviour as on property cards.
 function CardActions({ project, onImage }: { project: Project; onImage?: boolean }) {
   const { isAuthenticated } = useAuthStore()
   const fav = useFavoritesStore(s => s.projectFavorites.includes(project._id))
@@ -115,8 +115,8 @@ function CardActions({ project, onImage }: { project: Project; onImage?: boolean
   return (
     <div className={onImage ? 'absolute top-3 right-3 z-10 flex gap-1.5' : 'flex items-center gap-1.5 flex-shrink-0'}>
       <motion.button whileTap={{ scale: 0.82 }} onClick={onFav} className={base} style={style(fav, '#F43F5E')}
-        aria-label={fav ? 'Remove from favorites' : 'Add to favorites'} title={fav ? 'Saved' : 'Save'}>
-        <Heart size={14} fill={fav ? (onImage ? '#fff' : '#F43F5E') : 'none'} style={{ color: iconColor(fav, '#F43F5E') }} />
+        aria-label={fav ? 'Remove from saved' : 'Save'} title={fav ? 'Saved' : 'Save'}>
+        <Bookmark size={14} fill={fav ? (onImage ? '#fff' : '#F43F5E') : 'none'} style={{ color: iconColor(fav, '#F43F5E') }} />
       </motion.button>
       <motion.button whileTap={{ scale: 0.82 }} onClick={onCmp} className={base} style={style(inCmp, '#CB0101')}
         aria-label={inCmp ? 'Remove from compare' : 'Add to compare'} title={inCmp ? 'In compare' : 'Compare'}>

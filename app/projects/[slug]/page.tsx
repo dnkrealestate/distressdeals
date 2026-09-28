@@ -5,6 +5,9 @@ import { projectAPI } from '@/lib/api'
 import ProjectDetailClient from './ProjectDetailClient'
 import type { Project } from '@/types'
 
+// Edited in the admin — serve the latest version (rebuilt at most every 60 s).
+export const revalidate = 60
+
 const getProject = cache(async (slug: string): Promise<Project | null> => {
   try {
     const res = await projectAPI.getOne(slug)

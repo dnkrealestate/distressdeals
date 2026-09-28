@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Pencil, Eye, TrendingUp, Heart, Building2, MapPin, BarChart3, Clock, MessageSquare, Loader2 } from 'lucide-react'
+import { ArrowLeft, Pencil, Eye, TrendingUp, Bookmark, Building2, MapPin, BarChart3, Clock, MessageSquare, Loader2 } from 'lucide-react'
 import { propertyAPI, leadAPI, chatAPI } from '@/lib/api'
 import { formatPrice, formatDate, propertyStatusColor, cn, rentSuffix } from '@/lib/utils'
 import RentalAvailabilityCard from '@/components/shared/RentalAvailabilityCard'
@@ -61,7 +61,7 @@ export default function ListingDetailPage() {
   const STATS = [
     { label: 'Views',       val: property.stats?.views || 0,      Icon: Eye,       accent: 'var(--teal)'  },
     { label: 'Leads',       val: property.stats?.leads || 0,      Icon: TrendingUp,accent: '#A855F7'      },
-    { label: 'Favorites',   val: property.stats?.favorites || 0,  Icon: Heart,     accent: '#FB7185'      },
+    { label: 'Favorites',   val: property.stats?.favorites || 0,  Icon: Bookmark,     accent: '#FB7185'      },
     { label: 'Conversion',  val: `${analytics?.conversionRate ?? 0}%`, Icon: BarChart3, accent: 'var(--green)' },
   ]
 
