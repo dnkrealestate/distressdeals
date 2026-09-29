@@ -5,7 +5,7 @@ import Link from 'next/link'
 import {
   LayoutDashboard, Home, TrendingUp, Users, CalendarDays,
   UserCog, LogOut, Sun, Moon, ShieldCheck, MessageSquare, Wallet,
-  MoreHorizontal, X, Settings as SettingsIcon, Megaphone,
+  MoreHorizontal, X, Settings as SettingsIcon, Megaphone, UserRound, Store, Globe,
 } from 'lucide-react'
 import { useAuthStore, useAuthHydrated } from '@/store/authStore'
 import { useThemeStore } from '@/store/themeStore'
@@ -31,7 +31,9 @@ const NAV: { href: string; icon: any; label: string; permission: NavPermission }
   { href: '/admin/meetings',   icon: CalendarDays,     label: 'Meetings', permission: 'schedule_meetings'  },
   { href: '/admin/ads',        icon: Megaphone,         label: 'Ads',      permission: 'manage_ads'         },
   { href: '/admin/settings',   icon: SettingsIcon,      label: 'Settings', permission: 'ANY_CONTENT'        },
-  { href: '/admin/users',      icon: UserCog,           label: 'Users',    permission: 'ADMIN_ONLY'         },
+  { href: '/admin/buyers',     icon: UserRound,         label: 'Buyers',   permission: 'ADMIN_ONLY'         },
+  { href: '/admin/sellers',    icon: Store,             label: 'Sellers',  permission: 'ADMIN_ONLY'         },
+  { href: '/admin/users',      icon: UserCog,           label: 'All Users & Staff', permission: 'ADMIN_ONLY' },
 ]
 
 // The 4 sections that fit comfortably in a mobile bottom tab bar — everything
@@ -160,6 +162,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* User */}
         <div className="p-3" style={{ borderTop: '1px solid var(--border)' }}>
+          <Link href="/" className="sidebar-link"><Globe size={15} /> Back to website</Link>
           <NotificationBell variant="sidebar" />
           <div className="flex items-center justify-between px-3 mb-2 mt-1">
             <span className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'var(--text-muted)' }}>Theme</span>
@@ -274,6 +277,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </div>
             )}
 
+            <Link href="/" className="sidebar-link mb-1"><Globe size={15} /> Back to website</Link>
             <div className="flex items-center justify-between px-1 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
               <span className="text-sm" style={{ color: 'var(--text)' }}>Dark mode</span>
               <ThemeToggle />

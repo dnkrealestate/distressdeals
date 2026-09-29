@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   Home, TrendingUp, MessageSquare, Plus,
-  LogOut, Sun, Moon, X, User,
+  LogOut, Sun, Moon, X, User, Globe,
 } from 'lucide-react'
 import { useAuthStore, useAuthHydrated } from '@/store/authStore'
 import { useThemeStore } from '@/store/themeStore'
@@ -48,10 +48,19 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
     }
   }, [hydrated, isAuthenticated, user, router])
 
+  // Until the seller's number is verified, the dashboard stays shut: only Profile (which has the verify step) opens.
+  const verified = !!user?.isPhoneVerified
+  const onProfile = pathname === '/seller/profile'
+  useEffect(() => {
+    if (hydrated && user?.role === 'seller' && !verified && !onProfile) router.replace('/seller/profile')
+  }, [hydrated, user, verified, onProfile, router])
+
   // Close the mobile account sheet on every navigation.
   useEffect(() => { setMenuOpen(false) }, [pathname])
 
   if (!hydrated || !isAuthenticated || !user || user.role !== 'seller') return null
+  if (!verified && !onProfile) return null
+  const nav = verified ? NAV : NAV.filter(n => n.href === '/seller/profile')
 
   const isActive = (href: string) => pathname === href || pathname?.startsWith(href + '/')
 
@@ -61,17 +70,19 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
       {/* ── Desktop sidebar (lg and up) ──────────────────────── */}
       <aside className="hidden lg:flex w-56 flex-shrink-0 flex-col" style={{ background: 'var(--surface)', borderRight: '1px solid var(--border)' }}>
         <div className="p-5" style={{ borderBottom: '1px solid var(--border)' }}>
-          <Logo href="/seller/listings" height={28} />
+          <Logo href={verified ? '/seller/listings' : '/seller/profile'} height={28} />
         </div>
 
-        <div className="p-3">
-          <Link href="/seller/listings/new" className="btn-primary w-full justify-center gap-2">
-            <Plus size={15} /> Add New Listing
-          </Link>
-        </div>
+        {verified && (
+          <div className="p-3">
+            <Link href="/seller/listings/new" className="btn-primary w-full justify-center gap-2">
+              <Plus size={15} /> Add New Listing
+            </Link>
+          </div>
+        )}
 
         <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
-          {NAV.map(n => (
+          {nav.map(n => (
             <Link key={n.href} href={n.href} className={cn('sidebar-link', isActive(n.href) && 'active')}>
               <n.icon size={15} />
               {n.label}
@@ -80,6 +91,7 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
         </nav>
 
         <div className="p-3" style={{ borderTop: '1px solid var(--border)' }}>
+          <Link href="/" className="sidebar-link"><Globe size={15} /> Back to website</Link>
           <NotificationBell variant="sidebar" />
           <div className="flex items-center justify-between px-3 mb-2 mt-1">
             <span className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'var(--text-muted)' }}>Theme</span>
@@ -102,8 +114,9 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
 
       {/* ── Mobile top bar (below lg) ─────────────────────────── */}
       <header className="lg:hidden flex items-center justify-between px-4 flex-shrink-0" style={{ height: 56, background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
-        <Logo href="/seller/listings" height={24} />
+        <Logo href={verified ? '/seller/listings' : '/seller/profile'} height={24} />
         <div className="flex items-center gap-1">
+          <Link href="/" className="w-9 h-9 rounded-full flex items-center justify-center" style={{ color: 'var(--text-mid)' }} aria-label="Back to website" title="Back to website"><Globe size={17} /></Link>
           <NotificationBell variant="navbar" />
           <button
             onClick={() => setMenuOpen(true)}
@@ -136,6 +149,7 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
               </div>
               <button onClick={() => setMenuOpen(false)} className="btn-ghost btn-sm p-2"><X size={15} /></button>
             </div>
+            <Link href="/" className="sidebar-link mb-2"><Globe size={15} /> Back to website</Link>
             <div className="flex items-center justify-between px-1 py-3" style={{ borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
               <span className="text-sm" style={{ color: 'var(--text)' }}>Dark mode</span>
               <ThemeToggle />
@@ -155,7 +169,7 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
       </main>
 
       {/* ── Mobile bottom tab bar (below lg) ───────────────────── */}
-      <nav
+      {verified && <nav
         className="lg:hidden fixed bottom-0 left-0 right-0 z-40 grid grid-cols-4 items-end"
         style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)', paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
@@ -181,7 +195,7 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
           <MessageSquare size={19} />
           <span className="text-[10px] font-medium">Messages</span>
         </Link>
-      </nav>
+      </nav>}
     </div>
   )
 }

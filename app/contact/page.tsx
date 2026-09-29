@@ -82,7 +82,7 @@ export default function ContactPage() {
                 <p className="text-sm font-bold text-white">Want to sell your property?</p>
                 <p className="text-xs" style={{ color: 'rgba(255,255,255,0.85)' }}>List it directly and reach serious buyers.</p>
               </div>
-              <Link href="/seller/register" className="text-xs font-bold px-3.5 py-2 rounded-xl flex-shrink-0" style={{ background: '#fff', color: 'var(--teal)' }}>List now</Link>
+              <Link href="/sell" className="text-xs font-bold px-3.5 py-2 rounded-xl flex-shrink-0" style={{ background: '#fff', color: 'var(--teal)' }}>List now</Link>
             </div>
           </div>
 

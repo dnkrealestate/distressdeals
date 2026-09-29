@@ -30,6 +30,10 @@ const TYPE_ICON: Record<string, any> = {
 // room, lead), we go straight there instead of dropping the user on the
 // list — the same "click it, land on it" behaviour the room list itself uses.
 function destinationFor(type: string, role?: string, data?: Record<string, any>): string | null {
+  // "List your first property" reminder.
+  if (data?.action === 'list_property') return '/sell'
+  // Admin alerts about a new registration / number verification → that customer list.
+  if ((data?.kind === 'registration' || data?.kind === 'phone_verified') && role !== 'buyer' && role !== 'seller') return data?.role === 'seller' ? '/admin/sellers' : '/admin/buyers'
   if (type === 'new_lead' || type === 'lead_update' || type.startsWith('lead_delete_')) {
     const leadId = data?.leadId
     if (role === 'buyer') return '/buyer/leads'

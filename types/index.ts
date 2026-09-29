@@ -17,6 +17,8 @@ export interface User {
   // Chat presence: when they were last connected (only present while they are offline).
   lastSeenAt?: string
   role: UserRole; status: string; isEmailVerified: boolean; isPhoneVerified: boolean
+  // How the number was proven (admin pages): SMS code, WhatsApp code, or marked by staff.
+  phoneVerifiedAt?: string; phoneVerifiedVia?: 'sms' | 'whatsapp' | 'admin'; phoneVerifiedBy?: { _id: string; name: string } | string
   // Role-prefixed public ID: S-A1 (seller), B-A1 (buyer), A-A1 (agent), E-A1 (editor), AD-A1 (admin).
   displayId?: string
   favorites: string[]; createdAt: string

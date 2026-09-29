@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { Providers } from '@/components/Providers'
 import { Toaster } from 'react-hot-toast'
-import EmailVerificationBanner from '@/components/EmailVerificationBanner'
 import MobileBottomNav from '@/components/layouts/MobileBottomNav'
 import FloatingActions from '@/components/layouts/FloatingActions'
 import { GoogleTagHead, GoogleTagNoScript } from '@/components/GoogleTags'
@@ -73,7 +72,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <GoogleTagNoScript />
         <GoogleTagHead />
         <Providers>
-          <EmailVerificationBanner />
           {children}
           <MobileBottomNav />
           <FloatingActions />

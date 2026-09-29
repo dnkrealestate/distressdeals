@@ -189,7 +189,7 @@ export default function PropertyCard({
 
             <div className="flex items-center gap-1.5 text-[0.9rem] mb-4">
               <MapPin size={12} style={{ color: 'var(--teal)', opacity: 0.8, flexShrink: 0 }} />
-              <span className="truncate font-semibold" style={{ color: 'var(--text-mid)' }}>{p.location?.area}, {p.location?.city}</span>
+              <span className="min-w-0 truncate font-semibold" style={{ color: 'var(--text-mid)' }}>{p.location?.area}, {p.location?.city}</span>
             </div>
 
             <div className="flex items-center gap-2 flex-wrap mb-4">
@@ -335,7 +335,7 @@ export default function PropertyCard({
           {/* Location */}
           <div className="flex items-center gap-1.5 text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
             <MapPin size={11} style={{ color: 'var(--teal)', opacity: 0.7, flexShrink: 0 }} />
-            <span className="truncate">
+            <span className="min-w-0 truncate">
               {p.location?.area}, {p.location?.city}
             </span>
           </div>

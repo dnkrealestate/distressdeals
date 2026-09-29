@@ -18,6 +18,8 @@ interface AuthState {
   claimAccount: (claimToken: string, password: string) => Promise<void>
   // WhatsApp-code-verified password reset — signs straight in on success.
   resetPasswordWithOtp: (phone: string, otp: string, password: string) => Promise<void>
+  // Emailed-code password reset — signs straight in on success.
+  resetPasswordWithEmail: (email: string, code: string, password: string) => Promise<void>
   logout:   () => void
   setUser:  (user: User) => void
   fetchMe:  () => Promise<void>
@@ -78,6 +80,16 @@ export const useAuthStore = create<AuthState>()(
         const { token, user } = res.data.data
         localStorage.setItem('luxestate_token', token)
         set({ user, token, isAuthenticated: true, isLoading: false })
+      },
+
+      resetPasswordWithEmail: async (email, code, password) => {
+        set({ isLoading: true })
+        try {
+          const res = await authAPI.resetPasswordWithEmail(email, code, password)
+          const { token, user } = res.data.data
+          localStorage.setItem('luxestate_token', token)
+          set({ user, token, isAuthenticated: true, isLoading: false })
+        } catch (err) { set({ isLoading: false }); throw err }
       },
 
       logout: () => {

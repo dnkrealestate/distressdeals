@@ -5,6 +5,9 @@ import { useAuthStore } from '@/store/authStore'
 import { useThemeStore } from '@/store/themeStore'
 import { getSocket, disconnectSocket } from '@/lib/socket'
 import { captureUtmParams } from '@/lib/utm'
+import { forceSignOut, takeAccountNotice } from '@/lib/accountNotice'
+import { authAPI } from '@/lib/api'
+import toast from 'react-hot-toast'
 import { useCompareStore } from '@/store/compareStore'
 import { useFavoritesStore } from '@/store/favoritesStore'
 import { useProjectCompareStore } from '@/store/projectCompareStore'
@@ -13,7 +16,7 @@ const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 60_000, ret
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const { token, fetchMe } = useAuthStore()
-  const { dark, syncSystem } = useThemeStore()
+  const { dark, tick } = useThemeStore()
 
   useEffect(() => {
     if (token) fetchMe()
@@ -27,6 +30,36 @@ export function Providers({ children }: { children: React.ReactNode }) {
     if (token) getSocket()
     else disconnectSocket()
   }, [token])
+
+  // Admin changes to this account arrive instantly: a verified number (seller dashboard unlocks), edited details —
+  // or a suspension, which signs out on the spot. Coming back to the tab also re-checks the account, in case the
+  // socket was asleep when the change happened.
+  useEffect(() => {
+    if (!token) return
+    const socket = getSocket()
+    const onUpdated = ({ user }: { user?: any }) => { if (user) useAuthStore.getState().setUser(user) }
+    const onSuspended = ({ message }: { message?: string }) => forceSignOut(message || 'Your account has been suspended.')
+    // Only ever updates on success — a network blip on returning to the tab must not sign anyone out (a suspension
+    // comes back as 403 and is handled by lib/api.ts).
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return
+      authAPI.getMe().then(r => { if (r.data?.data) useAuthStore.getState().setUser(r.data.data) }).catch(() => {})
+    }
+    socket.on('account_updated', onUpdated)
+    socket.on('account_suspended', onSuspended)
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      socket.off('account_updated', onUpdated)
+      socket.off('account_suspended', onSuspended)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [token])
+
+  // The reason for a forced sign-out, shown once on the page it lands on.
+  useEffect(() => {
+    const notice = takeAccountNotice()
+    if (notice) toast.error(notice, { duration: 8000 })
+  }, [])
 
   useEffect(() => { useProjectCompareStore.persist.rehydrate() }, [])
 
@@ -48,14 +81,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener('wheel', onWheel, { capture: true } as any)
   }, [])
 
-  // Follow the device's light/dark setting (and its changes) until the visitor picks one with the toggle.
+  // Auto theme: dark 9 PM – 6 AM on the visitor's clock. Re-check every minute (and when the tab comes back), so an
+  // open page flips at 9 PM / 6 AM on its own.
   useEffect(() => {
-    const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    syncSystem(mq.matches)
-    const onChange = (e: MediaQueryListEvent) => syncSystem(e.matches)
-    mq.addEventListener('change', onChange)
-    return () => mq.removeEventListener('change', onChange)
-  }, [syncSystem])
+    tick()
+    const id = setInterval(tick, 60_000)
+    const onVisible = () => { if (document.visibilityState === 'visible') tick() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => { clearInterval(id); document.removeEventListener('visibilitychange', onVisible) }
+  }, [tick])
 
   // Apply the theme to <html data-theme="..."> so the CSS variables switch.
   useEffect(() => {

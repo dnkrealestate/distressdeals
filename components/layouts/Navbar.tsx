@@ -15,6 +15,7 @@ import { useCompareStore }   from '@/store/compareStore'
 import { useThemeStore }     from '@/store/themeStore'   // see note below
 import { getInitials, cn }   from '@/lib/utils'
 import NotificationBell      from '@/components/NotificationBell'
+import ThemePicker           from '@/components/shared/ThemePicker'
 import { Logo }              from '@/components/shared/Logo'
 
 /*
@@ -135,7 +136,7 @@ const NAV: NavItem[] = [
       banner: { title: 'Popular Communities', subtitle: 'See what’s trending across Dubai right now', cta: 'View Communities', href: '/communities' },
     },
   },
-  { href: '/seller/register', label: 'List Your Property', highlight: true },
+  { href: '/sell', label: 'List Your Property', highlight: true },
 ]
 
 function ThemeToggle() {
@@ -249,7 +250,7 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
 
   const dashHref =
     user?.role === 'admin' || user?.role === 'super_admin' ? '/admin/dashboard'
-    : user?.role === 'seller'                               ? '/seller/listings'
+    : user?.role === 'seller'                               ? (user.isPhoneVerified ? '/seller/listings' : '/seller/profile')
     : user?.role === 'agent'                                ? '/admin/dashboard'
     : user?.role === 'editor'                               ? '/admin/settings'
     : '/buyer/profile'
@@ -321,15 +322,15 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
           {/* ── Right cluster ─────────────────────────── */}
           <div className="flex items-center gap-2">
 
-            {/* Theme toggle */}
-            <ThemeToggle />
+            {/* Theme toggle — desktop; on phones it lives in the menu */}
+            <div className="hidden md:block"><ThemeToggle /></div>
 
             {isAuthenticated && user ? (
               <>
                 <NotificationBell />
 
                 {/* Favorites */}
-                <Link href="/buyer/favorites" className="relative btn-ghost btn-sm p-2.5">
+                <Link href="/buyer/favorites" className="relative btn-ghost btn-sm p-2.5 hidden md:inline-flex">
                   <Bookmark size={16} />
                   {favorites.length > 0 && (
                     <span
@@ -343,7 +344,7 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
 
                 {/* Compare */}
                 {compareList.length > 0 && (
-                  <Link href="/buyer/compare" className="relative btn-ghost btn-sm p-2.5">
+                  <Link href="/buyer/compare" className="relative btn-ghost btn-sm p-2.5 hidden md:inline-flex">
                     <GitCompare size={16} />
                     <span
                       className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-white text-[9px] font-bold flex items-center justify-center"
@@ -399,7 +400,6 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
                           // Staff have no separate profile page — omit the duplicate rather than link "Profile" to
                           // the same place "Dashboard" already goes.
                           ...(profileHref !== dashHref ? [{ href: profileHref, icon: User, label: 'Profile' }] : []),
-                          { href: '/settings', icon: Settings,        label: 'Settings'  },
                         ].map(item => (
                           <Link
                             key={item.href}
@@ -549,6 +549,26 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
                   {n.label}
                 </Link>
               ))}
+
+              {/* Saved, compare and theme — kept out of the crowded phone header */}
+              <div className="mt-4 pt-4 space-y-3" style={{ borderTop: '1px solid var(--border-soft)' }}>
+                {isAuthenticated && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <Link href="/buyer/favorites" onClick={() => setMenu(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium" style={{ background: 'var(--bg-alt)', color: 'var(--text)' }}>
+                      <Bookmark size={15} style={{ color: 'var(--teal)' }} /> Saved
+                      {favorites.length > 0 && <span className="ml-auto text-[10px] font-bold text-white rounded-full px-1.5 py-0.5" style={{ background: 'var(--grad)' }}>{favorites.length}</span>}
+                    </Link>
+                    <Link href="/buyer/compare" onClick={() => setMenu(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium" style={{ background: 'var(--bg-alt)', color: 'var(--text)' }}>
+                      <GitCompare size={15} style={{ color: 'var(--teal)' }} /> Compare
+                      {compareList.length > 0 && <span className="ml-auto text-[10px] font-bold text-white rounded-full px-1.5 py-0.5" style={{ background: 'var(--grad)' }}>{compareList.length}</span>}
+                    </Link>
+                  </div>
+                )}
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Theme</p>
+                  <ThemePicker />
+                </div>
+              </div>
 
               {!isAuthenticated && (
                 <div className="pt-4 flex flex-col gap-2">

@@ -99,7 +99,7 @@ export function AboutPageView({ content }: { content: ContentPageData }) {
           <p className="text-base md:text-lg leading-relaxed max-w-3xl mx-auto mb-8" style={{ color: 'var(--text-mid)' }}>{decode(content.heroIntro)}</p>
           <div className="flex flex-wrap justify-center gap-3 mb-10">
             <Link href="/for-sale" className="btn-primary gap-2">Buy direct <ArrowRight size={16} /></Link>
-            <Link href="/seller/register" className="btn-outline gap-2">Sell direct <Handshake size={16} /></Link>
+            <Link href="/sell" className="btn-outline gap-2">Sell direct <Handshake size={16} /></Link>
           </div>
           <div className="flex flex-wrap justify-center gap-2.5">
             {[
@@ -173,7 +173,7 @@ export function AboutPageView({ content }: { content: ContentPageData }) {
                     {decode(content.ctaButtonLabel)} <ArrowRight size={16} />
                   </Link>
                 )}
-                <Link href="/seller/register" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl text-base font-bold text-white" style={{ border: '2px solid rgba(255,255,255,0.7)' }}>
+                <Link href="/sell" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl text-base font-bold text-white" style={{ border: '2px solid rgba(255,255,255,0.7)' }}>
                   List your property
                 </Link>
               </div>

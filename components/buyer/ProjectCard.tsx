@@ -22,10 +22,10 @@ function PlanRow({ items }: { items: { icon: any; label: string; value: string }
   return (
     <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 mb-4 text-[0.82rem] sm:text-[0.88rem]">
       {items.map(({ icon: Icon, label, value }) => (
-        <span key={label} className="inline-flex items-center gap-1.5">
+        <span key={label} className="inline-flex items-center gap-1.5 min-w-0 max-w-full">
           <Icon size={14} style={{ color: 'var(--teal)', opacity: 0.85, flexShrink: 0 }} />
-          <span className="font-bold" style={{ color: 'var(--text)' }}>{value}</span>
-          <span style={{ color: 'var(--text-muted)' }}>{label}</span>
+          <span className="font-bold truncate" style={{ color: 'var(--text)' }}>{value}</span>
+          <span className="flex-shrink-0" style={{ color: 'var(--text-muted)' }}>{label}</span>
         </span>
       ))}
     </div>
@@ -48,7 +48,7 @@ export const withSqft = (v?: string) => {
 // (no tinted chip) so it reads as detail copy rather than another stat.
 function DetailItem({ icon: Icon, children }: { icon: any; children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-1.5 min-w-0">
+    <span className="flex items-center gap-1.5 min-w-0 max-w-full">
       <Icon size={12} style={{ color: 'var(--teal)', opacity: 0.8, flexShrink: 0 }} />
       <span className="font-semibold truncate" style={{ color: 'var(--text-mid)' }}>{children}</span>
     </span>
@@ -141,7 +141,7 @@ function ByDeveloper({ project }: { project: Project }) {
   return (
     <div className="flex items-center gap-1.5 flex-wrap mb-2.5 min-w-0">
       {project.developer && (
-        <p className="text-xs truncate mr-0.5" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-xs truncate mr-0.5 min-w-0 max-w-full" style={{ color: 'var(--text-muted)' }}>
           by <span className="font-semibold" style={{ color: 'var(--teal)' }}>{project.developer}</span>
         </p>
       )}
@@ -170,7 +170,7 @@ function Badges({ project, markAsProject }: { project: Project; markAsProject?: 
         style={{ background: 'rgba(255,255,255,0.94)', color: '#0F172A', border: 'none' }}
       >
         {/* Past its handover date it's no longer "upcoming" / "under construction". */}
-        {isHandedOver(project) ? 'Handed over' : project.status.replace('_', ' ')}
+        {isHandedOver(project) ? 'Ready' : project.status.replace('_', ' ')}
       </span>
     </div>
   )

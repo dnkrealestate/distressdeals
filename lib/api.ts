@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { getVisitorId } from './visitor'
+import { forceSignOut } from './accountNotice'
 
 // NEXT_PUBLIC_API_URL always wins when set (e.g. to point a build at a
 // staging backend). When it's not set, fall back by build environment
@@ -41,6 +42,10 @@ api.interceptors.response.use(
       localStorage.removeItem('luxestate_token')
       window.location.href = '/auth/login'
     }
+    // Suspended while signed in (the API refuses every request) — sign out now rather than leave a half-working page.
+    if (err.response?.status === 403 && err.response?.data?.error === 'Account suspended' && typeof window !== 'undefined') {
+      forceSignOut('Your account has been suspended. Please contact us for help.')
+    }
     return Promise.reject(err.response?.data || err)
   }
 )
@@ -54,10 +59,13 @@ export const authAPI = {
   appleAuth:        (data: any) => api.post('/auth/apple', data),
   sendOtp:          (phone: string) => api.post('/auth/send-otp', { phone }),
   verifyOtp:        (otp: string) => api.post('/auth/verify-otp', { otp }),
-  verifyPhoneFirebase: (idToken: string) => api.post('/auth/verify-phone-firebase', { idToken }),
+  verifyPhoneFirebase: (idToken: string, becomeSeller = false) => api.post('/auth/verify-phone-firebase', { idToken, becomeSeller }),
   // Forgot password: a WhatsApp code to the registered number doubles as proof of ownership and reset authorization.
   sendForgotPasswordOtp: (phone: string) => api.post('/auth/forgot-password/send-otp', { phone }),
   resetPasswordWithOtp:  (phone: string, otp: string, password: string) => api.post('/auth/forgot-password/reset', { phone, otp, password }),
+  // Forgot password by email: a 6-digit code to the inbox, then code + new password (signs in).
+  sendForgotPasswordEmail: (email: string) => api.post('/auth/forgot-password/email', { email }),
+  resetPasswordWithEmail:  (email: string, code: string, password: string) => api.post('/auth/forgot-password/email-reset', { email, code, password }),
   verifyEmail:      (token: string) => api.post('/auth/verify-email', { token }),
   resendVerification: () => api.post('/auth/resend-verification'),
   // Sets a password on an account that has none yet (auto-created, or never claimed), from the token an
@@ -241,6 +249,9 @@ export const adminAPI = {
   updateUser:      (id: string, data: any) => api.patch(`/admin/users/${id}`, data),
   deleteUser:      (id: string) => api.delete(`/admin/users/${id}`),
   suspendUser:     (id: string) => api.patch(`/admin/users/${id}/suspend`),
+  // Buyers / Sellers pages
+  getCustomers:    (params: { type: 'buyer' | 'seller'; verified?: string; q?: string; page?: number; limit?: number }) => api.get('/admin/customers', { params }),
+  setPhoneVerification: (id: string, verified: boolean, phone?: string) => api.patch(`/admin/users/${id}/phone-verification`, { verified, phone }),
   getAnalytics:    (params?: any) => api.get('/admin/analytics', { params }),
   exportLeads:     (params?: any) => api.get('/admin/export/leads', { params, responseType: 'blob' }),
   exportProperties:(params?: any) => api.get('/admin/export/properties', { params, responseType: 'blob' }),

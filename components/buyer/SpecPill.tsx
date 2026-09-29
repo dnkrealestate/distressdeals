@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 export function SpecPill({ icon: Icon, children, size = 12, bold = false }: { icon: any; children: React.ReactNode; size?: number; bold?: boolean }) {
   return (
     <span
-      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg flex-shrink-0 min-w-0"
+      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg flex-shrink-0 min-w-0 max-w-full"
       style={{ background: 'rgba(203,1,1,0.07)', border: '1px solid rgba(203,1,1,0.15)' }}
     >
       <Icon size={size} style={{ color: 'var(--teal)', flexShrink: 0 }} />

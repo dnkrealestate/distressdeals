@@ -11,6 +11,7 @@ import { MapPin, Plus } from 'lucide-react'
 function hidden(pathname: string): boolean {
   if (pathname.startsWith('/admin') || pathname.startsWith('/seller') || pathname.startsWith('/auth')) return true
   if (pathname.startsWith('/map-search')) return true        // already on the map
+  if (pathname === '/sell') return true                       // already the "list your property" step
   return false
 }
 
@@ -73,7 +74,7 @@ export default function FloatingActions() {
           <MapPin size={16} /> Map view
         </Link>
         <Link
-          href="/seller/register"
+          href="/sell"
           className="inline-flex items-center gap-2 h-11 pl-4 pr-5 rounded-full text-sm font-semibold transition-colors duration-200"
           style={{ color: 'var(--teal)' }}
           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(203,1,1,0.10)' }}

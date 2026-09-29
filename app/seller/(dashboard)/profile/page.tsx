@@ -6,12 +6,20 @@ import RecentActivity from '@/components/buyer/RecentActivity'
 import SellerListingsSummary from '@/components/seller/SellerListingsSummary'
 import UserIdChip from '@/components/shared/UserIdChip'
 import { getInitials, formatDate } from '@/lib/utils'
+import PhoneVerifyCard from '@/components/auth/PhoneVerifyCard'
+import AccountQuickSettings from '@/components/account/AccountQuickSettings'
+import { useRouter } from 'next/navigation'
 
 // A seller's own profile — and, because a seller can also be a buyer, everything they have expressed interest in.
 export default function SellerProfilePage() {
   const { user } = useAuthStore()
+  const router = useRouter()
   return (
     <div className="p-5 sm:p-7 max-w-3xl space-y-6">
+      {/* The seller dashboard opens only after this — see the (dashboard) layout. */}
+      {!user?.isPhoneVerified && (
+        <PhoneVerifyCard onVerified={() => router.replace('/seller/listings')} />
+      )}
       <div className="card p-6 flex items-center gap-5 flex-wrap">
         <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-xl font-bold text-white flex-shrink-0" style={{ background: 'var(--grad)' }}>
           {getInitials(user?.name || '')}
@@ -26,14 +34,16 @@ export default function SellerProfilePage() {
             <span className="flex items-center gap-1"><Phone size={12} /> {user?.phone || 'No number'}</span>
             <span className="flex items-center gap-1" style={{ color: user?.isPhoneVerified ? '#16A34A' : undefined }}>
               {user?.isPhoneVerified ? <ShieldCheck size={12} /> : <ShieldAlert size={12} />}
-              {user?.isPhoneVerified ? 'WhatsApp verified' : 'Number not verified'}
+              {user?.isPhoneVerified ? 'Number verified' : 'Number not verified'}
             </span>
             <span className="flex items-center gap-1"><User size={12} /> Seller · since {formatDate(user?.createdAt || '')}</span>
           </div>
         </div>
       </div>
 
-      <SellerListingsSummary />
+      <AccountQuickSettings />
+
+      {user?.isPhoneVerified && <SellerListingsSummary />}
 
       <div>
         <h2 className="font-semibold mb-1" style={{ color: 'var(--text)' }}>Properties &amp; projects I’m interested in</h2>

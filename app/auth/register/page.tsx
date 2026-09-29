@@ -135,7 +135,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="text-xs font-semibold mb-1.5 block" style={{ color: 'var(--text-mid)' }}>Phone (optional)</label>
+              <label className="text-xs font-semibold mb-1.5 block" style={{ color: 'var(--text-mid)' }}>Phone</label>
               <div className="input-glass flex items-center gap-2 h-12 px-4 rounded-xl">
                 <MessageCircle size={15} style={{ color: 'var(--teal)', flexShrink: 0 }} />
                 <input {...register('phone')}

@@ -10,6 +10,7 @@ import toast from 'react-hot-toast'
 import MyInterests from '@/components/buyer/MyInterests'
 import RecentActivity from '@/components/buyer/RecentActivity'
 import BecomeSeller from '@/components/buyer/BecomeSeller'
+import AccountQuickSettings from '@/components/account/AccountQuickSettings'
 import UserIdChip from '@/components/shared/UserIdChip'
 
 const TABS = ['Profile', 'My Interests', 'Activity', 'Notifications', 'Security'] as const
@@ -193,6 +194,7 @@ export default function BuyerProfilePage() {
         </motion.div>
       )}
 
+      {tab === 'Profile' && <AccountQuickSettings savedHref="/buyer/favorites" />}
       {tab === 'Profile' && <BecomeSeller />}
 
       {tab === 'My Interests' && (

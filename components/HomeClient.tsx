@@ -397,7 +397,7 @@ export default function HomeClient({ content, popularSearches }: { content: Home
               Explore Properties <ArrowRight size={16} />
             </Link>
             <Link
-              href="/seller/register"
+              href="/sell"
               className="btn-lg inline-flex items-center justify-center gap-2 font-semibold"
               style={{ background: 'var(--teal-light)', color: '#ffffff', border: 'none' }}
               onClick={() => trackCta('hero_list_property')}
@@ -467,7 +467,7 @@ export default function HomeClient({ content, popularSearches }: { content: Home
             transition={{ duration: 0.5 }}
           >
             <Link
-              href="/seller/register"
+              href="/sell"
               onClick={() => trackCta('sell_banner')}
               className="group relative flex items-center gap-5 rounded-2xl md:rounded-3xl p-6 md:p-8 overflow-hidden transition-transform duration-300 hover:-translate-y-0.5"
               style={{ background: 'var(--grad)' }}
