@@ -42,15 +42,34 @@ export async function sendPhoneCode(phoneE164: string, containerId: string): Pro
   const box = document.createElement('div')
   container.appendChild(box)
   verifier = new RecaptchaVerifier(a, box, { size: 'invisible' })
+  // End the previous verification's Firebase session here (not right after confirming), so a repeated "Verify"
+  // tap on the last code can still reuse it — see confirmPhoneCode.
+  await signOut(a).catch(() => {})
   return signInWithPhoneNumber(a, phoneE164, verifier)
 }
 
+// One confirm per sent code: a second tap on Verify (or Enter + tap) gets the first attempt's result instead of
+// asking Firebase again — Firebase answers a repeat of an already-used code with "code-expired".
+const confirming = new WeakMap<ConfirmationResult, Promise<string>>()
+
 /** Confirms the code and returns the Firebase ID token for our backend. */
-export async function confirmPhoneCode(confirmation: ConfirmationResult, code: string): Promise<string> {
-  const cred = await confirmation.confirm(code)
-  const token = await cred.user.getIdToken()
-  signOut(auth()).catch(() => {})
-  return token
+export function confirmPhoneCode(confirmation: ConfirmationResult, code: string): Promise<string> {
+  const pending = confirming.get(confirmation)
+  if (pending) return pending
+  const run = (async () => {
+    try {
+      const cred = await confirmation.confirm(code)
+      return await cred.user.getIdToken()
+    } catch (err: any) {
+      // Firebase already accepted this number (an earlier attempt went through) — use that instead of an error.
+      const current = auth().currentUser
+      if (current?.phoneNumber && String(err?.code || '').includes('code-expired')) return current.getIdToken()
+      confirming.delete(confirmation)   // a genuinely wrong code may be retried with the right one
+      throw err
+    }
+  })()
+  confirming.set(confirmation, run)
+  return run
 }
 
 /** Friendly text for the Firebase error codes people actually hit. */
@@ -68,7 +87,8 @@ export function phoneAuthError(err: any): string {
   if (code.includes('invalid-phone-number')) return 'That phone number doesn’t look right — include the country code, e.g. +971 50 123 4567'
   if (code.includes('too-many-requests'))    return 'Too many code requests for this number or network — SMS is paused for a while. Please try again later (usually within an hour).'
   if (code.includes('invalid-verification-code')) return 'That code is not right'
-  if (code.includes('code-expired'))         return 'That code has expired — request a new one'
+  // Firebase's own rule (not ours): a code stops working once a newer one is sent, or after a while.
+  if (code.includes('code-expired'))         return 'That code is no longer valid — use the latest SMS, or tap Resend code'
   if (code.includes('quota-exceeded'))       return 'SMS limit reached for today — please try again later'
   if (code.includes('captcha'))              return 'Security check failed — please refresh the page and try again'
   return `We couldn’t send the code — please try again${code ? ` (${code.replace('auth/', '')})` : ''}`

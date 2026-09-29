@@ -50,7 +50,7 @@ export default function PhoneVerifyCard({
   }
 
   const verify = async () => {
-    if (code.length < 6 || !confirmation) return
+    if (busy || code.length < 6 || !confirmation) return   // Enter + tap must not verify the same code twice
     setBusy(true)
     try {
       let res

@@ -60,7 +60,7 @@ function VerifyPhone() {
   }
 
   const verify = async () => {
-    if (!confirmation || code.length < 6) return
+    if (verifying || !confirmation || code.length < 6) return   // Enter + tap must not verify the same code twice
     setError(''); setVerifying(true)
     try {
       const idToken = await confirmPhoneCode(confirmation, code)
