@@ -24,6 +24,10 @@ api.interceptors.request.use(cfg => {
     // Lets the backend count a guest's views once (utils/uniqueView).
     const vid = getVisitorId()
     if (vid) cfg.headers['X-Visitor-Id'] = vid
+  } else if (process.env.SSR_API_KEY) {
+    // Server-side rendering: every visitor's page load comes from this one server, so it identifies itself and the
+    // API's per-visitor rate limit doesn't throttle the whole site. Server-only env var — never NEXT_PUBLIC_.
+    cfg.headers['x-ssr-key'] = process.env.SSR_API_KEY
   }
   return cfg
 })
