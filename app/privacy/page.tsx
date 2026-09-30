@@ -32,7 +32,7 @@ export default function PrivacyPage() {
             </p>
 
             <h2 className="heading-md mt-10 mb-4">1. Information We Collect</h2>
-            <p><strong>Account information.</strong> When you register, sign in with Google or Facebook, or submit an enquiry on a listing, we collect your name, email address, and phone number. A phone number is verified via a one-time WhatsApp code before certain account actions (such as switching to a seller account).</p>
+            <p><strong>Account information.</strong> When you register, sign in with Google or Facebook, or submit an enquiry on a listing, we collect your name, email address, and phone number. A phone number is verified via a one-time SMS code before certain account actions (such as listing a property or switching to a seller account).</p>
             <p><strong>Enquiry and activity information.</strong> Properties and projects you view, favourite, or ask about, messages you exchange with your assigned agent, and any requirements or budget details you share with us.</p>
             <p><strong>Listing information (sellers).</strong> If you list a property, we collect the property details, photos, and documents you provide, plus your contact details so our team can manage the listing on your behalf.</p>
             <p><strong>Device and usage information.</strong> IP address, browser/device type, pages viewed, and — if you enable notifications on our mobile app — a device push token used solely to deliver notifications to that device.</p>

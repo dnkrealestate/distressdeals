@@ -18,8 +18,6 @@ import toast from 'react-hot-toast'
 import type { ConfirmationResult } from 'firebase/auth'
 import { firebasePhoneEnabled, sendPhoneCode, confirmPhoneCode, phoneAuthError, toE164, useResendCooldown } from '@/lib/firebase'
 
-// Firebase SMS when the web app is configured; otherwise the WhatsApp code from our backend.
-const VIA = firebasePhoneEnabled ? 'SMS' : 'WhatsApp'
 
 const STEPS = ['Account', 'Verify Phone', 'Complete']
 
@@ -37,16 +35,13 @@ export default function SellerRegisterPage() {
   const [resending, setResending] = useState(false)
   const [cooldown, startCooldown] = useResendCooldown()
 
-  // Sends the code through whichever channel is live.
+  // Phone numbers are verified by Firebase SMS only.
   const sendCode = async (rawPhone: string) => {
-    if (firebasePhoneEnabled) {
-      const e164 = toE164(rawPhone)
-      if (!e164) throw { error: 'Enter your phone number with the country code, e.g. +971 50 123 4567' }
-      try { setConfirmation(await sendPhoneCode(e164, 'otp-recaptcha')) }
-      catch (err) { throw { error: phoneAuthError(err) } }
-    } else {
-      await authAPI.sendOtp(rawPhone)
-    }
+    if (!firebasePhoneEnabled) throw { error: 'SMS verification is not available right now — please try again later' }
+    const e164 = toE164(rawPhone)
+    if (!e164) throw { error: 'Enter your phone number with the country code, e.g. +971 50 123 4567' }
+    try { setConfirmation(await sendPhoneCode(e164, 'otp-recaptcha')) }
+    catch (err) { throw { error: phoneAuthError(err) } }
     setOtp(['','','','','',''])
     startCooldown()
   }
@@ -67,7 +62,7 @@ export default function SellerRegisterPage() {
       setPhone(data.phone)
       await sendCode(data.phone)
       setOtpSent(true)
-      toast.success(`Code sent by ${VIA}!`)
+      toast.success('Code sent by SMS!')
       setStep(1)
     } catch (err: any) {
       toast.error(err?.error || 'Could not send the code')
@@ -79,7 +74,7 @@ export default function SellerRegisterPage() {
   }
 
   // Google/Facebook don't reliably hand over a phone number — a seller
-  // account still isn't usable until WhatsApp-verified, so route straight
+  // account still isn't usable until its number is SMS-verified, so route straight
   // into the same "Verify Phone" step, just without a phone on file yet.
   const onSocialAuthenticated = () => {
     const user = useAuthStore.getState().user
@@ -96,7 +91,7 @@ export default function SellerRegisterPage() {
       await sendCode(data.phone)
       setPhone(data.phone)
       setOtpSent(true)
-      toast.success(`Code sent by ${VIA}!`)
+      toast.success('Code sent by SMS!')
     } catch (err: any) {
       toast.error(err?.error || 'Failed to send OTP')
     } finally {
@@ -117,17 +112,12 @@ export default function SellerRegisterPage() {
     if (code.length < 6) { toast.error('Enter 6-digit OTP'); return }
     setLoading(true)
     try {
-      if (firebasePhoneEnabled) {
-        if (!confirmation) { toast.error('Request a new code first'); return }
-        let idToken: string
-        try { idToken = await confirmPhoneCode(confirmation, code) }
-        catch (err) { toast.error(phoneAuthError(err)); return }
-        const res = await authAPI.verifyPhoneFirebase(idToken)
-        if (res.data?.data?.user) useAuthStore.getState().setUser(res.data.data.user)
-      } else {
-        const res = await authAPI.verifyOtp(code)
-        if (res.data?.data?.user) useAuthStore.getState().setUser(res.data.data.user)
-      }
+      if (!confirmation) { toast.error('Request a new code first'); return }
+      let idToken: string
+      try { idToken = await confirmPhoneCode(confirmation, code) }
+      catch (err) { toast.error(phoneAuthError(err)); return }
+      const res = await authAPI.verifyPhoneFirebase(idToken)
+      if (res.data?.data?.user) useAuthStore.getState().setUser(res.data.data.user)
       toast.success('Phone verified!')
       setStep(2)
     } catch (err: any) {
@@ -142,7 +132,7 @@ export default function SellerRegisterPage() {
     setResending(true)
     try {
       await sendCode(phone)
-      toast.success(`Code resent by ${VIA}`)
+      toast.success('Code resent by SMS')
     } catch (err: any) {
       toast.error(err?.error || 'Could not resend the code')
     } finally { setResending(false) }
@@ -184,7 +174,7 @@ export default function SellerRegisterPage() {
 
           <div className="space-y-4">
             {[
-              { icon: ShieldCheck,  text: `${VIA} OTP verification for security` },
+              { icon: ShieldCheck,  text: 'SMS code verification for security' },
               { icon: Building2,    text: 'Expert team reviews & approves your listing'  },
               { icon: CheckCircle2, text: 'Reach thousands of verified buyers instantly' },
             ].map(({ icon: Icon, text }) => (
@@ -241,7 +231,7 @@ export default function SellerRegisterPage() {
                   <FacebookSignInButton onAuthenticated={onSocialAuthenticated} role="seller" />
                 </div>
                 <p className="text-xs mb-6" style={{ color: 'var(--text-muted)' }}>
-                  Signing up with Google or Facebook still requires phone verification by {VIA} code.
+                  Signing up with Google or Facebook still requires phone verification by SMS code.
                 </p>
 
                 <div className="flex items-center gap-3 mb-6">
@@ -274,7 +264,7 @@ export default function SellerRegisterPage() {
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold mb-1.5 block" style={{ color: 'var(--text-mid)' }}>{firebasePhoneEnabled ? 'Mobile Number' : 'WhatsApp Phone'} *</label>
+                    <label className="text-xs font-semibold mb-1.5 block" style={{ color: 'var(--text-mid)' }}>Mobile Number *</label>
                     <div className="input-glass flex items-center gap-2 h-12 px-4 rounded-xl">
                       <Phone size={15} style={{ color: 'var(--teal)', flexShrink: 0 }} />
                       <input {...register('phone', { required: 'Phone is required' })}
@@ -283,7 +273,7 @@ export default function SellerRegisterPage() {
                     </div>
                     <p className="text-xs mt-1.5 flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
                       <MessageCircle size={11} style={{ color: 'var(--green)' }} />
-                      A verification code will be sent to this number by {VIA}
+                      A verification code will be sent to this number by SMS
                     </p>
                     {errors.phone && <p className="text-xs mt-1" style={{ color: '#FB7185' }}>{errors.phone.message as string}</p>}
                   </div>
@@ -323,12 +313,12 @@ export default function SellerRegisterPage() {
                 <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style={{ background: 'rgba(203,1,1,0.10)', border: '1px solid rgba(203,1,1,0.20)' }}>
                   <Phone size={24} style={{ color: 'var(--teal)' }} />
                 </div>
-                <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--text)' }}>{firebasePhoneEnabled ? 'Add Your Mobile Number' : 'Add Your WhatsApp Number'}</h1>
+                <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--text)' }}>Add Your Mobile Number</h1>
                 <p className="muted mb-7">Your account needs a verified phone number before you can list properties.</p>
 
                 <form onSubmit={handlePhoneSubmit(submitPhone)} className="space-y-4">
                   <div>
-                    <label className="text-xs font-semibold mb-1.5 block" style={{ color: 'var(--text-mid)' }}>{firebasePhoneEnabled ? 'Mobile Number' : 'WhatsApp Phone'} *</label>
+                    <label className="text-xs font-semibold mb-1.5 block" style={{ color: 'var(--text-mid)' }}>Mobile Number *</label>
                     <div className="input-glass flex items-center gap-2 h-12 px-4 rounded-xl">
                       <Phone size={15} style={{ color: 'var(--teal)', flexShrink: 0 }} />
                       <input {...registerPhone('phone', { required: 'Phone is required' })}
@@ -341,7 +331,7 @@ export default function SellerRegisterPage() {
                   <button type="submit" disabled={phoneSubmitting} className="btn-primary w-full py-3.5 disabled:opacity-60">
                     {phoneSubmitting
                       ? <span className="flex items-center gap-2 justify-center"><span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />Sending…</span>
-                      : <><MessageCircle size={15} /> Send {VIA} Code</>}
+                      : <><MessageCircle size={15} /> Send SMS Code</>}
                   </button>
                 </form>
               </motion.div>
@@ -352,7 +342,7 @@ export default function SellerRegisterPage() {
                 <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style={{ background: 'rgba(203,1,1,0.10)', border: '1px solid rgba(203,1,1,0.20)' }}>
                   <MessageCircle size={24} style={{ color: 'var(--teal)' }} />
                 </div>
-                <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--text)' }}>Verify via {VIA}</h1>
+                <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--text)' }}>Verify via SMS</h1>
                 <p className="muted mb-2">We sent a 6-digit code to</p>
                 <p className="font-semibold mb-8" style={{ color: 'var(--teal)' }}>{phone}</p>
 

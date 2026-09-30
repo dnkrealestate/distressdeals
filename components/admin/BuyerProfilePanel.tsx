@@ -89,7 +89,7 @@ export default function BuyerProfilePanel({ buyerId, agents, isAdmin }: { buyerI
           <p className="text-xs mt-1" style={{ color: 'var(--text-mid)' }}>{buyer.name} · {buyer.phone || 'no phone'}{buyer.email ? ` · ${buyer.email}` : ''}</p>
           <p className="text-[11px] mt-0.5 flex items-center gap-1 flex-wrap" style={{ color: 'var(--text-muted)' }}>
             {buyer.isPhoneVerified
-              ? <span className="inline-flex items-center gap-1" style={{ color: '#16A34A' }}><ShieldCheck size={11} /> WhatsApp verified</span>
+              ? <span className="inline-flex items-center gap-1" style={{ color: '#16A34A' }}><ShieldCheck size={11} /> Number verified</span>
               : <span className="inline-flex items-center gap-1"><ShieldAlert size={11} /> Number not verified</span>}
             {buyer.autoCreated && <span>· Account created automatically from an enquiry</span>}
             <span>· Member since {formatDate(buyer.createdAt)}</span>

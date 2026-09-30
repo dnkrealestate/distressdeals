@@ -43,7 +43,7 @@ export default function TermsPage() {
               <li>You must provide accurate, current information when creating an account and keep it up to date.</li>
               <li>You are responsible for safeguarding your password and for all activity under your account.</li>
               <li>An account may be created automatically on your behalf when you submit an enquiry using an email or phone number that isn't already registered — you'll be prompted to set a password to take ownership of it.</li>
-              <li>Seller accounts require phone number verification via a one-time WhatsApp code before the account can list a property.</li>
+              <li>Seller accounts require phone number verification via a one-time SMS code before the account can list a property.</li>
               <li>We may suspend or terminate an account that provides false information, violates these Terms, or is used fraudulently.</li>
             </ul>
 

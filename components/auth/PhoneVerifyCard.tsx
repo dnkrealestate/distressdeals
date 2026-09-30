@@ -36,16 +36,12 @@ export default function PhoneVerifyCard({
     if (cooldown > 0) return
     setBusy(true)
     try {
-      if (firebasePhoneEnabled) {
-        setConfirmation(await sendPhoneCode(e164, 'phone-verify-recaptcha'))
-      } else {
-        await authAPI.sendOtp(e164)
-        setConfirmation({} as ConfirmationResult)   // WhatsApp fallback: the backend holds the code
-      }
+      if (!firebasePhoneEnabled) { toast.error('SMS verification is not available right now — please try again later'); return }
+      setConfirmation(await sendPhoneCode(e164, 'phone-verify-recaptcha'))
       setSentTo(e164); setCode(''); setEditing(false); startCooldown()
       toast.success(`Code sent to ${e164}`)
     } catch (err: any) {
-      toast.error(firebasePhoneEnabled ? phoneAuthError(err) : (err?.error || 'Could not send the code'))
+      toast.error(phoneAuthError(err))
     } finally { setBusy(false) }
   }
 
@@ -53,15 +49,10 @@ export default function PhoneVerifyCard({
     if (busy || code.length < 6 || !confirmation) return   // Enter + tap must not verify the same code twice
     setBusy(true)
     try {
-      let res
-      if (firebasePhoneEnabled) {
-        let idToken: string
-        try { idToken = await confirmPhoneCode(confirmation, code) }
-        catch (err) { toast.error(phoneAuthError(err)); return }
-        res = await authAPI.verifyPhoneFirebase(idToken, becomeSeller)
-      } else {
-        res = await authAPI.verifyOtp(code)
-      }
+      let idToken: string
+      try { idToken = await confirmPhoneCode(confirmation, code) }
+      catch (err) { toast.error(phoneAuthError(err)); return }
+      const res = await authAPI.verifyPhoneFirebase(idToken, becomeSeller)
       const updated: User | undefined = res.data?.data?.user
       if (updated) setUser(updated)
       toast.success(becomeSeller ? 'Number verified — your seller account is ready' : 'Number verified')

@@ -61,12 +61,7 @@ export const authAPI = {
   googleAuth:       (token: string, role?: string) => api.post('/auth/google', { token, role }),
   facebookAuth:     (accessToken: string, role?: string) => api.post('/auth/facebook', { accessToken, role }),
   appleAuth:        (data: any) => api.post('/auth/apple', data),
-  sendOtp:          (phone: string) => api.post('/auth/send-otp', { phone }),
-  verifyOtp:        (otp: string) => api.post('/auth/verify-otp', { otp }),
   verifyPhoneFirebase: (idToken: string, becomeSeller = false) => api.post('/auth/verify-phone-firebase', { idToken, becomeSeller }),
-  // Forgot password: a WhatsApp code to the registered number doubles as proof of ownership and reset authorization.
-  sendForgotPasswordOtp: (phone: string) => api.post('/auth/forgot-password/send-otp', { phone }),
-  resetPasswordWithOtp:  (phone: string, otp: string, password: string) => api.post('/auth/forgot-password/reset', { phone, otp, password }),
   // Forgot password by email: a 6-digit code to the inbox, then code + new password (signs in).
   sendForgotPasswordEmail: (email: string) => api.post('/auth/forgot-password/email', { email }),
   resetPasswordWithEmail:  (email: string, code: string, password: string) => api.post('/auth/forgot-password/email-reset', { email, code, password }),
@@ -75,9 +70,6 @@ export const authAPI = {
   // Sets a password on an account that has none yet (auto-created, or never claimed), from the token an
   // 'I'm interested' submission handed back — signs the person straight in.
   claimAccount: (claimToken: string, password: string) => api.post('/auth/claim-account', { claimToken, password }),
-  // Buyer → seller: a WhatsApp code to the number they want to sell with.
-  sendSellerOtp:   (phone: string) => api.post('/auth/become-seller/send-otp', { phone }),
-  verifySellerOtp: (otp: string) => api.post('/auth/become-seller/verify-otp', { otp }),
   changePassword:   (currentPassword: string, newPassword: string) => api.post('/auth/change-password', { currentPassword, newPassword }),
   getMe:            () => api.get('/auth/me'),
   refreshToken:     () => api.post('/auth/refresh'),

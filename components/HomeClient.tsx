@@ -732,7 +732,7 @@ export default function HomeClient({ content, popularSearches }: { content: Home
               {
                 label: 'For Sellers',
                 steps: [
-                  ['Register & Verify',  'Create your account and verify identity via WhatsApp OTP.'],
+                  ['Register & Verify',  'Create your account and verify your mobile number with an SMS code.'],
                   ['List Your Property', 'Submit photos, details, and pricing for expert review.'],
                   ['Get Approved',       'Our team reviews and publishes your listing within 24 hours.'],
                   ['Track & Close',      'Monitor leads from your dashboard and close deals confidently.'],

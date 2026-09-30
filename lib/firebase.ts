@@ -13,7 +13,7 @@ const config = {
   appId:      process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 }
 
-// Without a web API key the pages fall back to the WhatsApp code.
+// Phone numbers are verified only by Firebase SMS; without a web API key verification is unavailable.
 export const firebasePhoneEnabled = !!config.apiKey
 
 let app: FirebaseApp | null = null
