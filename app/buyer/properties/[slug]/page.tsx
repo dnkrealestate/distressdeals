@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { propertyAPI } from '@/lib/api'
 import PropertyDetailClient from './PropertyDetailClient'
 import type { Property } from '@/types'
+import { shareImages } from '@/lib/seo'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -28,14 +29,14 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   const action = property.listingType === 'sale' ? 'for Sale' : 'for Rent'
   const title = property.metaTitle?.trim() || `${bedroomsLabel(property)} ${property.type?.replace('_', ' ')} ${action} in ${property.location.area}, Dubai`
   const description = property.metaDescription?.trim() || `${bedroomsLabel(property)} ${property.type} ${action.toLowerCase()} in ${property.location.area} — ${property.amenities.floorArea.toLocaleString()} sqft, ${property.amenities.bathrooms} bathrooms. Listed at ${property.price.toLocaleString()} AED. Verified listing, managed end-to-end by Distress Deals UAE.`
-  const images = property.images?.length > 0 ? [{ url: property.images[0].url }] : undefined
+  const images = shareImages(property.images?.[0]?.url)
 
   return {
     title,
     description,
     alternates: { canonical: `/buyer/properties/${property.slug}` },
     openGraph: { title, description, type: 'website', url: `/buyer/properties/${property.slug}`, images },
-    twitter: { card: 'summary_large_image', title, description, images: property.images?.[0]?.url ? [property.images[0].url] : undefined },
+    twitter: { card: 'summary_large_image', title, description, images: images.map(i => i.url) },
   }
 }
 

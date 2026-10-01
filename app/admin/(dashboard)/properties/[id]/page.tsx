@@ -8,7 +8,7 @@ import {
   Eye, MessageCircleHeart, TrendingUp, Heart, CalendarClock, Share2,
 } from 'lucide-react'
 import { propertyAPI, agentAPI, chatAPI } from '@/lib/api'
-import { formatPrice, formatDate, propertyStatusColor, cn, rentSuffix } from '@/lib/utils'
+import { formatPrice, formatDateTime, propertyStatusColor, cn, rentSuffix } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
 import { PerformanceStats } from '@/components/admin/PerformanceStats'
 import { AMENITY_META, AMENITY_GROUPS } from '@/lib/amenities'
@@ -444,7 +444,7 @@ export default function AdminPropertyDetailPage() {
                 <option key={a._id} value={a.user._id}>{a.user.name}</option>
               ))}
             </select>
-            <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>Submitted {formatDate(property.createdAt)}</p>
+            <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>Submitted {formatDateTime(property.createdAt)}</p>
           </Section>
 
           <Section title="Actions">

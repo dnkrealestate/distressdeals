@@ -9,6 +9,7 @@ import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import ContactClickTracker from '@/components/ContactClickTracker'
 import { THEME_BOOT_SCRIPT } from '@/store/themeStore'
+import { DEFAULT_SHARE_IMAGE } from '@/lib/seo'
 
 // Canonical www — the actual live domain (non-www 301s to this), so metadataBase (and therefore every relative
 // `alternates.canonical` across the app) must resolve here too, not to a URL that immediately redirects away.
@@ -26,11 +27,11 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website', locale: 'en_AE', url: '/',
     siteName: 'Distress Deals UAE',
-    images: [{ url: '/opengraph-image', width: 1200, height: 630 }],
+    images: [DEFAULT_SHARE_IMAGE],
   },
   twitter: {
     card: 'summary_large_image',
-    images: ['/opengraph-image'],
+    images: [DEFAULT_SHARE_IMAGE.url],
   },
 }
 export const viewport: Viewport = { themeColor: '#CB0101' }

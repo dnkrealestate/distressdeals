@@ -14,6 +14,7 @@ import FaqSection, { type Faq } from '@/components/shared/FaqSection'
 import LinkPagination from '@/components/shared/LinkPagination'
 import { HOME_ICON_MAP } from '@/lib/homeIcons'
 import type { CommunityContentWithStats, Property, Project } from '@/types'
+import { shareImages } from '@/lib/seo'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -70,7 +71,7 @@ export async function generateMetadata({ params, searchParams }: { params: { slu
     description,
     ...(keywords.length ? { keywords } : {}),
     alternates: { canonical: `/communities/${community.slug}${num(searchParams?.page) > 1 ? `?page=${num(searchParams?.page)}` : ''}` },
-    openGraph: { title, description, type: 'website', url: `/communities/${community.slug}`, ...(community.heroImage ? { images: [community.heroImage] } : {}) },
+    openGraph: { title, description, type: 'website', url: `/communities/${community.slug}`, images: shareImages(community.heroImage) },
     twitter: { card: 'summary_large_image', title, description },
   }
 }

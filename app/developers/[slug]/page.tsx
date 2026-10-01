@@ -13,6 +13,7 @@ import { formatPrice, isHandedOver } from '@/lib/utils'
 import FaqSection, { type Faq } from '@/components/shared/FaqSection'
 import LinkPagination from '@/components/shared/LinkPagination'
 import type { DeveloperWithStats, Project } from '@/types'
+import { DEFAULT_SHARE_IMAGE } from '@/lib/seo'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -66,8 +67,8 @@ export async function generateMetadata({ params, searchParams }: { params: { slu
     ...(keywords.length ? { keywords } : {}),
     // Page 2+ of the list is its own crawlable page.
     alternates: { canonical: `/developers/${dev.slug}${pageFrom(searchParams) > 1 ? `?page=${pageFrom(searchParams)}` : ''}` },
-    openGraph: { title, description, type: 'website', url: `/developers/${dev.slug}`, ...(dev.logo ? { images: [{ url: dev.logo, alt: `${dev.name} logo` }] } : {}) },
-    twitter: { card: 'summary_large_image', title, description },
+    openGraph: { title, description, type: 'website', url: `/developers/${dev.slug}`, images: [DEFAULT_SHARE_IMAGE] },
+    twitter: { card: 'summary_large_image', title, description, images: [DEFAULT_SHARE_IMAGE.url] },
   }
 }
 

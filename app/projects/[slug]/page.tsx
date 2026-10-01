@@ -4,6 +4,7 @@ import { notFound, permanentRedirect } from 'next/navigation'
 import { projectAPI } from '@/lib/api'
 import ProjectDetailClient from './ProjectDetailClient'
 import type { Project } from '@/types'
+import { shareImages } from '@/lib/seo'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -24,14 +25,14 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   const title = project.metaTitle?.trim() || `${project.title} by ${project.developer}`
   const description = project.metaDescription?.trim()
     || `Starting from ${project.priceFrom.toLocaleString()} AED in ${project.area}, Dubai. ${project.bedrooms ? `${project.bedrooms} · ` : ''}Handover ${project.handoverQuarter || ''} ${project.handoverYear || ''}.`.trim()
-  const images = project.coverImage ? [{ url: project.coverImage }] : undefined
+  const images = shareImages(project.coverImage)
 
   return {
     title,
     description,
     alternates: { canonical: `/projects/${project.slug}` },
     openGraph: { title, description, type: 'website', url: `/projects/${project.slug}`, images },
-    twitter: { card: 'summary_large_image', title, description, images: project.coverImage ? [project.coverImage] : undefined },
+    twitter: { card: 'summary_large_image', title, description, images: images.map(i => i.url) },
   }
 }
 

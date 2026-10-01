@@ -1,6 +1,17 @@
 import type { Metadata } from 'next'
 import { seoAPI } from './api'
 
+// The picture shown when any general page is shared (WhatsApp, Facebook, LinkedIn, X…). Pages about one thing
+// (a property, project, article, area, building…) use their own photo instead, falling back to this.
+// Next.js replaces the site-wide openGraph with a page's own, so every page that sets openGraph must include images.
+export const DEFAULT_SHARE_IMAGE = {
+  url: '/og/distress-deals-share.jpg',
+  width: 1200,
+  height: 630,
+  alt: 'Distress Deals UAE — Sell direct. Buy direct. No third-party agents.',
+}
+export const shareImages = (url?: string | null, alt?: string) => (url ? [{ url, ...(alt ? { alt } : {}) }] : [DEFAULT_SHARE_IMAGE])
+
 export interface SeoDefaults {
   title: string
   description: string
@@ -28,6 +39,7 @@ export async function resolveSeo(pageKey: string, defaults: SeoDefaults): Promis
     description,
     ...(keywords?.length ? { keywords } : {}),
     alternates: { canonical: defaults.path },
-    openGraph: { title, description, type: 'website', url: defaults.path },
+    openGraph: { title, description, type: 'website', url: defaults.path, images: [DEFAULT_SHARE_IMAGE] },
+    twitter: { card: 'summary_large_image', title, description, images: [DEFAULT_SHARE_IMAGE.url] },
   }
 }

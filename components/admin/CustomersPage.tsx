@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { adminAPI } from '@/lib/api'
-import { formatDate, cn } from '@/lib/utils'
+import { formatDateTime, cn } from '@/lib/utils'
 import { IdTag } from '@/components/shared/UserIdChip'
 import type { User } from '@/types'
 
@@ -16,7 +16,7 @@ type Customer = User & { listingsCount?: number; leadsCount?: number; signupVia?
 type Stats = { total: number; verified: number; unverified: number; newThisWeek: number; withoutListings?: number }
 
 const VIA: Record<string, string> = { sms: 'SMS code', whatsapp: 'WhatsApp code', admin: 'Marked by admin' }
-const SIGNUP: Record<string, string> = { email: 'Sign-up form', google: 'Google', facebook: 'Facebook', enquiry: 'From an enquiry' }
+const SIGNUP: Record<string, string> = { email: 'Sign-up form', google: 'Google', facebook: 'Facebook', enquiry: 'Enquiry only — no password set yet' }
 const VERIFY_TABS = [{ v: '', l: 'All' }, { v: 'no', l: 'Not verified' }, { v: 'yes', l: 'Verified' }]
 
 // Buyers and Sellers admin pages (one component, two types): customer accounts only, with how each number was
@@ -119,7 +119,7 @@ export default function CustomersPage({ type }: { type: 'buyer' | 'seller' }) {
                     <td className="text-sm font-semibold" style={{ color: (isSeller ? u.listingsCount : u.leadsCount) ? 'var(--text)' : 'var(--text-muted)' }}>
                       {isSeller ? u.listingsCount ?? 0 : u.leadsCount ?? 0}
                     </td>
-                    <td className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatDate(u.createdAt)}</td>
+                    <td className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatDateTime(u.createdAt)}</td>
                     <td><span className={cn('badge', u.status === 'suspended' ? 'badge-red' : u.status === 'active' ? 'badge-green' : 'badge-gray')}>{u.status.replace('_', ' ')}</span></td>
                   </tr>
                 ))}
@@ -213,7 +213,7 @@ function CustomerDrawer({ u, isSeller, onClose, onChanged }: { u: Customer; isSe
           <dl className="space-y-3 text-sm">
             <Detail icon={Mail} label="Email" value={<>{u.email} {u.isEmailVerified && <BadgeCheck size={13} className="inline ml-1" style={{ color: '#16A34A' }} />}</>} />
             <Detail icon={Phone} label="Phone" value={u.phone || '—'} />
-            <Detail icon={CalendarDays} label="Registered" value={formatDate(u.createdAt)} />
+            <Detail icon={CalendarDays} label="Registered" value={formatDateTime(u.createdAt)} />
             {isSeller
               ? <Detail icon={Home} label="Listings" value={<Link href="/admin/properties" className="underline">{u.listingsCount ?? 0}</Link>} />
               : <Detail icon={TrendingUp} label="Enquiries" value={<Link href="/admin/leads" className="underline">{u.leadsCount ?? 0}</Link>} />}
@@ -228,7 +228,7 @@ function CustomerDrawer({ u, isSeller, onClose, onChanged }: { u: Customer; isSe
             {u.isPhoneVerified ? (
               <>
                 <p className="text-xs mt-1" style={{ color: 'var(--text-mid)' }}>
-                  {u.phoneVerifiedVia ? VIA[u.phoneVerifiedVia] : 'Verified'}{by ? ` (${by})` : ''}{u.phoneVerifiedAt ? ` · ${formatDate(u.phoneVerifiedAt)}` : ''}
+                  {u.phoneVerifiedVia ? VIA[u.phoneVerifiedVia] : 'Verified'}{by ? ` (${by})` : ''}{u.phoneVerifiedAt ? ` · ${formatDateTime(u.phoneVerifiedAt)}` : ''}
                 </p>
                 <button onClick={() => setVerified(false)} disabled={busy} className="btn-ghost btn-sm mt-3 disabled:opacity-60">Remove verification</button>
               </>

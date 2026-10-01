@@ -9,6 +9,7 @@ import Footer from '@/components/layouts/Footer'
 import { buildingContentAPI } from '@/lib/api'
 import { HOME_ICON_MAP } from '@/lib/homeIcons'
 import type { BuildingContent } from '@/types'
+import { shareImages } from '@/lib/seo'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -35,7 +36,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     title,
     description,
     alternates: { canonical: `/buildings/${building.slug}` },
-    openGraph: { title, description, type: 'website', url: `/buildings/${building.slug}`, ...(building.heroImage ? { images: [building.heroImage] } : {}) },
+    openGraph: { title, description, type: 'website', url: `/buildings/${building.slug}`, images: shareImages(building.heroImage) },
     twitter: { card: 'summary_large_image', title, description },
   }
 }

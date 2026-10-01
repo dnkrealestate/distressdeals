@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { blogAPI } from '@/lib/api'
 import BlogDetailClient from './BlogDetailClient'
 import type { BlogPost } from '@/types'
+import { shareImages } from '@/lib/seo'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -28,14 +29,14 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   // appends the brand suffix — return the bare post title, not a pre-suffixed one.
   const title = post.title
   const description = post.excerpt
-  const images = post.coverImage ? [{ url: post.coverImage }] : undefined
+  const images = shareImages(post.coverImage)
 
   return {
     title,
     description,
     alternates: { canonical: `/blog/${post.slug}` },
     openGraph: { title: post.title, description, type: 'article', url: `/blog/${post.slug}`, images, publishedTime: post.publishedAt || post.createdAt },
-    twitter: { card: 'summary_large_image', title: post.title, description, images: post.coverImage ? [post.coverImage] : undefined },
+    twitter: { card: 'summary_large_image', title: post.title, description, images: images.map(i => i.url) },
   }
 }
 

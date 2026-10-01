@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { newsAPI } from '@/lib/api'
 import NewsDetailClient from './NewsDetailClient'
 import type { NewsItem } from '@/types'
+import { shareImages } from '@/lib/seo'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -23,14 +24,14 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 
   const title = item.title
   const description = item.summary
-  const images = item.coverImage ? [{ url: item.coverImage }] : undefined
+  const images = shareImages(item.coverImage)
 
   return {
     title,
     description,
     alternates: { canonical: `/news/${item.slug}` },
     openGraph: { title: item.title, description, type: 'article', url: `/news/${item.slug}`, images, publishedTime: item.publishedAt || item.createdAt },
-    twitter: { card: 'summary_large_image', title: item.title, description, images: item.coverImage ? [item.coverImage] : undefined },
+    twitter: { card: 'summary_large_image', title: item.title, description, images: images.map(i => i.url) },
   }
 }
 

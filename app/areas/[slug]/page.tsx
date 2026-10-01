@@ -13,6 +13,7 @@ import { propertyAPI, areaContentAPI, projectAPI } from '@/lib/api'
 import { formatPrice } from '@/lib/utils'
 import { HOME_ICON_MAP } from '@/lib/homeIcons'
 import type { AreaStats, AreaContentWithStats, Property, Project } from '@/types'
+import { shareImages } from '@/lib/seo'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -81,7 +82,7 @@ export async function generateMetadata({ params, searchParams }: { params: { slu
     title,
     description,
     alternates: { canonical: `/areas/${area.slug}${num(searchParams?.page) > 1 ? `?page=${num(searchParams?.page)}` : ''}` },
-    openGraph: { title, description, type: 'website', url: `/areas/${area.slug}`, ...(content?.heroImage ? { images: [content.heroImage] } : {}) },
+    openGraph: { title, description, type: 'website', url: `/areas/${area.slug}`, images: shareImages(content?.heroImage) },
     twitter: { card: 'summary_large_image', title, description },
   }
 }

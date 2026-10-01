@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { Building2, Heart, GitCompare, HardHat, Target, UserCheck, Sparkles, Loader2, ShieldCheck, ShieldAlert } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { userAPI } from '@/lib/api'
-import { formatPrice, formatDate, rentSuffix } from '@/lib/utils'
+import { formatPrice, formatDateTime, rentSuffix } from '@/lib/utils'
 
 // Everything one buyer cares about, in one place, for the agent who handles them: who they are, what they're
 // interested in (across ALL properties/projects, not just this lead), what they liked, what they're comparing, and a
@@ -91,8 +91,8 @@ export default function BuyerProfilePanel({ buyerId, agents, isAdmin }: { buyerI
             {buyer.isPhoneVerified
               ? <span className="inline-flex items-center gap-1" style={{ color: '#16A34A' }}><ShieldCheck size={11} /> Number verified</span>
               : <span className="inline-flex items-center gap-1"><ShieldAlert size={11} /> Number not verified</span>}
-            {buyer.autoCreated && <span>· Account created automatically from an enquiry</span>}
-            <span>· Member since {formatDate(buyer.createdAt)}</span>
+            {buyer.autoCreated && <span>· Enquiry only — no password set yet</span>}
+            <span>· Member since {formatDateTime(buyer.createdAt)}</span>
           </p>
           <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Agent: <strong style={{ color: 'var(--text-mid)' }}>{buyer.assignedAgent?.name || 'not assigned yet'}</strong></p>
         </div>

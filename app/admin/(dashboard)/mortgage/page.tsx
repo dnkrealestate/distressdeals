@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Wallet, Trash2, Mail, Phone, Calendar } from 'lucide-react'
 import { mortgageAPI } from '@/lib/api'
-import { formatDate, formatPrice, cn } from '@/lib/utils'
+import { formatDateTime, formatPrice, cn } from '@/lib/utils'
 import type { MortgageInquiry } from '@/types'
 import toast from 'react-hot-toast'
 
@@ -72,7 +72,7 @@ export default function AdminMortgagePage() {
                     <div className="flex items-center gap-4 text-xs mt-1.5 flex-wrap" style={{ color: 'var(--text-muted)' }}>
                       <a href={`mailto:${inquiry.email}`} className="flex items-center gap-1.5 hover:opacity-80"><Mail size={11} />{inquiry.email}</a>
                       <a href={`tel:${inquiry.phone}`} className="flex items-center gap-1.5 hover:opacity-80"><Phone size={11} />{inquiry.phone}</a>
-                      <span className="flex items-center gap-1.5"><Calendar size={11} />{formatDate(inquiry.createdAt)}</span>
+                      <span className="flex items-center gap-1.5"><Calendar size={11} />{formatDateTime(inquiry.createdAt)}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5">

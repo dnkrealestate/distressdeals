@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 import { propertyAPI, agentAPI } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
-import { formatPrice, formatDate, propertyStatusColor, cn, rentSuffix } from '@/lib/utils'
+import { formatPrice, formatDateTime, propertyStatusColor, cn, rentSuffix } from '@/lib/utils'
 import type { Property, Agent } from '@/types'
 import toast from 'react-hot-toast'
 
@@ -417,7 +417,7 @@ function PropertiesQueue() {
                       Seller: <span style={{ color: 'var(--text)' }}>{p.seller?.name || '—'}</span>
                     </p>
                     <p className="text-[11px] mt-0.5 flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
-                      <Calendar size={10} /> Submitted {formatDate(p.createdAt)}
+                      <Calendar size={10} /> Submitted {formatDateTime(p.createdAt)}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end" onClick={e => e.stopPropagation()}>

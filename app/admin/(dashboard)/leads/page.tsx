@@ -10,7 +10,7 @@ import {
   Trash2, AlertTriangle, Check, ListTodo, Plus, CalendarClock, Sparkles, Building2,
 } from 'lucide-react'
 import { leadAPI, agentAPI, chatAPI, taskAPI } from '@/lib/api'
-import { formatDate, formatPrice, cn } from '@/lib/utils'
+import { formatDate, formatDateTime, formatPrice, cn } from '@/lib/utils'
 import { IdTag } from '@/components/shared/UserIdChip'
 import { useAuthStore } from '@/store/authStore'
 import type { Lead, Agent, Task as TaskT } from '@/types'
@@ -335,7 +335,7 @@ function LeadDetailDrawer({
                       <span className="badge text-[10px]" style={{ background: 'rgba(168,85,247,0.15)', color: '#A855F7', border: '1px solid rgba(168,85,247,0.30)' }}>Project Lead</span>
                     )}
                   </div>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Enquiry submitted {formatDate(lead.createdAt)}</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Enquiry submitted {formatDateTime(lead.createdAt)}</p>
                 </div>
                 <span className="badge" style={{ borderColor: stage?.color, color: stage?.color, background: `${stage?.color}14` }}>{stage?.label}</span>
               </div>
@@ -435,7 +435,7 @@ function LeadDetailDrawer({
                 </div>
                 <div className="card p-3">
                   <p className="text-[10px] flex items-center gap-1.5 mb-1" style={{ color: 'var(--text-muted)' }}><Clock size={11} /> Created</p>
-                  <p className="text-xs font-medium" style={{ color: 'var(--text)' }}>{formatDate(lead.createdAt)}</p>
+                  <p className="text-xs font-medium" style={{ color: 'var(--text)' }}>{formatDateTime(lead.createdAt)}</p>
                 </div>
               </div>
 
@@ -569,7 +569,7 @@ function LeadDetailDrawer({
                               stripped server-side for agents, so this simply won't render for them. */}
                           {t.createdBy?.name && <span style={{ color: 'var(--text-muted)' }}> · by {t.createdBy.name}</span>}
                         </p>
-                        <p style={{ color: 'var(--text-muted)' }}>{formatDate(t.createdAt)}</p>
+                        <p style={{ color: 'var(--text-muted)' }}>{formatDateTime(t.createdAt)}</p>
                       </div>
                     </div>
                   )) : <p className="text-xs" style={{ color: 'var(--text-muted)' }}>No activity yet</p>}
@@ -582,7 +582,7 @@ function LeadDetailDrawer({
                   {lead.notes?.length > 0 ? [...lead.notes].reverse().map((n, i) => (
                     <div key={i} className="p-2.5 rounded-xl text-xs" style={{ background: 'var(--bg-alt)' }}>
                       <p style={{ color: 'var(--text)' }}>{n.content}</p>
-                      <p className="mt-1" style={{ color: 'var(--text-muted)' }}>{(n.createdBy as any)?.name || 'Staff'} · {formatDate(n.createdAt)}</p>
+                      <p className="mt-1" style={{ color: 'var(--text-muted)' }}>{(n.createdBy as any)?.name || 'Staff'} · {formatDateTime(n.createdAt)}</p>
                     </div>
                   )) : <p className="text-xs" style={{ color: 'var(--text-muted)' }}>No notes yet</p>}
                 </div>
@@ -908,7 +908,7 @@ function AdminLeadsView() {
                             {STAGES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                           </select>
                         </td>
-                        <td className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatDate(lead.createdAt)}</td>
+                        <td className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatDateTime(lead.createdAt)}</td>
                         <td>
                           <LeadDeleteControl lead={lead} isAdmin={isAdmin} onRequestReason={setReasonTarget} onChanged={refreshAll} />
                         </td>

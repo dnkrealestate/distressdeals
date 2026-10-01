@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import { Search, UserCog, Ban, CheckCircle2, ChevronLeft, ChevronRight, Plus, X, Pencil, Trash2 } from 'lucide-react'
 import { adminAPI } from '@/lib/api'
-import { formatDate, cn } from '@/lib/utils'
+import { formatDateTime, cn } from '@/lib/utils'
 import { IdTag } from '@/components/shared/UserIdChip'
 import type { User, AgentPermission } from '@/types'
 import { useAuthStore } from '@/store/authStore'
@@ -261,7 +261,7 @@ export default function AdminUsersPage() {
                     <td>
                       <span className={cn('badge', u.status === 'suspended' ? 'badge-red' : 'badge-green')}>{u.status}</span>
                     </td>
-                    <td className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatDate(u.createdAt)}</td>
+                    <td className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatDateTime(u.createdAt)}</td>
                     <td>
                       <div className="flex items-center gap-1.5 justify-end">
                         <button onClick={() => setEditing(u)} className="btn-ghost btn-sm p-2" title="Edit">

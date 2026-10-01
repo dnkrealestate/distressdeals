@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { adminAPI, propertyAPI, leadAPI } from '@/lib/api'
-import { formatPrice, formatDate, cn } from '@/lib/utils'
+import { formatPrice, formatDateTime, cn } from '@/lib/utils'
 import { IdTag } from '@/components/shared/UserIdChip'
 import type { Property, Lead, LeadSourceReport } from '@/types'
 
@@ -158,7 +158,7 @@ export default function AdminDashboard() {
                           <span className={cn('badge text-xs', lead.status === 'new' ? 'badge-blue' : lead.status === 'deal_closed' ? 'badge-green' : 'badge-teal')}>
                             {lead.status.replace('_', ' ')}
                           </span>
-                          <span className="text-xs" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>{formatDate(lead.createdAt)}</span>
+                          <span className="text-xs" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>{formatDateTime(lead.createdAt)}</span>
                         </div>
                       </div>
                     </motion.div>
