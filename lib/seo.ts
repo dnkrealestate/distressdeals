@@ -4,12 +4,12 @@ import { seoAPI } from './api'
 // The picture shown when any general page is shared (WhatsApp, Facebook, LinkedIn, X…). Pages about one thing
 // (a property, project, article, area, building…) use their own photo instead, falling back to this.
 // Next.js replaces the site-wide openGraph with a page's own, so every page that sets openGraph must include images.
-// The full design at its own shape (≈4:3, like Bayut's) — WhatsApp shows link images close to their real shape, so a
-// wide 1.91:1 version needed filler bars. Bump the file name when the design changes: WhatsApp/Facebook cache by URL.
+// The standard wide share format (1200×630, 1.91:1) — fits Facebook, LinkedIn, X and WhatsApp without filler or crops.
+// Bump the file name when the design changes: WhatsApp/Facebook cache previews by image URL.
 export const DEFAULT_SHARE_IMAGE = {
-  url: '/og/distress-deals-share-v2.jpg',
-  width: 1455,
-  height: 1081,
+  url: '/og/distress-deals-share-v3.jpg',
+  width: 1200,
+  height: 630,
   alt: 'Distress Deals UAE — Sell direct. Buy direct. No third-party agents.',
 }
 export const shareImages = (url?: string | null, alt?: string) => (url ? [{ url, ...(alt ? { alt } : {}) }] : [DEFAULT_SHARE_IMAGE])
