@@ -1,12 +1,12 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Phone, ShieldAlert, ShieldCheck, Loader2, Pencil } from 'lucide-react'
 import toast from 'react-hot-toast'
 import type { ConfirmationResult } from 'firebase/auth'
 import { authAPI } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import type { User } from '@/types'
-import { firebasePhoneEnabled, sendPhoneCode, confirmPhoneCode, phoneAuthError, toE164, useResendCooldown } from '@/lib/firebase'
+import { firebasePhoneEnabled, sendPhoneCode, confirmPhoneCode, phoneAuthError, toE164, useResendCooldown, prepareRecaptcha } from '@/lib/firebase'
 
 // "Your number isn't verified" → send an SMS code to the registered number (or a corrected one) → verified.
 // Verifying a different number replaces the one on the account (the backend stores only the number Firebase proved).
@@ -29,6 +29,7 @@ export default function PhoneVerifyCard({
   const [cooldown, startCooldown] = useResendCooldown()
 
   const e164 = toE164(phone)
+  useEffect(() => { prepareRecaptcha('phone-verify-recaptcha') }, [])
   const codeSent = !!confirmation && sentTo === e164
 
   const send = async () => {
@@ -73,6 +74,9 @@ export default function PhoneVerifyCard({
           <p className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
             {subtitle || 'Verify your mobile number to list properties and open your seller dashboard. We’ll text you a 6-digit code.'}
           </p>
+
+          {/* "I'm not a robot" — tick it, then Send OTP. Always mounted (see lib/firebase). */}
+          <div className="mt-4"><div id="phone-verify-recaptcha" className="rc-fit flex justify-center min-h-[78px]" /></div>
 
           {/* Number: the registered one, editable */}
           <div className="mt-4 max-w-md">
@@ -122,7 +126,6 @@ export default function PhoneVerifyCard({
               </button>
             </div>
           )}
-          <div id="phone-verify-recaptcha" />
         </div>
       </div>
     </div>

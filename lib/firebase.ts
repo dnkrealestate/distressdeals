@@ -24,28 +24,63 @@ function auth(): Auth {
   return a
 }
 
+// Firebase's documented visible reCAPTCHA: each page keeps ONE permanent, never-unmounted container
+// (<div id="…-recaptcha" />) and calls prepareRecaptcha(id) when it mounts. One verifier is built per container and
+// re-used; between sends it is reset with grecaptcha.reset() (Firebase docs) so a spent token is never re-sent
+// (auth/invalid-app-credential). Nothing is created or removed while Google's script is running — creating/removing
+// reCAPTCHA elements is what crashed it ("TypeError: can't access property 'style', N is null").
 let verifier: RecaptchaVerifier | null = null
+let verifierEl: HTMLElement | null = null
+let widgetId: number | null = null
+let rendering: Promise<number> | null = null
+let spent = false
 
-/**
- * Sends the SMS code. `containerId` is an empty element the invisible reCAPTCHA renders into — not a button, or the
- * widget would also fire on the button's own click.
- *
- * Every send gets a brand-new reCAPTCHA: a token Google has already accepted once is rejected on the next request
- * (auth/invalid-app-credential), which is what broke resends and retries.
- */
+async function getVerifier(containerId: string): Promise<RecaptchaVerifier> {
+  const el = document.getElementById(containerId)
+  if (!el) throw Object.assign(new Error('reCAPTCHA container missing'), { code: 'auth/captcha-check-failed' })
+  if (!verifier || verifierEl !== el) {
+    // A different page (container) — the old verifier's element is gone with that page.
+    try { verifier?.clear() } catch { /* already gone */ }
+    verifierEl = el
+    spent = false
+    verifier = new RecaptchaVerifier(auth(), el, {
+      size: 'normal',
+      callback: () => console.log('✅ reCAPTCHA solved'),
+      'expired-callback': () => console.log('⚠️ reCAPTCHA expired — tick it again'),
+    })
+    rendering = verifier.render()
+  }
+  widgetId = await rendering!
+  return verifier
+}
+
+function resetWidget() {
+  try { if (widgetId !== null) (window as any).grecaptcha?.reset(widgetId) } catch { /* not rendered yet */ }
+  spent = false
+}
+
+/** Show the "I'm not a robot" box as soon as the page with this container mounts. */
+export function prepareRecaptcha(containerId: string): void {
+  if (!firebasePhoneEnabled) return
+  getVerifier(containerId).catch(err => console.error('[recaptcha] could not render:', err?.message || err))
+}
+
+/** Sends the SMS code (after the visible reCAPTCHA in `containerId` is ticked — Firebase waits for it). */
 export async function sendPhoneCode(phoneE164: string, containerId: string): Promise<ConfirmationResult> {
   const a = auth()
-  const container = document.getElementById(containerId)
-  if (!container) throw Object.assign(new Error('reCAPTCHA container missing'), { code: 'auth/captcha-check-failed' })
-  try { verifier?.clear() } catch { /* already gone */ }
-  container.innerHTML = ''
-  const box = document.createElement('div')
-  container.appendChild(box)
-  verifier = new RecaptchaVerifier(a, box, { size: 'invisible' })
-  // End the previous verification's Firebase session here (not right after confirming), so a repeated "Verify"
-  // tap on the last code can still reuse it — see confirmPhoneCode.
-  await signOut(a).catch(() => {})
-  return signInWithPhoneNumber(a, phoneE164, verifier)
+  // End the previous verification's Firebase session first (not right after confirming, so a repeated "Verify" tap on
+  // the last code can still reuse it — see confirmPhoneCode).
+  if (a.currentUser) await signOut(a).catch(() => {})
+  const v = await getVerifier(containerId)
+  if (spent) resetWidget()   // a resend needs a fresh tick — never re-send a used token
+  try {
+    const result = await signInWithPhoneNumber(a, phoneE164, v)
+    spent = true
+    return result
+  } catch (err) {
+    resetWidget()            // Firebase docs: reset the reCAPTCHA so the user can try again
+    throw err
+  }
 }
 
 // One confirm per sent code: a second tap on Verify (or Enter + tap) gets the first attempt's result instead of

@@ -518,3 +518,8 @@ body {
 /* Our own themes, declared so browsers draw form controls/scrollbars to match and never apply their own auto-dark. */
 [data-theme="light"] { color-scheme: light; }
 [data-theme="dark"] { color-scheme: dark; }
+
+/* Google's reCAPTCHA box is a fixed 304px wide — shrink it a little on narrow phones so it never sticks out of a card. */
+@media (max-width: 400px) {
+  .rc-fit { transform: scale(0.86); transform-origin: left top; height: 68px; }
+}

@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -16,7 +16,7 @@ import { Logo } from '@/components/shared/Logo'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import type { ConfirmationResult } from 'firebase/auth'
-import { firebasePhoneEnabled, sendPhoneCode, confirmPhoneCode, phoneAuthError, toE164, useResendCooldown } from '@/lib/firebase'
+import { firebasePhoneEnabled, sendPhoneCode, confirmPhoneCode, phoneAuthError, toE164, useResendCooldown, prepareRecaptcha } from '@/lib/firebase'
 
 
 const STEPS = ['Account', 'Verify Phone', 'Complete']
@@ -34,6 +34,7 @@ export default function SellerRegisterPage() {
   const [confirmation, setConfirmation] = useState<ConfirmationResult | null>(null)
   const [resending, setResending] = useState(false)
   const [cooldown, startCooldown] = useResendCooldown()
+  useEffect(() => { prepareRecaptcha('otp-recaptcha') }, [])
 
   // Phone numbers are verified by Firebase SMS only.
   const sendCode = async (rawPhone: string) => {
@@ -219,6 +220,12 @@ export default function SellerRegisterPage() {
             ))}
           </div>
 
+          {/* "I'm not a robot" — needed before the SMS code is sent. Always mounted (see lib/firebase); hidden when done. */}
+          <div className="mb-6" style={step === 2 ? { display: 'none' } : undefined}>
+            <p className="text-xs text-center mb-2" style={{ color: 'var(--text-muted)' }}>Tick the box below — we need it to text your verification code.</p>
+            <div id="otp-recaptcha" className="rc-fit flex justify-center min-h-[78px]" />
+          </div>
+
           <AnimatePresence mode="wait">
             {/* ── Step 0: Account ────────────────────────── */}
             {step === 0 && (
@@ -401,7 +408,6 @@ export default function SellerRegisterPage() {
               </motion.div>
             )}
           </AnimatePresence>
-          <div id="otp-recaptcha" />
         </div>
       </div>
     </div>

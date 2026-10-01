@@ -3,7 +3,7 @@ import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { MessageSquare, CheckCircle2, Loader2 } from 'lucide-react'
 import type { ConfirmationResult } from 'firebase/auth'
-import { firebasePhoneEnabled, sendPhoneCode, confirmPhoneCode, phoneAuthError, toE164, useResendCooldown } from '@/lib/firebase'
+import { firebasePhoneEnabled, sendPhoneCode, confirmPhoneCode, phoneAuthError, toE164, useResendCooldown, prepareRecaptcha } from '@/lib/firebase'
 
 // Opened by the mobile app inside a WebView (or an iframe on Expo web) to verify a phone number with Firebase SMS.
 // Firebase's web phone sign-in needs a browser for its reCAPTCHA, which is why this lives on the site. The page only
@@ -38,6 +38,8 @@ function VerifyPhone() {
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
   const [cooldown, startCooldown] = useResendCooldown()
+  // Show the "I'm not a robot" box as soon as the page is up (the container is rendered only when there's a phone).
+  useEffect(() => { if (firebasePhoneEnabled && phone) prepareRecaptcha('verify-recaptcha') }, [phone])
 
   // Match the app's theme. The site's own theme handling runs after this and would reset it, so hold the attribute
   // here without touching the visitor's saved choice.
@@ -76,8 +78,8 @@ function VerifyPhone() {
 
   return (
     <Shell>
-      {/* Invisible reCAPTCHA renders here — kept outside the conditional UI so it survives every state. */}
-      <div id="verify-recaptcha" />
+      {/* "I'm not a robot" — tick it, then Send code. Always mounted (see lib/firebase); hidden once verified. */}
+      <div className="mb-5" style={done ? { display: 'none' } : undefined}><div id="verify-recaptcha" className="rc-fit flex justify-center min-h-[78px]" /></div>
       {done ? (
         <div className="text-center">
           <CheckCircle2 size={40} className="mx-auto mb-3" style={{ color: 'var(--green)' }} />
