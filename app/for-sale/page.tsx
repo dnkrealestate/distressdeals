@@ -5,6 +5,7 @@ import { GUIDE_BUYING } from '@/lib/guideContent'
 import { tagHeadline, TAG_LABELS } from '@/lib/listingTags'
 import MoreSearches from '@/components/listing/MoreSearches'
 import GuideSection from '@/components/listing/GuideSection'
+import AreaPriceMap from '@/components/AreaPriceMap'
 import { resolveSeo } from '@/lib/seo'
 import PropertiesListClient from '../buyer/properties/PropertiesListClient'
 
@@ -39,7 +40,7 @@ export default async function ForSalePage() {
       initialProperties={initial?.data}
       initialTotal={initial?.total}
       initialTotalPages={initial?.totalPages}
-      bottom={<><MoreSearches data={quickLinks} /><GuideSection content={guide} /></>}
+      bottom={<><AreaPriceMap defaultPurpose="buy" /><MoreSearches data={quickLinks} /><GuideSection content={guide} /></>}
     />
   )
 }

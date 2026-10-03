@@ -375,6 +375,11 @@ export const mortgageAPI = {
 
 // ── Contact (general enquiries — no property/project attached) ──
 // ── "More searches" links under the listing pages (live counts) ──
+// "Compare prices by area" map — lowest / average / highest per area.
+export const areaPricesAPI = {
+  get: (params: { purpose: 'buy' | 'rent'; type?: string; beds?: string }) => api.get('/area-prices', { params }),
+}
+
 export const quickLinksAPI = {
   get: (kind: 'sale' | 'rent' | 'projects') => api.get('/quick-links', { params: { kind } }),
 }

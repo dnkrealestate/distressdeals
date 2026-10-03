@@ -25,6 +25,7 @@ import { propertyAPI, homepageAPI, communityContentAPI, projectAPI } from '@/lib
 import { HOME_ICON_MAP, DEFAULT_HOME_ICON } from '@/lib/homeIcons'
 import type { Property, Project, HomepageContent, CommunityContentWithStats } from '@/types'
 import PopularSearches from '@/components/PopularSearches'
+import AreaPriceMap from '@/components/AreaPriceMap'
 import type { QuickLinksData } from '@/lib/quickLinks'
 import type { ListingKind } from '@/lib/listingTags'
 
@@ -658,6 +659,9 @@ export default function HomeClient({ content, popularSearches }: { content: Home
 
       {/* ─── EXPLORE ON THE MAP — right after the property listings ─── */}
       <MapExploreSection onCta={() => trackCta('map_banner')} />
+
+      {/* ─── COMPARE PRICES BY AREA ───────────────────────── */}
+      <AreaPriceMap />
 
       {/* ─── WHY DISTRESS DEALS ────────────────────────────── */}
       <section className="section relative overflow-hidden">

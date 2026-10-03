@@ -5,6 +5,7 @@ import { GUIDE_RENTING } from '@/lib/guideContent'
 import { tagHeadline, TAG_LABELS } from '@/lib/listingTags'
 import MoreSearches from '@/components/listing/MoreSearches'
 import GuideSection from '@/components/listing/GuideSection'
+import AreaPriceMap from '@/components/AreaPriceMap'
 import { resolveSeo } from '@/lib/seo'
 import PropertiesListClient from '../buyer/properties/PropertiesListClient'
 
@@ -39,7 +40,7 @@ export default async function ForRentPage() {
       initialProperties={initial?.data}
       initialTotal={initial?.total}
       initialTotalPages={initial?.totalPages}
-      bottom={<><MoreSearches data={quickLinks} /><GuideSection content={guide} /></>}
+      bottom={<><AreaPriceMap defaultPurpose="rent" title="Compare rents by area" subtitle="See what a year’s rent gets you across different areas." /><MoreSearches data={quickLinks} /><GuideSection content={guide} /></>}
     />
   )
 }

@@ -523,3 +523,6 @@ body {
 @media (max-width: 400px) {
   .rc-fit { transform: scale(0.86); transform-origin: left top; height: 68px; }
 }
+
+/* Area price map: the filter strip has a divider only on phones (on larger screens it floats over the map). */
+@media (min-width: 768px) { [data-filters] { border-bottom: none !important; } }
