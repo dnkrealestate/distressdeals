@@ -11,6 +11,7 @@ export type AgentPermission =
   | 'manage_content'
   | 'manage_blog' | 'manage_homepage' | 'manage_seo' | 'manage_pages' | 'manage_projects'
   | 'manage_developers' | 'manage_areas' | 'manage_communities' | 'manage_buildings' | 'manage_ads'
+  | 'manage_explore' | 'manage_reviews'
 
 export interface User {
   _id: string; name: string; email: string; phone?: string; avatar?: string
@@ -317,6 +318,8 @@ export interface CommunityContentWithStats extends CommunityContent {
 export interface BuildingContent {
   _id: string; name: string; slug: string; area?: string; community?: string; developer?: string
   heroImage?: string; overview?: string; yearBuilt?: number; totalFloors?: number
+  heroImageCredit?: { name: string; url: string; license?: string }; emirate?: string; coordinates?: { lat: number; lng: number }
+  metaTitle?: string; metaDescription?: string; focusKeyword?: string; seoKeywords?: string[]
   amenities: { icon: string; label: string }[]
   // Staff tracking (admin lists only)
   createdBy?: { _id: string; name: string; displayId?: string } | null; updatedBy?: { _id: string; name: string; displayId?: string } | null; updatedAt?: string
@@ -338,3 +341,33 @@ export interface PaginatedResponse<T> {
 }
 
 export interface ApiResponse<T> { success: boolean; data: T; message?: string; error?: string }
+// ── UAE Explore ─────────────────────────────────────────
+export type PlaceCategory = 'attraction' | 'food' | 'mall' | 'market' | 'hotel' | 'activity'
+export interface Place {
+  _id: string; name: string; slug: string; category: PlaceCategory; subcategory?: string
+  emirate: string; area?: string; address?: string; coordinates?: { lat: number; lng: number }
+  heroImage?: string; heroImageCredit?: { name: string; url: string; license?: string }; gallery?: string[]
+  summary?: string; overview?: string; highlights?: string[]; tips?: string[]; faqs?: { q: string; a: string }[]
+  openingHours?: string; phone?: string; website?: string; priceLevel?: string; bestTime?: string; duration?: string
+  stars?: number; cuisine?: string
+  status: 'published' | 'draft'; isFeatured: boolean; ratingAvg: number; ratingCount: number; views?: number
+  metaTitle?: string; metaDescription?: string; focusKeyword?: string; seoKeywords?: string[]
+  distanceKm?: number; createdAt?: string; updatedAt?: string
+  createdBy?: Pick<User, '_id' | 'name' | 'displayId' | 'role'>; updatedBy?: Pick<User, '_id' | 'name' | 'displayId' | 'role'>
+}
+export interface PlaceDetail extends Place {
+  nearby: Place[]
+  reviews?: Review[]
+  related?: Pick<Place, 'name' | 'slug' | 'category' | 'subcategory'>[]
+  projects: { _id: string; name: string; slug: string; area?: string; emirate?: string; priceFrom?: number; coverImage?: string; images?: { url: string }[]; developer?: string; distanceKm: number }[]
+}
+export interface PlaceSectionSummary { category: PlaceCategory; count: number; emirates: { emirate: string; count: number }[]; top: Place[] }
+
+export type ReviewTargetType = 'place' | 'area' | 'community' | 'building' | 'blog' | 'news'
+export interface Review {
+  _id: string; targetType: ReviewTargetType; targetSlug: string; targetName?: string
+  authorName: string; rating: number; title?: string; comment: string
+  status: 'pending' | 'approved' | 'rejected'; reply?: string; repliedAt?: string; createdAt: string
+  user?: Pick<User, '_id' | 'name' | 'email' | 'displayId'>; moderatedBy?: { name: string }
+}
+export interface ReviewSummary { avg: number; count: number; dist: number[] }

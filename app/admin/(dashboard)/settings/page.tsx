@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import {
   FileText, LayoutTemplate, Search, Building2, Landmark, MapPin, Layers,
-  Info, Sparkles, ChevronRight,
+  Info, Sparkles, ChevronRight, Compass, Star,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { can } from '@/lib/modules'
@@ -65,6 +65,8 @@ const SITE_STRUCTURE_CARDS: SettingsCard[] = [
   { href: '/admin/areas', icon: MapPin, title: 'Areas', description: "Insights copy shown on each area's public page", module: 'manage_areas' },
   { href: '/admin/communities', icon: Layers, title: 'Communities', description: 'Sub-neighbourhoods and standalone communities', module: 'manage_communities' },
   { href: '/admin/buildings', icon: Building2, title: 'Buildings', description: 'Building/tower-level info pages', module: 'manage_buildings' },
+  { href: '/admin/explore', icon: Compass, title: 'UAE Explore', description: 'Tourist places, food, malls, markets, hotels and activities', module: 'manage_explore' },
+  { href: '/admin/reviews', icon: Star, title: 'Reviews', description: 'Approve, reply to and remove visitor reviews and ratings', module: 'manage_reviews' },
 ]
 
 export default function AdminSettingsPage() {

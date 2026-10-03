@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { MapPin, TrendingUp, Tag, Home as HomeIcon, Sparkles, Layers } from 'lucide-react'
 
 import Navbar from '@/components/layouts/Navbar'
+import ReviewsSection from '@/components/shared/ReviewsSection'
 import Footer from '@/components/layouts/Footer'
 import PropertyCard from '@/components/buyer/PropertyCard'
 import ProjectCard from '@/components/buyer/ProjectCard'
@@ -261,6 +262,8 @@ export default async function AreaDetailPage({ params, searchParams }: { params:
           )}
         </div>
       </section>
+
+      <ReviewsSection type="area" slug={area.slug} name={area.area} />
 
       <Footer />
     </div>

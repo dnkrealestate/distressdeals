@@ -5,15 +5,17 @@ import Link from 'next/link'
 import { Layers, MapPin, Sparkles } from 'lucide-react'
 
 import Navbar from '@/components/layouts/Navbar'
+import ReviewsSection from '@/components/shared/ReviewsSection'
 import Footer from '@/components/layouts/Footer'
 import PropertyCard from '@/components/buyer/PropertyCard'
-import { propertyAPI, communityContentAPI, projectAPI } from '@/lib/api'
+import { propertyAPI, communityContentAPI, projectAPI, placeAPI } from '@/lib/api'
+import PlaceCard from '@/components/explore/PlaceCard'
 import { formatPrice } from '@/lib/utils'
 import ProjectCard from '@/components/buyer/ProjectCard'
 import FaqSection, { type Faq } from '@/components/shared/FaqSection'
 import LinkPagination from '@/components/shared/LinkPagination'
 import { HOME_ICON_MAP } from '@/lib/homeIcons'
-import type { CommunityContentWithStats, Property, Project } from '@/types'
+import type { CommunityContentWithStats, Property, Project, Place } from '@/types'
 import { shareImages } from '@/lib/seo'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
@@ -83,6 +85,10 @@ export default async function CommunityDetailPage({ params, searchParams }: { pa
   const page = num(searchParams?.page), pPage = num(searchParams?.pp)
   const [listingPage, projectPage] = await Promise.all([getCommunityListings(community.name, page), getCommunityProjects(community.name, pPage)])
   const listings = listingPage.data, projects = projectPage.data
+  // Things to do around the community (UAE Explore) — only when it has a map position.
+  const nearPlaces: Place[] = community.coordinates?.lat != null
+    ? await placeAPI.getNear(community.coordinates.lat, community.coordinates.lng, 8).then(r => r.data.data.places || []).catch(() => [])
+    : []
 
   // The place itself, with its map position — helps local search.
   const placeJsonLd = {
@@ -115,6 +121,10 @@ export default async function CommunityDetailPage({ params, searchParams }: { pa
     projects.length ? {
       q: `Are there off-plan projects in ${community.name}?`,
       a: `Yes — ${projects.length} project${projects.length === 1 ? '' : 's'}${devs.length ? ` by ${list(devs)}` : ''}, starting from ${formatPrice(Math.min(...projects.map(p => p.priceFrom).filter(Boolean)))}.`,
+    } : { q: '', a: '' },
+    nearPlaces.length ? {
+      q: `What is there to do near ${community.name}?`,
+      a: `Close by: ${list(nearPlaces.slice(0, 5).map(p => `${p.name} (${p.distanceKm} km)`))}.`,
     } : { q: '', a: '' },
     community.amenities?.length ? {
       q: `What amenities are near ${community.name}?`,
@@ -261,6 +271,20 @@ export default async function CommunityDetailPage({ params, searchParams }: { pa
           )}
         </div>
       </section>
+
+      {nearPlaces.length > 0 && (
+        <section className="pb-14">
+          <div className="wrap">
+            <h2 className="text-lg font-bold mb-1" style={{ color: 'var(--text)' }}>Things to do near {community.name}</h2>
+            <p className="text-xs mb-5" style={{ color: 'var(--text-muted)' }}>Malls, restaurants, parks, attractions and hotels close to {community.name}, with distances.</p>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {nearPlaces.map(p => <PlaceCard key={p._id} place={p} compact />)}
+            </div>
+          </div>
+        </section>
+      )}
+
+      <ReviewsSection type="community" slug={community.slug} name={community.name} />
 
       <FaqSection title={`${community.name}: frequently asked questions`} faqs={faqs} />
 

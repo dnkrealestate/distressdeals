@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Calendar, Share2, Facebook, Twitter, Linkedin, Link2, List } from 'lucide-react'
 import Navbar from '@/components/layouts/Navbar'
+import ReviewsSection from '@/components/shared/ReviewsSection'
 import Footer from '@/components/layouts/Footer'
 import { newsAPI } from '@/lib/api'
 import { formatDate } from '@/lib/utils'
@@ -146,6 +147,8 @@ export default function NewsDetailClient({ item }: { item: NewsItem }) {
           </div>
         </aside>
       </div>
+
+      <ReviewsSection type="news" slug={item.slug} name={item.title} />
 
       <Footer />
     </div>

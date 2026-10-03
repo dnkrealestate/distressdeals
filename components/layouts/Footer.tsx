@@ -29,6 +29,7 @@ const FOOTER_LINKS = {
     { label: 'Area Guides',    href: '/areas'          },
     { label: 'Communities',    href: '/communities'    },
     { label: 'Buildings',      href: '/buildings'      },
+    { label: 'UAE Explore',    href: '/explore'        },
     { label: 'Blog',           href: '/blog'           },
     { label: 'News',           href: '/news'           },
   ],

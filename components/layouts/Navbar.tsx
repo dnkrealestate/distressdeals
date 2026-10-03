@@ -123,10 +123,18 @@ const NAV: NavItem[] = [
           { label: 'Blog',         href: '/blog' },
           { label: 'News',         href: '/news' },
         ] },
-        { heading: 'Explore Dubai', links: [
+        { heading: 'Property Guides', links: [
           { label: 'Area Guides',      href: '/areas' },
           { label: 'Community Guides', href: '/communities' },
           { label: 'Building Guides',  href: '/buildings' },
+        ] },
+        { heading: 'UAE Explore', links: [
+          { label: 'Tourist Places',  href: '/explore/attractions' },
+          { label: 'Food & Dining',   href: '/explore/food' },
+          { label: 'Shopping Malls',  href: '/explore/malls' },
+          { label: 'Markets & Souks', href: '/explore/markets' },
+          { label: 'Hotels & Resorts', href: '/explore/hotels' },
+          { label: 'Activities',      href: '/explore/activities' },
         ] },
         { heading: 'Tools', links: [
           { label: 'Mortgage Calculator', href: '/mortgage' },

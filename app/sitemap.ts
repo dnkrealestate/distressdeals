@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next'
-import { propertyAPI, blogAPI, newsAPI, projectAPI, communityContentAPI, buildingContentAPI } from '@/lib/api'
+import { propertyAPI, blogAPI, newsAPI, projectAPI, communityContentAPI, buildingContentAPI, placeAPI } from '@/lib/api'
+import { EXPLORE_SECTIONS, EMIRATES, sectionHref, placeHref } from '@/lib/explore'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.distressdealsuae.com'
 
@@ -7,11 +8,12 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.distressdealsu
 // live data so new listings/posts/projects show up without a manual edit.
 const STATIC_ROUTES = [
   '', '/for-sale', '/for-rent', '/projects', '/insights', '/blog', '/news',
-  '/about', '/areas', '/communities', '/buildings', '/mortgage', '/developers',
+  '/about', '/areas', '/communities', '/buildings', '/explore',
+  '/explore/attractions', '/explore/food', '/explore/malls', '/explore/markets', '/explore/hotels', '/explore/activities', '/mortgage', '/developers',
   '/auth/login', '/auth/register', '/seller/register', '/contact',
   '/distress-sale-dubai', '/distressed-villas-dubai', '/dubai-property-auctions',
   '/sell-property-fast-dubai', '/free-property-valuation-dubai',
-  '/privacy', '/terms', '/cookies', '/sitemap',
+  '/privacy', '/terms', '/cookies', '/delete-account', '/sitemap',
 ]
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -111,6 +113,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'weekly',
       priority: 0.5,
     })
+  }
+
+  // UAE Explore: every place, plus each section's per-emirate page.
+  const places = await allPages(page => placeAPI.getAll({ limit: 60, page, sort: 'name' }), 60)
+  for (const p of places as { category: string; slug: string; emirate: string }[]) {
+    entries.push({ url: `${SITE_URL}${placeHref(p)}`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.6 })
+  }
+  for (const s of EXPLORE_SECTIONS) for (const e of EMIRATES) {
+    if (!places.some((p: any) => p.category === s.key && p.emirate === e)) continue
+    entries.push({ url: `${SITE_URL}${sectionHref(s, e)}`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.6 })
   }
 
   return entries

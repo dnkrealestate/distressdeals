@@ -24,6 +24,9 @@ export default function LoginPage() {
   const { register, handleSubmit, formState: { errors } } = useForm()
 
   const goToRoleHome = () => {
+    // Sent here from a page (e.g. "Sign in to review") — go back to it. Same-site paths only.
+    const next = new URLSearchParams(window.location.search).get('next') || ''
+    if (/^\/(?![/\\])/.test(next)) return router.push(next)
     const role = useAuthStore.getState().user?.role
     router.push(
       role === 'editor' ? '/admin/settings'

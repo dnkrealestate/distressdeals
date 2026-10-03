@@ -126,6 +126,8 @@ export const propertyAPI = {
 
 // ── Users / Profile ─────────────────────────────────
 export const userAPI = {
+  // Deletes the signed-in buyer's or seller's own account for good.
+  deleteAccount: (data: { confirm: string; password?: string }) => api.delete('/users/me', { data }),
   updateProfile: (data: any) => api.patch('/users/me', data),
   // Compare list is kept on the server so the buyer's agent can see it.
   getCompare:  () => api.get('/users/me/compare'),
@@ -346,6 +348,34 @@ export const buildingContentAPI = {
   create:    (data: any) => api.post('/building-content', data),
   update:    (id: string, data: any) => api.put(`/building-content/${id}`, data),
   delete:    (id: string) => api.delete(`/building-content/${id}`),
+  seoSuggest: (data: any) => api.post('/building-content/seo-suggest', data),
+}
+
+// ── UAE Explore (attractions, food, malls, markets, hotels, activities) ──
+export const placeAPI = {
+  getAll:      (params?: any) => api.get('/places', { params }),
+  getSummary:  (per = 6) => api.get('/places/summary', { params: { per } }),
+  // Places and new projects around a point — building / community pages.
+  getNear:     (lat: number, lng: number, limit = 8) => api.get('/places/near', { params: { lat, lng, limit } }),
+  getBySlug:   (slug: string) => api.get(`/places/${slug}`),
+  trackView:   (id: string) => api.post(`/places/${id}/view`),
+  getAllAdmin: (params?: any) => api.get('/places/admin/all', { params }),
+  getAdmin:    (id: string) => api.get(`/places/admin/${id}`),
+  create:      (data: any) => api.post('/places', data),
+  update:      (id: string, data: any) => api.put(`/places/${id}`, data),
+  delete:      (id: string) => api.delete(`/places/${id}`),
+  // SEO title / description / keywords written from the details typed so far.
+  seoSuggest:  (data: any) => api.post('/places/seo-suggest', data),
+}
+
+// ── Reviews & ratings on guide pages ──────────────────
+export const reviewAPI = {
+  get:        (type: string, slug: string, page = 1) => api.get('/reviews', { params: { type, slug, page } }),
+  submit:     (data: { type: string; slug: string; rating: number; title?: string; comment: string }) => api.post('/reviews', data),
+  deleteMine: (type: string, slug: string) => api.delete('/reviews/mine', { params: { type, slug } }),
+  getAllAdmin: (params?: any) => api.get('/reviews/admin/all', { params }),
+  moderate:   (id: string, data: { status?: string; reply?: string }) => api.patch(`/reviews/${id}`, data),
+  delete:     (id: string) => api.delete(`/reviews/${id}`),
 }
 
 // ── Saved Searches ────────────────────────────────────

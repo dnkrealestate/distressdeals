@@ -13,6 +13,12 @@ import { buildingContentAPI, propertyAPI, uploadAPI } from '@/lib/api'
 import { HOME_ICON_MAP, HOME_ICON_OPTIONS } from '@/lib/homeIcons'
 import type { BuildingContent } from '@/types'
 import toast from 'react-hot-toast'
+import dynamic from 'next/dynamic'
+import EntitySeoSection, { seoFromRecord, seoToPayload, seoFromSuggestion } from '@/components/admin/seo/EntitySeoSection'
+import type { SeoFields } from '@/components/admin/seo/SeoAppearancePanel'
+
+const LocationPickerMap = dynamic(() => import('@/components/shared/LocationPickerMap'), { ssr: false, loading: () => <div className="w-full h-full shimmer" /> })
+const EMIRATES = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Umm Al Quwain', 'Fujairah']
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -40,12 +46,14 @@ function BuildingContentForm({ building, onClose, onSaved }: { building: Buildin
   const [uploadingHero, setUploadingHero] = useState(false)
   const [amenities, setAmenities] = useState<{ icon: string; label: string }[]>(building?.amenities || [])
   const [submitting, setSubmitting] = useState(false)
+  const [seo, setSeo] = useState<SeoFields>(seoFromRecord(building))
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | undefined>(building?.coordinates?.lat != null ? building.coordinates : undefined)
 
   const defaults = {
     name: building?.name || '', area: building?.area || '', community: building?.community || '',
     developer: building?.developer || '', overview: building?.overview || '',
     yearBuilt: building?.yearBuilt || '', totalFloors: building?.totalFloors || '',
-    isFeatured: building?.isFeatured || false,
+    isFeatured: building?.isFeatured || false, emirate: building?.emirate || 'Dubai',
   }
   const { register, handleSubmit, watch, reset, formState: { errors } } = useForm({ defaultValues: defaults })
 
@@ -95,6 +103,8 @@ function BuildingContentForm({ building, onClose, onSaved }: { building: Buildin
       yearBuilt: data.yearBuilt || undefined, totalFloors: data.totalFloors || undefined,
       amenities: amenities.filter(a => a.label.trim()),
       isFeatured: !!data.isFeatured,
+      emirate: data.emirate || undefined, coordinates: coords || null,
+      ...seoToPayload(seo),
     }
     try {
       if (isEdit) await buildingContentAPI.update(building!._id, payload)
@@ -199,6 +209,36 @@ function BuildingContentForm({ building, onClose, onSaved }: { building: Buildin
               })}
             </div>
           </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <Field label="Emirate">
+              <select className="select-field w-full" {...register('emirate')}>
+                {EMIRATES.map(e => <option key={e}>{e}</option>)}
+              </select>
+            </Field>
+            <Field label="Latitude"><input className="input" value={coords?.lat ?? ''} onChange={e => setCoords(e.target.value ? { lat: Number(e.target.value), lng: coords?.lng ?? 0 } : undefined)} /></Field>
+            <Field label="Longitude"><input className="input" value={coords?.lng ?? ''} onChange={e => setCoords(e.target.value ? { lat: coords?.lat ?? 0, lng: Number(e.target.value) } : undefined)} /></Field>
+          </div>
+          <Field label="Exact location — click the map or drag the pin">
+            <div className="h-52 rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+              <LocationPickerMap lat={coords?.lat} lng={coords?.lng} onPick={(lat, lng) => setCoords({ lat: +lat.toFixed(6), lng: +lng.toFixed(6) })} />
+            </div>
+          </Field>
+
+          <EntitySeoSection
+            seo={seo} onSeoChange={setSeo}
+            text={watch('overview') || ''}
+            fallbackTitle={`${watch('name') || 'Building'} — Building Guide`}
+            urlPath={`buildings/${building?.slug || 'new-building'}`}
+            note="Written automatically from the building’s name, location, floors and year."
+            keywordHint="e.g. Princess Tower"
+            generate={async () => {
+              const v: any = watch()
+              if (!String(v.name || '').trim()) throw { error: 'Enter the building name first' }
+              const r = await buildingContentAPI.seoSuggest({ name: v.name, area: v.area, emirate: v.emirate, developer: v.developer, overview: v.overview, totalFloors: v.totalFloors, yearBuilt: v.yearBuilt })
+              return seoFromSuggestion(r.data.data)
+            }}
+          />
 
           <label className="flex items-center gap-2 text-xs cursor-pointer" style={{ color: 'var(--text-mid)' }}>
             <input type="checkbox" {...register('isFeatured')} />

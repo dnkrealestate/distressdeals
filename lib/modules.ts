@@ -23,6 +23,8 @@ export const CONTENT_MODULES: ModuleDef[] = [
   { key: 'manage_areas',       label: 'Areas',         hint: 'Area guide pages' },
   { key: 'manage_communities', label: 'Communities',   hint: 'Community guide pages' },
   { key: 'manage_buildings',   label: 'Buildings',     hint: 'Building guide pages' },
+  { key: 'manage_explore',     label: 'UAE Explore',   hint: 'Attractions, food, malls, markets, hotels and activities' },
+  { key: 'manage_reviews',     label: 'Reviews',       hint: 'Approve, reply to and remove visitor reviews' },
   { key: 'manage_ads',         label: 'Ads',           hint: 'Banner ads on listing and property pages, with click stats' },
 ]
 
@@ -53,6 +55,8 @@ export const PATH_MODULE: [string, AgentPermission][] = [
   ['/admin/communities', 'manage_communities'],
   ['/admin/buildings', 'manage_buildings'],
   ['/admin/ads', 'manage_ads'],
+  ['/admin/explore', 'manage_explore'],
+  ['/admin/reviews', 'manage_reviews'],
   ['/admin/properties', 'approve_listings'],
   ['/admin/leads', 'manage_leads'],
   ['/admin/mortgage', 'manage_leads'],

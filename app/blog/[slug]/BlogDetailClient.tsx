@@ -8,6 +8,7 @@ import {
   ArrowLeft, Calendar, Clock, Share2, Facebook, Twitter, Linkedin, Link2, Tag, List,
 } from 'lucide-react'
 import Navbar from '@/components/layouts/Navbar'
+import ReviewsSection from '@/components/shared/ReviewsSection'
 import Footer from '@/components/layouts/Footer'
 import { blogAPI } from '@/lib/api'
 import { formatDate, cn } from '@/lib/utils'
@@ -194,6 +195,8 @@ export default function BlogDetailClient({ post }: { post: BlogPost }) {
           </div>
         </section>
       )}
+
+      <ReviewsSection type="blog" slug={post.slug} name={post.title} />
 
       <Footer />
     </div>

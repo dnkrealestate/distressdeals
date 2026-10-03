@@ -8,7 +8,7 @@ import SeoAppearancePanel, { type SeoFields } from './SeoAppearancePanel'
 // The server writes these automatically from live data (project counts, prices, areas) whenever they're empty, so
 // this is where an admin reviews them, tweaks them, or regenerates them.
 export default function EntitySeoSection({
-  seo, onSeoChange, text, fallbackTitle, urlPath, generate,
+  seo, onSeoChange, text, fallbackTitle, urlPath, generate, note, keywordHint,
 }: {
   seo: SeoFields
   onSeoChange: (s: SeoFields) => void
@@ -16,6 +16,8 @@ export default function EntitySeoSection({
   fallbackTitle: string
   urlPath: string
   generate: () => Promise<SeoFields>      // fresh suggestion from the server
+  note?: string                           // where the automatic text comes from (defaults to live listings)
+  keywordHint?: string
 }) {
   const [busy, setBusy] = useState(false)
   const regenerate = async () => {
@@ -33,7 +35,7 @@ export default function EntitySeoSection({
         style={{ background: 'rgba(22,163,74,0.07)', border: '1px solid rgba(22,163,74,0.22)' }}>
         <p className="text-xs flex items-center gap-1.5" style={{ color: 'var(--text-mid)' }}>
           <Sparkles size={13} style={{ color: '#16A34A' }} />
-          Written automatically from live listings. Leave a field empty and it&apos;s re-written when you save.
+          {note || 'Written automatically from live listings.'} Leave a field empty and it&apos;s re-written when you save.
         </p>
         <button type="button" onClick={regenerate} disabled={busy}
           className="text-xs font-semibold inline-flex items-center gap-1 disabled:opacity-50" style={{ color: '#15803D' }}>
@@ -44,7 +46,7 @@ export default function EntitySeoSection({
         <label className="text-xs font-medium mb-1.5 block" style={{ color: 'var(--text-mid)' }}>
           Focus keyword <span style={{ color: 'var(--text-muted)' }}>(the main search this page should rank for)</span>
         </label>
-        <input className="input" maxLength={80} value={seo.focusKeyword} placeholder="e.g. Emaar projects"
+        <input className="input" maxLength={80} value={seo.focusKeyword} placeholder={keywordHint || 'e.g. Emaar projects'}
           onChange={e => onSeoChange({ ...seo, focusKeyword: e.target.value })} />
       </div>
       <SeoAppearancePanel profile html={text} seo={seo} onSeoChange={onSeoChange} fallbackTitle={fallbackTitle} urlPath={urlPath} />
