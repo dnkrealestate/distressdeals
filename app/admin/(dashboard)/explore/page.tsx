@@ -82,7 +82,7 @@ function PlaceForm({ id, category, onClose, onSaved }: { id: string | null; cate
       coordinates: { lat: f.lat, lng: f.lng },
       heroImage: f.heroImage, heroImageCredit: f.heroImage && (f.creditName || f.creditUrl) ? { name: f.creditName, url: f.creditUrl, license: f.creditLicense } : null,
       gallery: f.gallery, summary: f.summary, overview: f.overview, highlights: f.highlights, tips: f.tips, faqs: f.faqs,
-      openingHours: f.openingHours, phone: f.phone, website: f.website, priceLevel: f.priceLevel, bestTime: f.bestTime, duration: f.duration,
+      openingHours: f.openingHours, website: f.website, priceLevel: f.priceLevel, bestTime: f.bestTime, duration: f.duration,
       stars: f.stars, cuisine: f.cuisine, status: f.status, isFeatured: f.isFeatured,
       ...seoToPayload(seo), ...(id && f.slug ? { slug: f.slug } : {}),
     }
@@ -216,7 +216,6 @@ function PlaceForm({ id, category, onClose, onSaved }: { id: string | null; cate
                 </div>
                 <Field label="Best time to go"><input className="input" value={f.bestTime} onChange={e => set({ bestTime: e.target.value })} placeholder="e.g. Late afternoon, November to March" /></Field>
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="Phone"><input className="input" value={f.phone} onChange={e => set({ phone: e.target.value })} /></Field>
                   <Field label="Website"><input className="input" value={f.website} onChange={e => set({ website: e.target.value })} placeholder="https://" /></Field>
                 </div>
                 <div className="grid grid-cols-2 gap-3">

@@ -74,7 +74,6 @@ export function placeJsonLd(p: PlaceDetail, description: string, reviews: Review
     address: { '@type': 'PostalAddress', ...(p.address ? { streetAddress: p.address } : {}), ...(p.area ? { addressLocality: p.area } : {}), addressRegion: p.emirate, addressCountry: 'AE' },
     containedInPlace: { '@type': 'AdministrativeArea', name: `Emirate of ${p.emirate}`, containedInPlace: { '@type': 'Country', name: 'United Arab Emirates' } },
     ...(c ? { geo: { '@type': 'GeoCoordinates', latitude: c.lat, longitude: c.lng }, hasMap: `https://www.google.com/maps/search/?api=1&query=${c.lat},${c.lng}` } : {}),
-    ...(p.phone ? { telephone: p.phone } : {}),
     ...(p.website ? { sameAs: [p.website] } : {}),
     ...(p.openingHours ? { openingHours: p.openingHours } : {}),
     ...(p.priceLevel && /^free/i.test(p.priceLevel) ? { isAccessibleForFree: true } : {}),

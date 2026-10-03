@@ -2,7 +2,7 @@ import { cache } from 'react'
 import type { Metadata } from 'next'
 import { notFound, permanentRedirect } from 'next/navigation'
 import Link from 'next/link'
-import { MapPin, Clock, Phone, Globe, Wallet, CalendarClock, Hourglass, Star, Navigation, Sparkles, Lightbulb, Building2, UtensilsCrossed } from 'lucide-react'
+import { MapPin, Clock, Globe, Wallet, CalendarClock, Hourglass, Star, Navigation, Sparkles, Lightbulb, Building2, UtensilsCrossed } from 'lucide-react'
 
 import Navbar from '@/components/layouts/Navbar'
 import Footer from '@/components/layouts/Footer'
@@ -78,7 +78,6 @@ export default async function PlacePage({ params, searchParams }: Props) {
     place.stars && { icon: Star, label: 'Rating', value: `${place.stars}-star` },
     place.duration && { icon: Hourglass, label: 'Time needed', value: place.duration },
     place.bestTime && { icon: CalendarClock, label: 'Best time to go', value: place.bestTime },
-    place.phone && { icon: Phone, label: 'Phone', value: place.phone, href: `tel:${place.phone.replace(/[^+\d]/g, '')}` },
     place.website && { icon: Globe, label: 'Website', value: place.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, ''), href: place.website, external: true },
   ].filter(Boolean) as { icon: any; label: string; value: string; href?: string; external?: boolean }[]
 
