@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { homepageAPI, quickLinksAPI } from '@/lib/api'
+import { homepageAPI, quickLinksAPI, propertyAPI, communityContentAPI, developerAPI } from '@/lib/api'
 import { resolveSeo } from '@/lib/seo'
 import HomeClient from '@/components/HomeClient'
 import type { HomepageContent } from '@/types'
@@ -12,6 +12,13 @@ export async function generateMetadata(): Promise<Metadata> {
     title: 'Distress Sale Dubai | Distressed Property Deals UAE',
     description: "Dubai's centralized real estate platform. Every listing verified, one dedicated agent from first message to keys-in-hand — buy, sell, or rent with confidence.",
     path: '/',
+    keywords: [
+      'distress sale Dubai', 'distressed property Dubai', 'distress deals UAE', 'below market value property Dubai', 'property for sale in Dubai',
+      'apartments for sale in Dubai', 'villas for sale in Dubai', 'townhouses for sale in Dubai', 'property for rent in Dubai', 'apartments for rent in Dubai',
+      'off-plan projects Dubai', 'new projects in Dubai', 'Dubai real estate', 'UAE real estate', 'buy property in Dubai', 'sell property in Dubai',
+      'property for sale in Abu Dhabi', 'property for sale in Sharjah', 'Dubai property developers', 'Dubai area guides', 'Dubai communities',
+      'real estate investment Dubai', 'direct from owner property Dubai', 'verified property listings UAE',
+    ],
   })
 }
 
@@ -52,6 +59,17 @@ async function getHomepageContent(): Promise<HomepageContent> {
 export default async function HomePage() {
   // "Popular Real Estate Searches" — live search links for each tab, fetched on the server so they're crawlable.
   const links = (kind: 'sale' | 'rent' | 'projects') => quickLinksAPI.get(kind).then(r => (r.data.success ? r.data.data : null)).catch(() => null)
-  const [content, sale, rent, projects] = await Promise.all([getHomepageContent(), links('sale'), links('rent'), links('projects')])
-  return <HomeClient content={content} popularSearches={{ sale, rent, projects }} />
+  // Areas, communities and developers for the keyword sections — fetched here so their links are in the page's HTML.
+  const list = (p: Promise<any>) => p.then(r => (r.data.success && Array.isArray(r.data.data) ? r.data.data : [])).catch(() => [])
+  const [content, sale, rent, projects, areas, communities, developers] = await Promise.all([
+    getHomepageContent(), links('sale'), links('rent'), links('projects'),
+    list(propertyAPI.getAllAreas()), list(communityContentAPI.getAll()), list(developerAPI.getAll()),
+  ])
+  // Areas and communities with the most listings (properties + new projects) first; ties keep their A–Z order.
+  const listed = (x: any) => (x.count || 0) + (x.projectCount || 0)
+  areas.sort((a: any, b: any) => listed(b) - listed(a) || String(a.area).localeCompare(String(b.area)))
+  communities.sort((a: any, b: any) => listed(b) - listed(a) || Number(!!b.isFeatured) - Number(!!a.isFeatured) || String(a.name).localeCompare(String(b.name)))
+  // Featured developers first (the "Featured" switch in Admin → Developers), then the ones with the most projects.
+  developers.sort((a: any, b: any) => Number(!!b.isFeatured) - Number(!!a.isFeatured) || (b.projectCount || 0) - (a.projectCount || 0))
+  return <HomeClient content={content} popularSearches={{ sale, rent, projects }} guides={{ areas, communities, developers }} />
 }

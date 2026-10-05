@@ -18,6 +18,8 @@ import { formatPrice, cn, timeAgo, isHandedOver } from '@/lib/utils'
 import { AMENITY_META } from '@/lib/amenities'
 import { haversineKm, formatDistanceKm } from '@/lib/distance'
 import DistanceCalculator from '@/components/shared/DistanceCalculator'
+import MoreOptions from '@/components/shared/MoreOptions'
+import RealEstateLinks from '@/components/shared/RealEstateLinks'
 import type { Project } from '@/types'
 import RecentlyViewedCard from '@/components/buyer/RecentlyViewedCard'
 import AdSlot from '@/components/shared/AdSlot'
@@ -235,7 +237,6 @@ function Fact({ icon: Icon, label, value }: { icon: any; label: string; value: s
 }
 
 export default function ProjectDetailClient({ project }: { project: Project }) {
-  const [related, setRelated] = useState<Project[]>([])
   const [interestOpen, setInterestOpen] = useState(false)
 
   // "About This Project" starts collapsed with a Read More — only when the text is actually taller than that.
@@ -276,12 +277,6 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project._id])
 
-  useEffect(() => {
-    projectAPI.getAll({ area: project.area, limit: 4 })
-      .then(r => { if (r.data.success) setRelated((r.data.data.data || []).filter((p: Project) => p._id !== project._id).slice(0, 3)) })
-      .catch(() => {})
-  }, [project.area, project._id])
-
   const handover = [project.handoverQuarter, project.handoverYear].filter(Boolean).join(' ') || 'TBA'
 
   const pageUrl = typeof window !== 'undefined' ? window.location.href : `https://www.distressdealsuae.com/projects/${project.slug}`
@@ -312,7 +307,7 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
         </div>
       </div>
 
-      <div className="wrap pb-20">
+      <div className="wrap pb-10">
         {/* Gallery banner — one large photo with the developer's logo, two stacked beside it ("📷 N+" on the last);
             any photo opens the full-screen viewer. Phones: the large photo with a photo count. */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
@@ -605,26 +600,12 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
         </Link>
       </div>
 
-      {related.length > 0 && (
-        <section className="section pt-0">
-          <div className="wrap">
-            <h2 className="heading-md mb-8">More in <span className="grad-text">{project.area}</span></h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {related.map((r, i) => (
-                <motion.div key={r._id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}>
-                  <Link href={`/projects/${r.slug}`}>
-                    <div className="card-hover h-full flex flex-col p-5">
-                      <p className="text-xs font-medium mb-1" style={{ color: 'var(--teal)' }}>{r.developer}</p>
-                      <h3 className="font-semibold text-sm mb-2 leading-snug line-clamp-2" style={{ color: 'var(--text)' }}>{r.title}</h3>
-                      <p className="text-xs mt-auto" style={{ color: 'var(--text-muted)' }}>From {formatPrice(r.priceFrom)}</p>
-                    </div>
-                  </Link>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
+      <section className="section pt-0">
+        <div className="wrap">
+          <MoreOptions kind="project" slug={project.slug} area={project.area} developer={project.developer} />
+        </div>
+      </section>
+      <RealEstateLinks area={project.area} emirate={project.emirate} />
 
       {/* ── Sticky bottom contact bar ──────────────────── */}
       <AnimatePresence>

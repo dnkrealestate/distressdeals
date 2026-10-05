@@ -21,7 +21,7 @@ const STATUS_TABS = ['published', 'draft', 'archived'] as const
 // Seed suggestions so a fresh install still offers sensible options before any
 // posts exist — matches the category pills shown on the public /blog and /news pages.
 const BASE_CATEGORIES: Record<ContentType, string[]> = {
-  blog: ['Market Insights', 'Buying Guides', 'Investment', 'Area Guides', 'News'],
+  blog: ['Buying Guides', 'Selling Guides', 'Investment', 'Mortgage & Finance', 'Legal & Fees', 'Renting', 'Market Insights', 'Area Guides', 'News'],
   news: ['Regulatory', 'Market Update', 'Announcement', 'Industry'],
 }
 const STAGES: { key: EditorialStage; label: string }[] = [

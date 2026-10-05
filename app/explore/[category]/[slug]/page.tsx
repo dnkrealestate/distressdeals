@@ -9,6 +9,7 @@ import Footer from '@/components/layouts/Footer'
 import PlaceCard from '@/components/explore/PlaceCard'
 import PlaceMap from '@/components/explore/PlaceMap'
 import ReviewsSection from '@/components/shared/ReviewsSection'
+import RealEstateLinks from '@/components/shared/RealEstateLinks'
 import FaqSection, { type Faq } from '@/components/shared/FaqSection'
 import { placeAPI } from '@/lib/api'
 import { shareImages } from '@/lib/seo'
@@ -266,6 +267,8 @@ export default async function PlacePage({ params, searchParams }: Props) {
           </div>
         </section>
       )}
+
+      <RealEstateLinks emirate={place.emirate} near={place.name} />
 
       <ReviewsSection type="place" slug={place.slug} name={place.name} />
 

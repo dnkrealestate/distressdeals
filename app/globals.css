@@ -399,6 +399,8 @@ body {
   .rich-content li { margin-bottom: 0.35em; }
   .rich-content b, .rich-content strong { font-weight: 700; }
   .rich-content h2 { font-size: 1.5em; font-weight: 700; margin: 1.2em 0 0.6em; color: var(--text); scroll-margin-top: 96px; }
+  /* Legal pages (privacy / terms / cookies): numbered sections with more air between them. */
+  .legal-content h2 { font-size: 1.3rem; margin: 2.2em 0 0.8em; }
   .rich-content h3 { font-size: 1.25em; font-weight: 700; margin: 1.1em 0 0.5em; color: var(--text); scroll-margin-top: 96px; }
   .rich-content h4 { font-size: 1.1em; font-weight: 600; margin: 1em 0 0.4em; color: var(--text); scroll-margin-top: 96px; }
   .rich-content blockquote {

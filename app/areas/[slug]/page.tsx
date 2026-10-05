@@ -15,6 +15,8 @@ import { formatPrice } from '@/lib/utils'
 import { HOME_ICON_MAP } from '@/lib/homeIcons'
 import type { AreaStats, AreaContentWithStats, Property, Project } from '@/types'
 import { shareImages } from '@/lib/seo'
+import FaqSection, { type Faq } from '@/components/shared/FaqSection'
+import RealEstateLinks from '@/components/shared/RealEstateLinks'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -74,14 +76,22 @@ export async function generateMetadata({ params, searchParams }: { params: { slu
   if (!area) return { title: 'Area Not Found' }
 
   const content = await getAreaContent(params.slug)
-  const title = `Properties for Sale & Rent in ${area.area}, Dubai`
-  const description = content?.overview
+  const emirate = content?.emirate || area.emirate || 'Dubai'
+  const title = content?.metaTitle || `Properties for Sale & Rent in ${area.area}, ${emirate}`
+  const description = content?.metaDescription || (content?.overview
     ? content.overview.slice(0, 155)
-    : `${area.count} verified listing${area.count === 1 ? '' : 's'} in ${area.area} — average price ${formatPrice(Math.round(area.avgPrice))}. Every listing verified, managed end-to-end by Distress Deals UAE.`
+    : area.count > 0
+      ? `${area.count} verified listing${area.count === 1 ? '' : 's'} in ${area.area} — average price ${formatPrice(Math.round(area.avgPrice))}. Every listing verified, managed end-to-end by Distress Deals UAE.`
+      : `Apartments, villas and off-plan projects for sale and rent in ${area.area}, ${emirate} — area guide, property types and what it is like to live there.`)
+  const keywords = content?.seoKeywords?.length
+    ? [content.focusKeyword || `${area.area} properties`, ...content.seoKeywords]
+    : [`properties for sale in ${area.area}`, `apartments for sale in ${area.area}`, `apartments for rent in ${area.area}`, `${area.area} property prices`, `off-plan projects in ${area.area}`, `${area.area} ${emirate} real estate`]
 
   return {
     title,
     description,
+    keywords,
+    robots: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 },
     alternates: { canonical: `/areas/${area.slug}${num(searchParams?.page) > 1 ? `?page=${num(searchParams?.page)}` : ''}` },
     openGraph: { title, description, type: 'website', url: `/areas/${area.slug}`, images: shareImages(content?.heroImage) },
     twitter: { card: 'summary_large_image', title, description },
@@ -99,6 +109,20 @@ export default async function AreaDetailPage({ params, searchParams }: { params:
     getAreaProjects(area.area, pPage),
   ])
   const listings = listingPage.data
+  const emirate = content?.emirate || area.emirate || 'Dubai'
+  const projectTotal = projectPage.total || area.projectCount || 0
+  const cheapestProject = projectPage.data.map(p => p.priceFrom).filter(Boolean).sort((a, b) => a - b)[0] || area.projectsFrom || 0
+  const devs = Array.from(new Set(projectPage.data.map(p => p.developer).filter(Boolean))).slice(0, 4)
+  const listOf = (a: string[]) => (a.length <= 1 ? a.join('') : `${a.slice(0, -1).join(', ')} and ${a[a.length - 1]}`)
+  // Written questions first, then answers worked out from the live listings and projects — never invented.
+  const faqs: Faq[] = [
+    ...(content?.faqs || []),
+    { q: `Where is ${area.area}?`, a: `${area.area} is in the emirate of ${emirate}, United Arab Emirates.` },
+    area.count > 0 ? { q: `How many properties are for sale and rent in ${area.area}?`, a: `Distress Deals UAE currently lists ${area.count} verified propert${area.count === 1 ? 'y' : 'ies'} in ${area.area}${area.saleCount || area.rentCount ? ` — ${area.saleCount} for sale and ${area.rentCount} for rent` : ''}.` } : { q: '', a: '' },
+    area.avgPrice > 0 ? { q: `What is the average property price in ${area.area}?`, a: `Across our current listings the average asking price in ${area.area} is about ${formatPrice(Math.round(area.avgPrice))}${area.avgPricePerSqft ? `, or roughly AED ${Math.round(area.avgPricePerSqft).toLocaleString()} per square foot` : ''}. Prices depend on the property type, size, view and condition.` } : { q: '', a: '' },
+    projectTotal > 0 ? { q: `Are there off-plan projects in ${area.area}?`, a: `Yes — ${projectTotal} new project${projectTotal === 1 ? '' : 's'}${devs.length ? ` by ${listOf(devs)}` : ''}${cheapestProject ? `, with prices starting from ${formatPrice(cheapestProject)}` : ''}.` } : { q: '', a: '' },
+    { q: `How do I buy a property in ${area.area}?`, a: `Choose a listing or project in ${area.area} and tap “I’m interested”. A Distress Deals UAE advisor contacts you, arranges a viewing and handles the paperwork with the seller or developer through to the title deed.` },
+  ].filter((f, i, all) => f.q && all.findIndex(x => x.q.toLowerCase() === f.q.toLowerCase()) === i)
 
   const breadcrumbJsonLd = {
     '@context': 'https://schema.org',
@@ -114,13 +138,20 @@ export default async function AreaDetailPage({ params, searchParams }: { params:
     '@type': 'Place',
     name: area.area,
     ...(content?.heroImage ? { image: content.heroImage } : {}),
-    address: { '@type': 'PostalAddress', addressLocality: area.area, addressRegion: 'Dubai', addressCountry: 'AE' },
+    ...(content?.overview ? { description: content.overview.slice(0, 500) } : {}),
+    address: { '@type': 'PostalAddress', addressLocality: area.area, addressRegion: emirate, addressCountry: 'AE' },
+    containedInPlace: { '@type': 'AdministrativeArea', name: `Emirate of ${emirate}` },
   }
 
   const stats = [
     { label: 'Verified Listings', value: area.count.toLocaleString(), icon: HomeIcon },
-    { label: 'Average Price', value: formatPrice(Math.round(area.avgPrice)), icon: TrendingUp },
-    { label: 'Avg. Price / sqft', value: area.avgPricePerSqft ? `AED ${Math.round(area.avgPricePerSqft).toLocaleString()}` : '—', icon: Tag },
+    // With no resale listings yet, the useful numbers are the new projects and where their prices start.
+    area.count > 0
+      ? { label: 'Average Price', value: formatPrice(Math.round(area.avgPrice)), icon: TrendingUp }
+      : { label: 'New Projects', value: projectTotal.toLocaleString(), icon: TrendingUp },
+    area.count > 0
+      ? { label: 'Avg. Price / sqft', value: area.avgPricePerSqft ? `AED ${Math.round(area.avgPricePerSqft).toLocaleString()}` : '—', icon: Tag }
+      : { label: 'Projects From', value: cheapestProject ? formatPrice(cheapestProject) : '—', icon: Tag },
   ]
 
   return (
@@ -135,8 +166,14 @@ export default async function AreaDetailPage({ params, searchParams }: { params:
       <section className="relative pt-20 pb-12 overflow-hidden">
         {content?.heroImage ? (
           <>
-            <img src={content.heroImage} alt={area.area} className="absolute inset-0 w-full h-full object-cover" />
+            <img src={content.heroImage} alt={`${area.area}, ${emirate} — area guide and properties`} title={area.area} fetchPriority="high" className="absolute inset-0 w-full h-full object-cover" />
             <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(8,8,8,0.55) 0%, var(--bg) 92%)' }} />
+            {content.heroImageCredit?.name && (
+              <a href={content.heroImageCredit.url} target="_blank" rel="noopener noreferrer nofollow"
+                className="absolute top-20 right-4 z-10 text-[10px] px-2 py-0.5 rounded hover:underline" style={{ background: 'rgba(0,0,0,0.35)', color: 'rgba(255,255,255,0.8)' }}>
+                Photo: {content.heroImageCredit.name}{content.heroImageCredit.license ? ` · ${content.heroImageCredit.license}` : ''} · Wikimedia Commons
+              </a>
+            )}
           </>
         ) : (
           <div className="absolute inset-0" style={{ background: 'linear-gradient(145deg, var(--bg) 0%, var(--bg-alt) 60%, #EFF6FF 100%)' }} />
@@ -144,16 +181,22 @@ export default async function AreaDetailPage({ params, searchParams }: { params:
 
         <div className="wrap relative z-10">
           <p className="text-xs mb-4" style={{ color: content?.heroImage ? 'rgba(255,255,255,0.75)' : 'var(--text-muted)' }}>
-            <Link href="/areas" className="hover:underline">Area Guides</Link> / {area.area}
+            <Link href="/areas" className="hover:underline">Area Guides</Link> / {emirate} / {area.area}
           </p>
           <h1 className="heading-xl mb-3 flex items-center gap-3" style={content?.heroImage ? { color: '#fff' } : undefined}>
             <MapPin size={28} style={{ color: 'var(--teal)' }} />
             {area.area}
           </h1>
           <p className="text-base max-w-2xl leading-relaxed mb-10" style={{ color: content?.heroImage ? 'rgba(255,255,255,0.88)' : 'var(--text-muted)' }}>
-            {area.count} verified propert{area.count === 1 ? 'y' : 'ies'} currently available in {area.area}
-            {area.saleCount > 0 && area.rentCount > 0 && ` (${area.saleCount} for sale, ${area.rentCount} for rent)`}.
-            Every listing here passed our agent-completion and admin-approval gate — no duplicates, no stale posts.
+            {area.count > 0 ? (
+              <>
+                {area.count} verified propert{area.count === 1 ? 'y' : 'ies'} currently available in {area.area}
+                {area.saleCount > 0 && area.rentCount > 0 && ` (${area.saleCount} for sale, ${area.rentCount} for rent)`}.
+                Every listing here passed our agent-completion and admin-approval gate — no duplicates, no stale posts.
+              </>
+            ) : (
+              <>Area guide to {area.area}, {emirate}: property types, lifestyle and what is for sale{projectTotal > 0 ? ` — including ${projectTotal} new off-plan project${projectTotal === 1 ? '' : 's'}` : ''}.</>
+            )}
           </p>
 
           <div className="grid grid-cols-3 gap-4 max-w-2xl">
@@ -178,7 +221,14 @@ export default async function AreaDetailPage({ params, searchParams }: { params:
                 <h2 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--text)' }}>
                   <Sparkles size={16} style={{ color: 'var(--teal)' }} /> About {area.area}
                 </h2>
-                <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: 'var(--text-mid)' }}>{content.overview}</p>
+                <p className="text-sm leading-7 whitespace-pre-line" style={{ color: 'var(--text-mid)' }}>{content.overview}</p>
+
+                {content.sections?.map((s, i) => (
+                  <div key={i}>
+                    <h2 className="text-base font-bold mt-7 mb-2" style={{ color: 'var(--text)' }}>{s.heading}</h2>
+                    <p className="text-sm leading-7 whitespace-pre-line" style={{ color: 'var(--text-mid)' }}>{s.body}</p>
+                  </div>
+                ))}
 
                 {content.highlights?.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-5">
@@ -263,7 +313,11 @@ export default async function AreaDetailPage({ params, searchParams }: { params:
         </div>
       </section>
 
+      <RealEstateLinks area={area.area} emirate={emirate} />
+
       <ReviewsSection type="area" slug={area.slug} name={area.area} />
+
+      <FaqSection title={`${area.area} property: frequently asked questions`} faqs={faqs} />
 
       <Footer />
     </div>

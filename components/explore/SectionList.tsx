@@ -5,6 +5,7 @@ import Navbar from '@/components/layouts/Navbar'
 import Footer from '@/components/layouts/Footer'
 import PlaceCard from '@/components/explore/PlaceCard'
 import FaqSection, { type Faq } from '@/components/shared/FaqSection'
+import RealEstateLinks from '@/components/shared/RealEstateLinks'
 import { placeAPI } from '@/lib/api'
 import { shareImages } from '@/lib/seo'
 import { EXPLORE_SECTIONS, EMIRATES, sectionHref, placeHref, type ExploreSection } from '@/lib/explore'
@@ -34,7 +35,7 @@ export function sectionListMetadata(section: ExploreSection, emirate: string | u
   const canonical = `${sectionHref(section, emirate)}${page > 1 ? `?page=${page}` : ''}`
   return {
     title, description,
-    keywords: [emirate ? `${section.label.toLowerCase()} in ${emirate}` : `${section.label.toLowerCase()} in UAE`, `best ${section.label.toLowerCase()} ${emirate || 'UAE'}`, `${emirate || 'UAE'} ${section.singular} guide`, `${section.label.toLowerCase()} near me ${emirate || 'UAE'}`],
+    keywords: [emirate ? `${section.label.toLowerCase()} in ${emirate}` : `${section.label.toLowerCase()} in UAE`, `best ${section.label.toLowerCase()} ${emirate || 'UAE'}`, `${emirate || 'UAE'} ${section.singular} guide`, `${section.label.toLowerCase()} near me ${emirate || 'UAE'}`, `properties for sale in ${emirate || 'UAE'}`, `apartments for rent in ${emirate || 'UAE'}`, `off-plan projects in ${emirate || 'UAE'}`, `${emirate || 'UAE'} real estate`],
     alternates: { canonical },
     // Search results and re-sorted lists are the same content — keep only the plain list in the index.
     robots: sp.q || sp.sort ? { index: false, follow: true } : { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 },
@@ -200,6 +201,8 @@ export default async function SectionList({ section, emirate, searchParams = {} 
           </div>
         </div>
       </section>
+
+      <RealEstateLinks emirate={emirate} />
 
       <FaqSection title={`${heading}: questions and answers`} faqs={faqs} />
 

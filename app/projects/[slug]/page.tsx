@@ -5,6 +5,7 @@ import { projectAPI } from '@/lib/api'
 import ProjectDetailClient from './ProjectDetailClient'
 import type { Project } from '@/types'
 import { shareImages } from '@/lib/seo'
+import { projectKeywords } from '@/lib/listingSeo'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -30,6 +31,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   return {
     title,
     description,
+    keywords: projectKeywords(project),
     alternates: { canonical: `/projects/${project.slug}` },
     openGraph: { title, description, type: 'website', url: `/projects/${project.slug}`, images },
     twitter: { card: 'summary_large_image', title, description, images: images.map(i => i.url) },
@@ -46,6 +48,7 @@ export default async function ProjectDetailPage({ params }: { params: { slug: st
     '@context': 'https://schema.org',
     '@type': 'Residence',
     name: project.title,
+    keywords: projectKeywords(project).join(', '),
     description: project.description.replace(/<[^>]*>/g, '').slice(0, 300),
     image: project.coverImage ? [project.coverImage, ...project.images.map(i => i.url)] : project.images.map(i => i.url),
     address: { '@type': 'PostalAddress', addressLocality: project.area, addressRegion: project.emirate, addressCountry: 'AE' },

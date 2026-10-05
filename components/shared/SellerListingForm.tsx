@@ -7,8 +7,9 @@ import { useDropzone } from 'react-dropzone'
 import {
   Loader2, Send, Tag, KeyRound, Home, Building2, Trees, Layers, Castle,
   Store, Briefcase, Warehouse, MoreHorizontal, BedDouble, MapPin, Crosshair,
-  DollarSign, Sparkles, Camera, UploadCloud, X,
+   Sparkles, Camera, UploadCloud, X,
 } from 'lucide-react'
+import DirhamIcon from '@/components/shared/DirhamIcon'
 import { propertyAPI } from '@/lib/api'
 import RentalAvailabilityFields from '@/components/shared/RentalAvailabilityFields'
 import { toDateInput, rentalStatusOf } from '@/lib/rental'
@@ -520,7 +521,7 @@ export default function SellerListingForm({ property, onSuccess }: { property?: 
       {/* ── Step 3 — Details, Price & Amenities ─────────────────────── */}
       <div className={step !== 3 ? 'hidden' : 'space-y-5'}>
         <div className="card p-6">
-          <SectionTitle icon={DollarSign}>Property Details &amp; Price</SectionTitle>
+          <SectionTitle icon={DirhamIcon}>Property Details &amp; Price</SectionTitle>
           <p className="text-xs mb-5" style={{ color: 'var(--text-muted)' }}>
             Just the basics — our team will contact you to complete the rest before it goes live.
           </p>

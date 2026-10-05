@@ -2,7 +2,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useForm } from 'react-hook-form'
-import { Plus, X, Trash2, ShieldCheck, Users as UsersIcon, TrendingUp, Trophy, Clock, DollarSign, List } from 'lucide-react'
+import { Plus, X, Trash2, ShieldCheck, Users as UsersIcon, TrendingUp, Trophy, Clock,  List } from 'lucide-react'
+import DirhamIcon from '@/components/shared/DirhamIcon'
 import { agentAPI, leadAPI } from '@/lib/api'
 import { getSocket } from '@/lib/socket'
 import { cn, formatDate, formatPrice } from '@/lib/utils'
@@ -250,7 +251,7 @@ export default function AdminAgentsPage() {
                         {p.avgResponseMinutes === null ? '—' : p.avgResponseMinutes < 60 ? `${p.avgResponseMinutes}m` : `${(p.avgResponseMinutes / 60).toFixed(1)}h`}
                       </td>
                       <td className="text-sm font-medium flex items-center gap-1" style={{ color: 'var(--text)' }}>
-                        <DollarSign size={11} style={{ color: 'var(--text-muted)' }} /> {formatPrice(p.revenue)}
+                        <DirhamIcon size={11} style={{ color: 'var(--text-muted)' }} /> {formatPrice(p.revenue)}
                       </td>
                     </tr>
                   ))}

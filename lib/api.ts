@@ -115,6 +115,8 @@ export const propertyAPI = {
   getAreaBySlug: (slug: string) => api.get(`/properties/areas/${slug}`),
   suggest: (q: string) => api.get('/properties/suggest', { params: { q } }),
   getSimilar:   (id: string) => api.get(`/properties/${id}/similar`),
+  // Same developer, nearest projects & listings, and places around it — the "more options" under a listing.
+  getMore:      (slug: string) => api.get(`/properties/${slug}/more`),
   trackView:    (id: string) => api.post(`/properties/${id}/view`),
   trackShare:   (id: string) => api.post(`/properties/${id}/share`),
   getAnalytics: (id: string) => api.get(`/properties/${id}/analytics`),
@@ -268,6 +270,7 @@ export const projectAPI = {
   // The automatic feature tags for the project form's current values (+ every tag there is).
   tagPreview: (data: any) => api.post('/projects/tag-preview', data),
   getOne:  (slug: string) => api.get(`/projects/${slug}`),
+  getMore: (slug: string) => api.get(`/projects/${slug}/more`),
   // One view per visitor — counted by the backend, not by page fetches.
   trackView: (id: string) => api.post(`/projects/${id}/view`),
   create:  (data: any) => api.post('/projects', data),
@@ -306,6 +309,7 @@ export const developerAPI = {
 // ── Area Content (admin-managed area-insights copy) ──
 export const areaContentAPI = {
   getAll:    (params?: any) => api.get('/area-content', { params }),
+  seoSuggest: (data: any) => api.post('/area-content/seo-suggest', data),
   getBySlug: (slug: string) => api.get(`/area-content/${slug}`),
   create:    (data: any) => api.post('/area-content', data),
   update:    (id: string, data: any) => api.put(`/area-content/${id}`, data),
@@ -357,6 +361,8 @@ export const placeAPI = {
   getSummary:  (per = 6) => api.get('/places/summary', { params: { per } }),
   // Places and new projects around a point — building / community pages.
   getNear:     (lat: number, lng: number, limit = 8) => api.get('/places/near', { params: { lat, lng, limit } }),
+  // Nearest tourist places / cafés & restaurants / malls & markets to a point, in three lists — for the map view.
+  getAround:   (lat: number, lng: number) => api.get('/places/around', { params: { lat, lng } }),
   getBySlug:   (slug: string) => api.get(`/places/${slug}`),
   trackView:   (id: string) => api.post(`/places/${id}/view`),
   getAllAdmin: (params?: any) => api.get('/places/admin/all', { params }),

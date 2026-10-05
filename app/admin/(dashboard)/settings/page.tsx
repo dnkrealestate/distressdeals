@@ -54,6 +54,9 @@ const PAGE_CONTENT_CARDS: SettingsCard[] = [
   { href: '/admin/settings/content-pages/guide-renting', icon: Info, title: 'Renting Guide', description: 'The renting guide under the Rent page list', module: 'manage_pages' },
   { href: '/admin/settings/content-pages/guide-new-projects', icon: Info, title: 'New Projects Guide', description: 'The off-plan buying guide under the New Projects list', module: 'manage_pages' },
   { href: '/admin/settings/content-pages/free-property-valuation-dubai', icon: Sparkles, title: 'Free Property Valuation', description: 'Free valuation request landing page', module: 'manage_pages' },
+  { href: '/admin/settings/legal/privacy', icon: FileText, title: 'Privacy Policy', description: 'The full text of /privacy — also the policy linked from the mobile app', module: 'manage_pages' },
+  { href: '/admin/settings/legal/terms', icon: FileText, title: 'Terms of Service', description: 'The full text of /terms', module: 'manage_pages' },
+  { href: '/admin/settings/legal/cookies', icon: FileText, title: 'Cookie Policy', description: 'The full text of /cookies', module: 'manage_pages' },
 ]
 
 const SITE_STRUCTURE_CARDS: SettingsCard[] = [

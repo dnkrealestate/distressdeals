@@ -7,6 +7,20 @@ import { HOME_ICON_MAP, HOME_ICON_OPTIONS } from '@/lib/homeIcons'
 import type { ContentPageData, ContentSection, ContentCard, MiniStat } from '@/types'
 import toast from 'react-hot-toast'
 import { GUIDE_DEFAULTS } from '@/lib/guideContent'
+import { FALLBACK_CONTENT as ABOUT } from '@/app/about/fallbackContent'
+import { FALLBACK_CONTENT as DISTRESS_SALE } from '@/app/distress-sale-dubai/fallbackContent'
+import { FALLBACK_CONTENT as DISTRESSED_VILLAS } from '@/app/distressed-villas-dubai/fallbackContent'
+import { FALLBACK_CONTENT as AUCTIONS } from '@/app/dubai-property-auctions/fallbackContent'
+import { FALLBACK_CONTENT as SELL_FAST } from '@/app/sell-property-fast-dubai/fallbackContent'
+import { FALLBACK_CONTENT as VALUATION } from '@/app/free-property-valuation-dubai/fallbackContent'
+
+// What each page shows on the website before anyone has saved a version here — the editor opens with it, so the
+// form is never empty for a page that visibly has content.
+const BUILT_IN: Record<string, ContentPageData> = {
+  ...GUIDE_DEFAULTS,
+  'about': ABOUT, 'distress-sale-dubai': DISTRESS_SALE, 'distressed-villas-dubai': DISTRESSED_VILLAS,
+  'dubai-property-auctions': AUCTIONS, 'sell-property-fast-dubai': SELL_FAST, 'free-property-valuation-dubai': VALUATION,
+}
 
 const PAGE_LABELS: Record<string, { label: string; path: string }> = {
   'about':                         { label: 'About Page',              path: '/about' },
@@ -128,14 +142,15 @@ export default function ContentPageEditor({ params }: { params: { pageKey: strin
   const [content, setContent] = useState<ContentPageData | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [isSaved, setIsSaved] = useState(false)   // a version exists in the database (not just the built-in content)
 
   const load = () => {
     setLoading(true)
     contentPageAPI.get(pageKey)
       .then(r => {
-        if (r.data.success && r.data.data) setContent(r.data.data)
-        // Nothing saved yet — start from what the website shows by default (guides have built-in content).
-        else setContent(GUIDE_DEFAULTS[pageKey] ? structuredClone(GUIDE_DEFAULTS[pageKey]) : { pageKey, heroTitle: '', heroIntro: '', sections: [] })
+        if (r.data.success && r.data.data) { setContent(r.data.data); setIsSaved(true) }
+        // Nothing saved yet — start from what the website shows by default.
+        else { setContent(BUILT_IN[pageKey] ? structuredClone(BUILT_IN[pageKey]) : { pageKey, heroTitle: '', heroIntro: '', sections: [] }); setIsSaved(false) }
       })
       .catch(() => toast.error('Failed to load page content'))
       .finally(() => setLoading(false))
@@ -149,7 +164,7 @@ export default function ContentPageEditor({ params }: { params: { pageKey: strin
     try {
       const { _id, ...payload } = content
       const res = await contentPageAPI.update(pageKey, payload)
-      if (res.data.success) { setContent(res.data.data); toast.success('Page updated') }
+      if (res.data.success) { setContent(res.data.data); setIsSaved(true); toast.success('Page updated') }
     } catch (err: any) {
       toast.error(err?.error || 'Failed to save')
     } finally {
@@ -188,7 +203,10 @@ export default function ContentPageEditor({ params }: { params: { pageKey: strin
             <ChevronLeft size={12} /> Settings
           </Link>
           <h1 className="text-lg font-bold" style={{ color: 'var(--text)' }}>{meta?.label || pageKey}</h1>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Edit this page's body content without a deploy</p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+            {meta ? <>Shown on the website at <span style={{ color: 'var(--text)' }}>{meta.path}</span>. </> : null}
+            {isSaved ? 'The website shows the version saved here.' : 'Nothing saved yet — the website shows this built-in content. Edit and save to replace it.'}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           {meta && (

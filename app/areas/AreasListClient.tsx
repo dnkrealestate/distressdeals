@@ -26,7 +26,7 @@ function AreaCard({ area, delay }: { area: AreaCardData; delay: number }) {
               <MapPin size={32} style={{ color: 'var(--teal)', opacity: 0.35 }} />
             )}
             <span className="badge absolute top-3 left-3 text-[10px]" style={{ background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none' }}>
-              {area.count} listing{area.count === 1 ? '' : 's'}
+              {area.count > 0 ? `${area.count} listing${area.count === 1 ? '' : 's'}` : area.projectCount ? `${area.projectCount} new project${area.projectCount === 1 ? '' : 's'}` : 'Area guide'}
             </span>
             {area.isFeatured && (
               <span className="badge absolute top-3 right-3 text-[10px]" style={{ background: 'rgba(203,1,1,0.85)', color: '#fff', border: 'none' }}>
@@ -39,13 +39,11 @@ function AreaCard({ area, delay }: { area: AreaCardData; delay: number }) {
               {area.area}
             </h3>
             <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
-              {area.saleCount > 0 && `${area.saleCount} for sale`}
-              {area.saleCount > 0 && area.rentCount > 0 && ' · '}
-              {area.rentCount > 0 && `${area.rentCount} for rent`}
+              {[area.emirate, area.saleCount > 0 && `${area.saleCount} for sale`, area.rentCount > 0 && `${area.rentCount} for rent`, area.count > 0 && area.projectCount ? `${area.projectCount} new project${area.projectCount === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ')}
             </p>
             <div className="mt-auto pt-3" style={{ borderTop: '1px solid var(--border-soft)' }}>
-              <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Average price</p>
-              <p className="text-sm font-bold grad-text">{formatPrice(Math.round(area.avgPrice))}</p>
+              <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{area.avgPrice > 0 ? 'Average price' : area.projectsFrom ? 'New projects from' : 'Property guide'}</p>
+              <p className="text-sm font-bold grad-text">{area.avgPrice > 0 ? formatPrice(Math.round(area.avgPrice)) : area.projectsFrom ? formatPrice(area.projectsFrom) : 'Read the area guide'}</p>
             </div>
           </div>
         </div>
@@ -99,12 +97,12 @@ export default function AreasListClient() {
           </motion.div>
 
           <motion.h1 initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.6 }} className="heading-xl mb-6 max-w-2xl mx-auto">
-            Dubai Area Guides: <span className="grad-text">Prices by Neighbourhood</span>
+            UAE Area Guides: <span className="grad-text">Property Prices by Neighbourhood</span>
           </motion.h1>
 
           <motion.p initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.6 }}
             className="text-base md:text-lg max-w-xl mx-auto leading-relaxed mb-10" style={{ color: 'var(--text-muted)' }}>
-            Real prices and listing counts from our own verified inventory — not crowd-sourced ratings.
+            Where to buy and rent property in Dubai, Abu Dhabi, Sharjah and the Northern Emirates — area guides with property types, lifestyle, off-plan projects and real prices from our own verified listings.
           </motion.p>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="max-w-md mx-auto">

@@ -14,6 +14,7 @@ import ProjectInterestModal from '@/components/buyer/ProjectInterestModal'
 import { useAuthStore } from '@/store/authStore'
 import { useFavoritesStore } from '@/store/favoritesStore'
 import { useProjectCompareStore } from '@/store/projectCompareStore'
+import { projectKeyword } from '@/lib/listingSeo'
 import type { Project } from '@/types'
 
 // Payment plan + handover — plain icon + value + label, like the detail copy above it (no boxed stat bar).
@@ -61,6 +62,8 @@ function DetailsRow({ project }: { project: Project }) {
       {/* Row 1 — location, full width */}
       <div className="mb-1.5">
         <DetailItem icon={MapPin}>{project.area}{project.community ? `, ${project.community}` : ''}</DetailItem>
+        {/* One search phrase per card — what this project is, in the words people search for. */}
+        <p className="text-[0.7rem] sm:text-xs truncate mt-1" style={{ color: 'var(--text-muted)' }}>{projectKeyword(project)}</p>
       </div>
       {/* Row 2 — type / bedrooms / bathrooms, highlighted as tinted chips */}
       <div className="flex flex-wrap gap-2">

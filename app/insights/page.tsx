@@ -1,16 +1,16 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ArrowRight, Radio, Newspaper, MapPin, Layers, Building2, Compass, ChartColumnIncreasing, Clock } from 'lucide-react'
+import { ArrowRight, Radio, Newspaper, MapPin, Layers, Building2, Compass, Clock, Landmark } from 'lucide-react'
 
 import Navbar from '@/components/layouts/Navbar'
 import Footer from '@/components/layouts/Footer'
 import PlaceCard from '@/components/explore/PlaceCard'
-import AreaPriceMap from '@/components/AreaPriceMap'
-import { blogAPI, newsAPI, areaContentAPI, communityContentAPI, buildingContentAPI, placeAPI } from '@/lib/api'
+import RealEstateLinks from '@/components/shared/RealEstateLinks'
+import { blogAPI, newsAPI, areaContentAPI, communityContentAPI, buildingContentAPI, placeAPI, developerAPI } from '@/lib/api'
 import { resolveSeo } from '@/lib/seo'
 import { formatDate, formatPrice } from '@/lib/utils'
 import { EXPLORE_SECTIONS, sectionHref } from '@/lib/explore'
-import type { BlogPost, NewsItem, AreaContentWithStats, CommunityContentWithStats, BuildingContent, PlaceSectionSummary } from '@/types'
+import type { BlogPost, NewsItem, AreaContentWithStats, CommunityContentWithStats, BuildingContent, PlaceSectionSummary, Developer } from '@/types'
 
 // The Insights hub: news, blog, area / community / building guides and UAE Explore in one server-rendered page, so
 // every section (and every link in it) is in the HTML search engines read. Rebuilt at most every 5 minutes.
@@ -20,8 +20,8 @@ const SITE_URL = 'https://www.distressdealsuae.com'
 
 export async function generateMetadata(): Promise<Metadata> {
   return resolveSeo('insights', {
-    title: 'UAE Insights — Property News, Area Guides & Places to Explore',
-    description: 'Everything about living in the UAE in one place: property news and market analysis, guides to areas, communities and buildings, and the best tourist places, food, malls, markets, hotels and activities.',
+    title: 'UAE Real Estate Insights — Property Guides, Area Guides & Developers',
+    description: 'UAE real estate insights in one place: property buying and selling guides, market news, area guides with property prices, community and building guides, developer guides and off-plan projects — plus where to go, eat and shop near your next home.',
     path: '/insights',
   })
 }
@@ -75,13 +75,14 @@ function ArticleCard({ href, image, eyebrow, title, text, meta }: { href: string
 }
 
 export default async function InsightsPage() {
-  const [newsRes, blogRes, areaRes, communityRes, buildingRes, exploreRes] = await Promise.all([
+  const [newsRes, blogRes, areaRes, communityRes, buildingRes, exploreRes, developerRes] = await Promise.all([
     newsAPI.getAll({ status: 'published', limit: 7 }).catch(() => null),
     blogAPI.getAll({ status: 'published', limit: 6 }).catch(() => null),
     areaContentAPI.getAll().catch(() => null),
     communityContentAPI.getAll().catch(() => null),
     buildingContentAPI.getAll().catch(() => null),
     placeAPI.getSummary(4).catch(() => null),
+    developerAPI.getAll().catch(() => null),
   ])
   const news: NewsItem[] = rows(newsRes)
   const posts: BlogPost[] = rows(blogRes)
@@ -89,17 +90,20 @@ export default async function InsightsPage() {
   const communities: CommunityContentWithStats[] = rows(communityRes)
   const buildings: BuildingContent[] = rows(buildingRes)
   const explore: PlaceSectionSummary[] = exploreRes?.data?.data || []
+  // Developers with the most projects first.
+  const developers: (Developer & { projectCount?: number; minPriceFrom?: number })[] = [...(rows(developerRes) as any[])].sort((a, b) => (b.projectCount || 0) - (a.projectCount || 0))
   const placeTotal = explore.reduce((a, s) => a + s.count, 0)
   // Photos first, so the grids look full.
   const withPhoto = <T extends { heroImage?: string }>(list: T[]) => [...list].sort((a, b) => Number(!!b.heroImage) - Number(!!a.heroImage))
 
   const nav = [
     news.length && { href: '#news', label: 'News' },
-    posts.length && { href: '#blog', label: 'Blog' },
-    { href: '#prices', label: 'Prices by area' },
+    posts.length && { href: '#blog', label: 'Property Guides' },
     areas.length && { href: '#areas', label: 'Area Guides' },
     communities.length && { href: '#communities', label: 'Communities' },
     buildings.length && { href: '#buildings', label: 'Building Guides' },
+    developers.length && { href: '#developers', label: 'Developer Guides' },
+    { href: '#property', label: 'Find a Property' },
     placeTotal && { href: '#explore', label: 'UAE Explore' },
     ...EXPLORE_SECTIONS.filter(s => explore.find(x => x.category === s.key)?.count).map(s => ({ href: `#${s.path}`, label: s.label })),
   ].filter(Boolean) as { href: string; label: string }[]
@@ -109,6 +113,7 @@ export default async function InsightsPage() {
     { n: areas.length, l: 'Area guides' },
     { n: communities.length, l: 'Communities' },
     { n: buildings.length, l: 'Building guides' },
+    { n: developers.length, l: 'Developer guides' },
     { n: placeTotal, l: 'Places to explore' },
   ].filter(s => s.n)
 
@@ -117,7 +122,7 @@ export default async function InsightsPage() {
     '@type': 'CollectionPage',
     name: 'UAE Insights',
     url: `${SITE_URL}/insights`,
-    description: 'Property news, market analysis, area, community and building guides, and places to explore across the UAE.',
+    description: 'UAE real estate insights: property guides, market news, area, community, building and developer guides, off-plan projects and places to explore.',
     isPartOf: { '@type': 'WebSite', name: 'Distress Deals UAE', url: SITE_URL },
     hasPart: [
       { '@type': 'CollectionPage', name: 'News', url: `${SITE_URL}/news` },
@@ -125,6 +130,9 @@ export default async function InsightsPage() {
       { '@type': 'CollectionPage', name: 'Area Guides', url: `${SITE_URL}/areas` },
       { '@type': 'CollectionPage', name: 'Communities', url: `${SITE_URL}/communities` },
       { '@type': 'CollectionPage', name: 'Building Guides', url: `${SITE_URL}/buildings` },
+      { '@type': 'CollectionPage', name: 'Developer Guides', url: `${SITE_URL}/developers` },
+      { '@type': 'CollectionPage', name: 'Off-Plan Projects', url: `${SITE_URL}/projects` },
+      { '@type': 'CollectionPage', name: 'Properties for Sale', url: `${SITE_URL}/for-sale` },
       { '@type': 'CollectionPage', name: 'UAE Explore', url: `${SITE_URL}/explore` },
       ...EXPLORE_SECTIONS.map(s => ({ '@type': 'CollectionPage', name: s.label, url: `${SITE_URL}/explore/${s.path}` })),
     ],
@@ -146,10 +154,10 @@ export default async function InsightsPage() {
             <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--teal)' }} /> Insights
           </span>
           <h1 className="heading-xl mb-4 max-w-3xl">
-            Everything about living in the <span className="grad-text">UAE</span>, in one place
+            UAE real estate <span className="grad-text">insights</span>, guides and market knowledge
           </h1>
           <p className="text-base md:text-lg max-w-2xl leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-            Property news and market analysis, guides to areas, communities and buildings — and where to go, eat, shop and stay across the seven emirates.
+            Property buying and selling guides, real estate news, area guides with property prices, community, building and developer guides — and what is around your next home across Dubai, Abu Dhabi, Sharjah and the Northern Emirates.
           </p>
           {stats.length > 0 && (
             <dl className="flex flex-wrap gap-x-8 gap-y-3 mt-7">
@@ -174,10 +182,10 @@ export default async function InsightsPage() {
         </div>
       </nav>
 
-      <div className="wrap pt-10 space-y-16">
+      <div className="wrap pt-10 pb-6 space-y-16">
         {lead && (
           <section aria-labelledby="news">
-            <SectionHead id="news" icon={Radio} title="News" subtitle="Market announcements, regulation and launches" href="/news" cta="All news" />
+            <SectionHead id="news" icon={Radio} title="Real Estate News" subtitle="Property market announcements, regulation and project launches" href="/news" cta="All news" />
             <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] gap-5">
               <Link href={`/news/${lead.slug}`} className="group relative block min-h-[300px] rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, #1E293B, #7F1D1D)' }}>
                 {lead.coverImage && <img src={lead.coverImage} alt={lead.title} className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />}
@@ -211,7 +219,7 @@ export default async function InsightsPage() {
 
         {posts.length > 0 && (
           <section aria-labelledby="blog">
-            <SectionHead id="blog" icon={Newspaper} title="Blog" subtitle="Market analysis, buying guides and how-tos" href="/blog" cta="All articles" />
+            <SectionHead id="blog" icon={Newspaper} title="Property Guides & Blog" subtitle="How to buy, sell, rent and invest in UAE property — step by step" href="/blog" cta="All guides" />
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {posts.slice(0, 6).map(p => (
                 <ArticleCard key={p._id} href={`/blog/${p.slug}`} image={p.coverImage} eyebrow={p.category} title={p.title} text={p.excerpt} meta={`${p.readTime} min read`} />
@@ -219,17 +227,10 @@ export default async function InsightsPage() {
             </div>
           </section>
         )}
-      </div>
 
-      {/* Price data — the live "compare prices by area" map */}
-      <div id="prices" className="scroll-mt-28 mt-10">
-        <AreaPriceMap title="Property prices by area" subtitle="Live prices from our listings and new projects, on the real area boundaries of the UAE." />
-      </div>
-
-      <div className="wrap pb-20 pt-6 space-y-16">
         {areas.length > 0 && (
           <section aria-labelledby="areas">
-            <SectionHead id="areas" icon={MapPin} title="Area Guides" subtitle="What each district is like to live in, with live listing stats" href="/areas" cta={`All ${areas.length} areas`} />
+            <SectionHead id="areas" icon={MapPin} title="Area Guides" subtitle="Where to buy and rent — property types, lifestyle and prices by area" href="/areas" cta={`All ${areas.length} areas`} />
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {withPhoto(areas).slice(0, 8).map(a => (
                 <GuideTile key={a._id} href={`/areas/${a.slug}`} image={a.heroImage} title={a.area}
@@ -241,7 +242,7 @@ export default async function InsightsPage() {
 
         {communities.length > 0 && (
           <section aria-labelledby="communities">
-            <SectionHead id="communities" icon={Layers} title="Communities" subtitle="Neighbourhoods and master developments across the emirates" href="/communities" cta={`All ${communities.length} communities`} />
+            <SectionHead id="communities" icon={Layers} title="Community Guides" subtitle="Residential communities and master developments, with properties for sale and rent" href="/communities" cta={`All ${communities.length} communities`} />
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {withPhoto(communities).slice(0, 12).map(c => (
                 <GuideTile key={c._id} href={`/communities/${c.slug}`} image={c.heroImage} title={c.name} sub={c.area && c.area !== c.name ? c.area : c.emirate} meta={c.count ? `${c.count} listings` : undefined} />
@@ -258,7 +259,7 @@ export default async function InsightsPage() {
 
         {buildings.length > 0 && (
           <section aria-labelledby="buildings">
-            <SectionHead id="buildings" icon={Building2} title="Building Guides" subtitle="Individual towers and developments" href="/buildings" cta={`All ${buildings.length} buildings`} />
+            <SectionHead id="buildings" icon={Building2} title="Building Guides" subtitle="Residential towers and landmark buildings — floors, location and what is nearby" href="/buildings" cta={`All ${buildings.length} buildings`} />
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {withPhoto(buildings).slice(0, 8).map(b => (
                 <GuideTile key={b._id} href={`/buildings/${b.slug}`} image={b.heroImage} title={b.name} sub={b.area}
@@ -274,9 +275,44 @@ export default async function InsightsPage() {
           </section>
         )}
 
+        {developers.length > 0 && (
+          <section aria-labelledby="developers">
+            <SectionHead id="developers" icon={Landmark} title="Developer Guides" subtitle="UAE property developers — their off-plan projects, starting prices and where they build" href="/developers" cta={`All ${developers.length} developers`} />
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              {developers.slice(0, 12).map(d => (
+                <Link key={d._id} href={`/developers/${d.slug}`} className="card-hover group p-4 flex flex-col items-center text-center gap-2">
+                  <span className="w-full h-14 flex items-center justify-center">
+                    {d.logo
+                      ? <img src={d.logo} alt={`${d.name} — property developer`} loading="lazy" decoding="async" className="max-h-12 max-w-full object-contain" />
+                      : <Landmark size={24} style={{ color: 'var(--teal)', opacity: 0.4 }} />}
+                  </span>
+                  <span className="text-xs font-semibold leading-snug group-hover:text-[var(--teal)]" style={{ color: 'var(--text)' }}>{d.name}</span>
+                  <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                    {d.projectCount ? `${d.projectCount} project${d.projectCount === 1 ? '' : 's'}` : 'Developer guide'}
+                    {d.minPriceFrom ? ` · from ${formatPrice(d.minPriceFrom)}` : ''}
+                  </span>
+                </Link>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2 mt-4">
+              {developers.slice(12).map(d => (
+                <Link key={d._id} href={`/developers/${d.slug}`} className="px-3 py-1.5 rounded-full text-[11px] font-medium"
+                  style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-mid)' }}>{d.name} projects</Link>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+
+      {/* Property search — buy, rent, off-plan, distress deals, valuation, mortgage */}
+      <div id="property" className="scroll-mt-28 pt-10">
+        <RealEstateLinks />
+      </div>
+
+      <div className="wrap pb-20 space-y-16">
         {placeTotal > 0 && (
           <section aria-labelledby="explore" className="rounded-3xl p-5 md:p-8" style={{ background: 'var(--bg-alt)', border: '1px solid var(--border)' }}>
-            <SectionHead id="explore" icon={Compass} title="UAE Explore" subtitle={`${placeTotal.toLocaleString('en-US')} places to go, eat, shop and stay — with exact locations and reviews`} href="/explore" cta="Open UAE Explore" />
+            <SectionHead id="explore" icon={Compass} title="UAE Explore" subtitle={`What is around your next home — ${placeTotal.toLocaleString('en-US')} places to go, eat, shop and stay, with exact locations and reviews`} href="/explore" cta="Open UAE Explore" />
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
               {EXPLORE_SECTIONS.map(s => {
                 const count = explore.find(x => x.category === s.key)?.count || 0
@@ -314,15 +350,16 @@ export default async function InsightsPage() {
 
         <section className="card p-6 flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-start gap-3">
-            <ChartColumnIncreasing size={20} className="mt-0.5 flex-shrink-0" style={{ color: 'var(--teal)' }} />
+            <Building2 size={20} className="mt-0.5 flex-shrink-0" style={{ color: 'var(--teal)' }} />
             <div>
-              <h2 className="text-base font-bold" style={{ color: 'var(--text)' }}>Looking for a property?</h2>
-              <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Browse verified listings and new projects direct from owners and developers.</p>
+              <h2 className="text-base font-bold" style={{ color: 'var(--text)' }}>Buying, selling or renting property in the UAE?</h2>
+              <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Verified apartments, villas and townhouses, off-plan projects and distress deals — direct from owners and developers.</p>
             </div>
           </div>
           <div className="flex gap-2.5 flex-wrap">
             <Link href="/for-sale" className="btn-primary h-10 px-5 text-sm">Properties for sale</Link>
-            <Link href="/projects" className="btn-outline h-10 px-5 text-sm">New projects</Link>
+            <Link href="/projects" className="btn-outline h-10 px-5 text-sm">Off-plan projects</Link>
+            <Link href="/sell" className="btn-outline h-10 px-5 text-sm">Sell your property</Link>
           </div>
         </section>
       </div>

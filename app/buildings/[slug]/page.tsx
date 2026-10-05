@@ -11,6 +11,7 @@ import { buildingContentAPI, placeAPI } from '@/lib/api'
 import PlaceCard from '@/components/explore/PlaceCard'
 import PlaceMap from '@/components/explore/PlaceMap'
 import FaqSection, { type Faq } from '@/components/shared/FaqSection'
+import RealEstateLinks from '@/components/shared/RealEstateLinks'
 import { placeHref } from '@/lib/explore'
 import { formatPrice } from '@/lib/utils'
 import { HOME_ICON_MAP } from '@/lib/homeIcons'
@@ -242,6 +243,8 @@ export default async function BuildingDetailPage({ params }: { params: { slug: s
       )}
 
       <ReviewsSection type="building" slug={building.slug} name={building.name} />
+
+      <RealEstateLinks emirate={building.emirate} near={building.name} />
 
       <FaqSection title={`${building.name}: frequently asked questions`} faqs={faqs} />
 

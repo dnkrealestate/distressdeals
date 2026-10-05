@@ -11,6 +11,10 @@ import { formatPrice } from '@/lib/utils'
 import { HOME_ICON_MAP, HOME_ICON_OPTIONS } from '@/lib/homeIcons'
 import type { AreaContentWithStats } from '@/types'
 import toast from 'react-hot-toast'
+import EntitySeoSection, { seoFromRecord, seoToPayload, seoFromSuggestion } from '@/components/admin/seo/EntitySeoSection'
+import type { SeoFields } from '@/components/admin/seo/SeoAppearancePanel'
+
+const EMIRATES = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Umm Al Quwain', 'Fujairah']
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -39,9 +43,12 @@ function AreaContentForm({ area, onClose, onSaved }: { area: AreaContentWithStat
   const [highlights, setHighlights] = useState<string[]>(area?.highlights?.map(h => h.label) || [])
   const [amenities, setAmenities] = useState<{ icon: string; label: string }[]>(area?.amenities || [])
   const [submitting, setSubmitting] = useState(false)
+  const [sections, setSections] = useState<{ heading: string; body: string }[]>(area?.sections || [])
+  const [faqs, setFaqs] = useState<{ q: string; a: string }[]>(area?.faqs || [])
+  const [seo, setSeo] = useState<SeoFields>(seoFromRecord(area))
 
-  const { register, handleSubmit, formState: { errors } } = useForm({
-    defaultValues: { area: area?.area || '', overview: area?.overview || '', isFeatured: area?.isFeatured || false },
+  const { register, handleSubmit, watch, formState: { errors } } = useForm({
+    defaultValues: { area: area?.area || '', emirate: area?.emirate || 'Dubai', overview: area?.overview || '', isFeatured: area?.isFeatured || false },
   })
 
   useEffect(() => {
@@ -89,6 +96,10 @@ function AreaContentForm({ area, onClose, onSaved }: { area: AreaContentWithStat
       highlights: highlights.filter(h => h.trim()).map(label => ({ label })),
       amenities: amenities.filter(a => a.label.trim()),
       isFeatured: !!data.isFeatured,
+      emirate: data.emirate,
+      sections: sections.filter(s => s.heading.trim() && s.body.trim()),
+      faqs: faqs.filter(f => f.q.trim() && f.a.trim()),
+      ...seoToPayload(seo),
     }
     try {
       if (isEdit) await areaContentAPI.update(area!._id, payload)
@@ -105,10 +116,10 @@ function AreaContentForm({ area, onClose, onSaved }: { area: AreaContentWithStat
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6" style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}>
       <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.97 }}
-        className="w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]" style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}>
+        className="w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]" style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}>
 
         <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
-          <h2 className="font-bold text-sm" style={{ color: 'var(--text)' }}>{isEdit ? 'Edit' : 'New'} Area Profile</h2>
+          <h2 className="font-bold text-sm" style={{ color: 'var(--text)' }}>{isEdit ? 'Edit' : 'New'} Area Guide</h2>
           <button type="button" onClick={onClose} className="btn-ghost btn-sm p-2"><X size={14} /></button>
         </div>
 
@@ -117,13 +128,20 @@ function AreaContentForm({ area, onClose, onSaved }: { area: AreaContentWithStat
             {isEdit ? (
               <input className="input" disabled value={area!.area} />
             ) : (
-              <select className="select-field w-full" {...register('area', { required: true })}>
-                <option value="">Select an area…</option>
-                {availableAreas.map(a => <option key={a} value={a}>{a}</option>)}
-              </select>
+              <>
+                {/* Type any area, or pick one that already has listings — the name must match the one listings use. */}
+                <input className="input" list="area-names" placeholder="e.g. Dubai Marina" {...register('area', { required: true })} />
+                <datalist id="area-names">{availableAreas.map(a => <option key={a} value={a} />)}</datalist>
+              </>
             )}
           </Field>
           {errors.area && <p className="text-xs" style={{ color: '#FB7185' }}>Area is required</p>}
+
+          <Field label="Emirate">
+            <select className="select-field w-full" {...register('emirate')}>
+              {EMIRATES.map(e => <option key={e}>{e}</option>)}
+            </select>
+          </Field>
 
           <Field label="Hero Image">
             {heroImage ? (
@@ -149,7 +167,7 @@ function AreaContentForm({ area, onClose, onSaved }: { area: AreaContentWithStat
           </Field>
 
           <Field label="Overview">
-            <textarea className="input" rows={4} placeholder="A short narrative about this area — vibe, who it suits, what it's known for…" {...register('overview')} />
+            <textarea className="input" rows={5} placeholder="A short narrative about this area — vibe, who it suits, what it's known for…" {...register('overview')} />
           </Field>
 
           <div>
@@ -188,6 +206,57 @@ function AreaContentForm({ area, onClose, onSaved }: { area: AreaContentWithStat
               })}
             </div>
           </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-medium" style={{ color: 'var(--text-mid)' }}>Guide sections <span style={{ color: 'var(--text-muted)' }}>(each becomes a heading on the page)</span></label>
+              <button type="button" onClick={() => setSections(s => [...s, { heading: '', body: '' }])} className="btn-ghost btn-sm gap-1"><Plus size={11} /> Add</button>
+            </div>
+            <div className="space-y-2">
+              {sections.map((s, i) => (
+                <div key={i} className="card p-3 space-y-2">
+                  <div className="flex gap-2">
+                    <input className="input flex-1" placeholder="Heading — e.g. Property types in Dubai Marina" value={s.heading} onChange={e => setSections(x => x.map((y, j) => j === i ? { ...y, heading: e.target.value } : y))} />
+                    <button type="button" onClick={() => setSections(x => x.filter((_, j) => j !== i))} className="btn-ghost btn-sm p-2 flex-shrink-0"><X size={13} /></button>
+                  </div>
+                  <textarea className="input" rows={4} placeholder="Text for this section" value={s.body} onChange={e => setSections(x => x.map((y, j) => j === i ? { ...y, body: e.target.value } : y))} />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-medium" style={{ color: 'var(--text-mid)' }}>Questions &amp; answers</label>
+              <button type="button" onClick={() => setFaqs(f => [...f, { q: '', a: '' }])} className="btn-ghost btn-sm gap-1"><Plus size={11} /> Add</button>
+            </div>
+            <div className="space-y-2">
+              {faqs.map((f, i) => (
+                <div key={i} className="card p-3 space-y-2">
+                  <div className="flex gap-2">
+                    <input className="input flex-1" placeholder="Question" value={f.q} onChange={e => setFaqs(x => x.map((y, j) => j === i ? { ...y, q: e.target.value } : y))} />
+                    <button type="button" onClick={() => setFaqs(x => x.filter((_, j) => j !== i))} className="btn-ghost btn-sm p-2 flex-shrink-0"><X size={13} /></button>
+                  </div>
+                  <textarea className="input" rows={2} placeholder="Answer" value={f.a} onChange={e => setFaqs(x => x.map((y, j) => j === i ? { ...y, a: e.target.value } : y))} />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <EntitySeoSection
+            seo={seo} onSeoChange={setSeo}
+            text={`${watch('overview') || ''} ${sections.map(s => s.body).join(' ')}`}
+            fallbackTitle={`${watch('area') || 'Area'}: Area Guide & Properties`}
+            urlPath={`areas/${(watch('area') || 'new-area').toLowerCase().trim().replace(/\s+/g, '-')}`}
+            note="Written automatically from the area’s name, emirate and overview."
+            keywordHint="e.g. Dubai Marina properties"
+            generate={async () => {
+              const v = watch()
+              if (!String(v.area || '').trim()) throw { error: 'Enter the area name first' }
+              const r = await areaContentAPI.seoSuggest({ area: v.area, emirate: v.emirate, overview: v.overview })
+              return seoFromSuggestion(r.data.data)
+            }}
+          />
 
           <label className="flex items-center gap-2 text-xs cursor-pointer" style={{ color: 'var(--text-mid)' }}>
             <input type="checkbox" {...register('isFeatured')} />
@@ -259,7 +328,9 @@ export default function AdminAreasPage() {
                     {area.isFeatured && <Star size={11} style={{ color: '#F59E0B' }} fill="#F59E0B" />}
                   </p>
                   <p className="text-xs mt-0.5 truncate flex items-center gap-3" style={{ color: 'var(--text-muted)' }}>
+                    {area.emirate && <span>{area.emirate}</span>}
                     <span className="flex items-center gap-1"><Layers size={10} /> {area.count} listing{area.count === 1 ? '' : 's'}</span>
+                    <span>{area.sections?.length || 0} section{area.sections?.length === 1 ? '' : 's'}</span>
                     {area.avgPrice > 0 && <span>avg {formatPrice(Math.round(area.avgPrice))}</span>}
                   </p>
                 </div>

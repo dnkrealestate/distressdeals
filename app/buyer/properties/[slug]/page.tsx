@@ -5,6 +5,7 @@ import { propertyAPI } from '@/lib/api'
 import PropertyDetailClient from './PropertyDetailClient'
 import type { Property } from '@/types'
 import { shareImages } from '@/lib/seo'
+import { propertyKeywords } from '@/lib/listingSeo'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -34,6 +35,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   return {
     title,
     description,
+    keywords: propertyKeywords(property),
     alternates: { canonical: `/buyer/properties/${property.slug}` },
     openGraph: { title, description, type: 'website', url: `/buyer/properties/${property.slug}`, images },
     twitter: { card: 'summary_large_image', title, description, images: images.map(i => i.url) },
@@ -51,7 +53,7 @@ export default async function PropertyDetailPage({ params }: { params: { slug: s
     '@type': 'RealEstateListing',
     name: property.title,
     description: property.description.replace(/<[^>]*>/g, '').slice(0, 300),
-    ...(property.seoKeywords?.length && { keywords: [property.focusKeyword, ...property.seoKeywords].filter(Boolean).join(', ') }),
+    keywords: propertyKeywords(property).join(', '),
     url: `${SITE_URL}/buyer/properties/${property.slug}`,
     datePosted: property.createdAt,
     image: property.images?.map(i => i.url),

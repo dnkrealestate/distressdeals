@@ -23,6 +23,8 @@ import PropertyCard from '@/components/buyer/PropertyCard'
 import RecentlyViewedCard from '@/components/buyer/RecentlyViewedCard'
 import AdSlot from '@/components/shared/AdSlot'
 import DistanceCalculator from '@/components/shared/DistanceCalculator'
+import MoreOptions from '@/components/shared/MoreOptions'
+import RealEstateLinks from '@/components/shared/RealEstateLinks'
 import InfoBadge, { OFF_PLAN_NOTE } from '@/components/shared/InfoBadge'
 import RentalBadge from '@/components/buyer/RentalBadge'
 import { rentalLabel } from '@/lib/rental'
@@ -239,7 +241,7 @@ export default function PropertyDetailClient({ property }: { property: Property 
         </div>
       </div>
 
-      <div className="wrap pb-20">
+      <div className="wrap pb-10">
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
 
           {/* ── Left: Media + Details ───── */}
@@ -852,6 +854,10 @@ export default function PropertyDetailClient({ property }: { property: Property 
           </div>
         )}
 
+        {/* ── Same developer, nearby projects & properties, places around ──────── */}
+        <MoreOptions kind="property" slug={property.slug} area={property.location.area} developer={property.developer}
+          hideIds={[...recommended.slice(0, 3), ...similar.slice(0, 3)].map(p => p._id)} />
+
         {/* ── Recommended For You ──────── */}
         {forYou.length > 0 && (
           <div className="mt-16">
@@ -864,7 +870,7 @@ export default function PropertyDetailClient({ property }: { property: Property 
                 View All
               </Link>
             </div>
-            <div className="flex gap-5 overflow-x-auto pb-2 scrollbar-hide" style={{ scrollSnapType: 'x mandatory' }}>
+            <div className="flex gap-5 overflow-x-auto overflow-y-hidden scrollbar-hide -mx-2 px-2 pt-3 pb-6 -mt-3 -mb-3" style={{ scrollSnapType: 'x mandatory' }}>
               {forYou.map((p, i) => (
                 <motion.div key={p._id} initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} transition={{ delay:i*0.05 }}
                   className="flex-shrink-0" style={{ width: 300, scrollSnapAlign: 'start' }}>
@@ -875,6 +881,8 @@ export default function PropertyDetailClient({ property }: { property: Property 
           </div>
         )}
       </div>
+
+      <RealEstateLinks area={property.location.area} emirate={property.location.emirate} className="mt-14" />
 
       {/* ── Sticky bottom contact bar ──────────────────── */}
       {/* Always there, so a buyer can call, WhatsApp, share or enquire from anywhere on the page. */}

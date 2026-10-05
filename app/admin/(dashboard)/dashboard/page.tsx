@@ -4,8 +4,9 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import {
   Clock, Home, TrendingUp, UserPlus, CheckCircle2,
-  DollarSign, Users, ShieldCheck, ChevronRight, AlertCircle, Megaphone,
+   Users, ShieldCheck, ChevronRight, AlertCircle, Megaphone,
 } from 'lucide-react'
+import DirhamIcon from '@/components/shared/DirhamIcon'
 import { useAuthStore } from '@/store/authStore'
 import { adminAPI, propertyAPI, leadAPI } from '@/lib/api'
 import { formatPrice, formatDateTime, cn } from '@/lib/utils'
@@ -49,7 +50,7 @@ export default function AdminDashboard() {
     { label: 'Total Leads',       val: stats?.totalLeads       ?? 0, Icon: TrendingUp,   accent: '#A855F7' },
     { label: 'New Leads Today',   val: stats?.newLeadsToday    ?? 0, Icon: UserPlus,     accent: 'var(--green)' },
     { label: 'Deals This Month',  val: stats?.dealsThisMonth   ?? 0, Icon: CheckCircle2, accent: 'var(--green)' },
-    { label: 'Revenue This Month',val: stats ? formatPrice(stats.revenueThisMonth) : '—', Icon: DollarSign, accent: '#F59E0B' },
+    { label: 'Revenue This Month',val: stats ? formatPrice(stats.revenueThisMonth) : '—', Icon: DirhamIcon, accent: '#F59E0B' },
     { label: 'Total Users',       val: stats?.totalUsers       ?? 0, Icon: Users,        accent: '#60A5FA' },
     { label: 'Active Agents',     val: stats?.activeAgents     ?? 0, Icon: ShieldCheck,  accent: 'var(--teal)' },
   ]

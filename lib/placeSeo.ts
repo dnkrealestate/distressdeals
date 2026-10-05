@@ -31,8 +31,16 @@ export function placeDescription(p: PlaceDetail): string {
   return `${cut}${closing}`
 }
 
+// Property searches people make around a place — added to every place page's keywords.
+const realEstateKeywords = (p: Pick<PlaceDetail, 'name' | 'area' | 'emirate'>) => [
+  `properties for sale near ${p.name}`, `apartments near ${p.name}`,
+  p.area ? `apartments for sale in ${p.area}` : `apartments for sale in ${p.emirate}`,
+  p.area ? `properties for rent in ${p.area}` : `properties for rent in ${p.emirate}`,
+  `off-plan projects in ${p.emirate}`, `${p.emirate} real estate`,
+]
+
 export function placeKeywords(p: PlaceDetail): string[] {
-  if (p.seoKeywords?.length) return Array.from(new Set([p.focusKeyword || p.name, ...p.seoKeywords]))
+  if (p.seoKeywords?.length) return Array.from(new Set([p.focusKeyword || p.name, ...p.seoKeywords, ...realEstateKeywords(p)]))
   const section = sectionByKey(p.category)!
   const kind = (p.subcategory || section.singular).toLowerCase()
   return Array.from(new Set([
@@ -41,6 +49,7 @@ export function placeKeywords(p: PlaceDetail): string[] {
     p.area ? `things to do in ${p.area}` : `things to do in ${p.emirate}`,
     p.category === 'attraction' || p.category === 'activity' ? `${p.name} tickets` : '',
     p.category === 'hotel' ? `hotels near ${p.area || p.emirate}` : '',
+    ...realEstateKeywords(p),
     p.category === 'food' && p.cuisine ? `${p.cuisine.split(',')[0].toLowerCase()} restaurant ${p.emirate}` : '',
   ].filter(Boolean)))
 }

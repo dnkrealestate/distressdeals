@@ -5,6 +5,7 @@ import { ArrowRight, Compass } from 'lucide-react'
 import Navbar from '@/components/layouts/Navbar'
 import Footer from '@/components/layouts/Footer'
 import PlaceCard from '@/components/explore/PlaceCard'
+import RealEstateLinks from '@/components/shared/RealEstateLinks'
 import { placeAPI } from '@/lib/api'
 import { resolveSeo } from '@/lib/seo'
 import { EXPLORE_SECTIONS, EMIRATES, sectionHref } from '@/lib/explore'
@@ -18,7 +19,7 @@ const SITE_URL = 'https://www.distressdealsuae.com'
 export async function generateMetadata(): Promise<Metadata> {
   return resolveSeo('explore', {
     title: 'Explore the UAE — Tourist Places, Food, Malls, Markets, Hotels & Activities',
-    description: 'A local guide to the UAE: tourist places, restaurants, shopping malls, souks, hotels and things to do in Dubai, Abu Dhabi, Sharjah and every emirate — with exact locations and visitor reviews.',
+    description: 'A local guide to the UAE for residents, home buyers and investors: tourist places, restaurants, shopping malls, souks, hotels and things to do near properties for sale and rent in Dubai, Abu Dhabi, Sharjah and every emirate.',
     path: '/explore',
   })
 }
@@ -53,7 +54,7 @@ export default async function ExplorePage() {
             <span>Explore the <span className="grad-text">UAE</span></span>
           </h1>
           <p className="text-base max-w-2xl leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-            Where to go, eat, shop and stay across the seven emirates{total ? ` — ${total.toLocaleString('en-US')} places with exact locations and reviews from people who have been there` : ''}.
+            Where to go, eat, shop and stay near your home across the seven emirates{total ? ` — ${total.toLocaleString('en-US')} places with exact locations and reviews from people who have been there` : ''}.
           </p>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-8">
@@ -127,6 +128,8 @@ export default async function ExplorePage() {
           </div>
         </section>
       </div>
+
+      <RealEstateLinks />
 
       <Footer />
     </div>

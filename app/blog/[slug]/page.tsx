@@ -34,6 +34,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   return {
     title,
     description,
+    keywords: Array.from(new Set([...(post.tags || []), post.category, 'UAE real estate', 'Dubai property guide'].filter(Boolean))),
+    robots: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 },
     alternates: { canonical: `/blog/${post.slug}` },
     openGraph: { title: post.title, description, type: 'article', url: `/blog/${post.slug}`, images, publishedTime: post.publishedAt || post.createdAt },
     twitter: { card: 'summary_large_image', title: post.title, description, images: images.map(i => i.url) },

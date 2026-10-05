@@ -23,7 +23,7 @@ const CATEGORY_ICONS: Record<string, any> = {
   'Area Guides': Building2,
 }
 const DEFAULT_ICON = BookOpen
-const CATEGORIES = ['All', 'Market Insights', 'Buying Guides', 'Investment', 'Area Guides', 'News']
+const CATEGORIES = ['All', 'Buying Guides', 'Selling Guides', 'Investment', 'Mortgage & Finance', 'Legal & Fees', 'Renting', 'Market Insights', 'Area Guides', 'News']
 
 function CategoryPill({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (

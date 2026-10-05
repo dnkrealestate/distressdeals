@@ -18,6 +18,8 @@ export interface SeoDefaults {
   title: string
   description: string
   path: string
+  // Used until keywords are saved for the page in Admin → SEO.
+  keywords?: string[]
 }
 
 // Fetches this page's admin-editable SEO override (title/description/keywords — see app/admin/(dashboard)/seo)
@@ -32,7 +34,7 @@ export async function resolveSeo(pageKey: string, defaults: SeoDefaults): Promis
   const description = override.description || defaults.description
   const keywords = override.keywords
     ? override.keywords.split(',').map(k => k.trim()).filter(Boolean)
-    : undefined
+    : defaults.keywords
 
   return {
     // The root layout's title template appends " | Distress Deals UAE" — skip it when the title already names the

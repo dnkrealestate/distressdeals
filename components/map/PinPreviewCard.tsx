@@ -1,6 +1,6 @@
 'use client'
-import { useState } from 'react'
-import { ArrowUpRight, Bath, Bed, ChevronLeft, ChevronRight, Eye, Bookmark, Maximize2, Navigation, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { ArrowUpRight, Bath, Bed, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Coffee, Eye, Bookmark, GraduationCap, Landmark, Maximize2, Navigation, Plane, ShoppingBag, Stethoscope, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '@/store/authStore'
 import { useFavoritesStore } from '@/store/favoritesStore'
@@ -10,12 +10,26 @@ import RentalBadge from '@/components/buyer/RentalBadge'
 import DirectionsPanel from '@/components/map/DirectionsPanel'
 import type { RouteView } from '@/lib/driveTime'
 import type { ResolvedPlace } from '@/lib/placeSearch'
+import { placeHref } from '@/lib/explore'
+
+// "Nearby" — what the card can show around the selected pin.
+export type NearKind = 'hospitals' | 'schools' | 'airports' | 'tourist' | 'cafes' | 'shopping'
+export interface NearPlace { id: string; name: string; slug: string; placeCategory: string; label: string; lat: number; lng: number; distanceKm?: number }
+const NEAR_OPTIONS: { key: NearKind; label: string; icon: any; color: string }[] = [
+  { key: 'hospitals', label: 'Hospitals & clinics', icon: Stethoscope, color: '#DC2626' },
+  { key: 'schools', label: 'Schools', icon: GraduationCap, color: '#16A34A' },
+  { key: 'airports', label: 'Airports', icon: Plane, color: '#0891B2' },
+  { key: 'tourist', label: 'Tourist places', icon: Landmark, color: '#D97706' },
+  { key: 'cafes', label: 'Cafés', icon: Coffee, color: '#B45309' },
+  { key: 'shopping', label: 'Malls & markets', icon: ShoppingBag, color: '#DB2777' },
+]
+const nearDistance = (km?: number) => (km == null ? '' : km < 1 ? `${Math.max(50, Math.round(km * 20) * 50)} m` : `${km} km`)
 
 // Floating card shown over the map when a pin is selected — enough to decide
 // "worth opening?" without leaving the map, plus the map-only actions
 // (Street View, directions).
 export default function PinPreviewCard({
-  pin, onClose, onStreetView, routes, routesLoading, routesError, hasStart, fromPlace, onFromPlace, stack,
+  pin, onClose, onStreetView, routes, routesLoading, routesError, hasStart, fromPlace, onFromPlace, stack, near,
 }: {
   pin: MapPin
   // Set when this pin is one of several at the same spot: "‹ 2 of 5 ›".
@@ -29,12 +43,17 @@ export default function PinPreviewCard({
   hasStart: boolean
   fromPlace: ResolvedPlace | null
   onFromPlace: (p: ResolvedPlace | null) => void
+  // Nearest places around this pin: pick a kind to drop them on the map; pick a place to draw the route to it.
+  near?: { kind: NearKind | null; loading: boolean; places: NearPlace[]; activeName?: string; onKind: (k: NearKind) => void; onPick: (p: NearPlace) => void }
 }) {
   const { isAuthenticated } = useAuthStore()
   const { toggleFavorite, isFavorite, toggleProjectFavorite, isProjectFavorite } = useFavoritesStore()
   const isProject = pin.kind === 'project'
   const [loadingSv, setLoadingSv] = useState(false)
   const [stepsOpen, setStepsOpen] = useState(false)
+  // Minimised: one slim row (and the Nearby options), so the map behind is easy to see. A new pin opens in full.
+  const [minimised, setMinimised] = useState(false)
+  useEffect(() => { setMinimised(false) }, [pin.id])
   const fav = isProject ? isProjectFavorite(pin.id) : isFavorite(pin.id)
 
   const street = async () => {
@@ -59,7 +78,26 @@ export default function PinPreviewCard({
           <button type="button" onClick={() => stack.go(1)} aria-label="Next at this location" className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-white/60"><ChevronRight size={14} /></button>
         </div>
       )}
-      <div className="flex">
+      {minimised && (
+        <div className="flex items-center gap-2.5 p-2">
+          <button type="button" onClick={() => setMinimised(false)} className="flex items-center gap-2.5 flex-1 min-w-0 text-left" aria-label="Show the full card">
+            <span className="relative w-11 h-11 rounded-lg overflow-hidden flex-shrink-0" style={{ background: 'var(--bg-alt)' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {pin.img && <img src={pin.img} alt="" className="absolute inset-0 w-full h-full object-cover" />}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[13px] font-extrabold grad-text leading-tight">
+                {formatPrice(pin.price)}<span className="text-[10px] font-semibold" style={{ color: 'var(--text-muted)' }}>{rentSuffix({ listingType: pin.lt, rentFrequency: pin.rf })}</span>
+              </span>
+              <span className="block text-[12px] font-semibold truncate" style={{ color: 'var(--text)' }}>{pin.title}</span>
+            </span>
+          </button>
+          <a href={pinHref(pin)} target="_blank" rel="noopener noreferrer" className="btn-primary btn-sm px-2.5 flex-shrink-0" title="View details" aria-label="View details"><ArrowUpRight size={13} /></a>
+          <button type="button" onClick={() => setMinimised(false)} className="btn-ghost btn-sm px-2 flex-shrink-0" title="Show the full card" aria-label="Show the full card"><ChevronUp size={15} /></button>
+          <button type="button" onClick={onClose} className="btn-ghost btn-sm px-2 flex-shrink-0" title="Close" aria-label="Close"><X size={15} /></button>
+        </div>
+      )}
+      <div className={minimised ? 'hidden' : 'flex'}>
         <div className="relative w-[132px] flex-shrink-0" style={{ background: 'var(--bg-alt)' }}>
           {pin.img && (
             // eslint-disable-next-line @next/next/no-img-element
@@ -89,9 +127,14 @@ export default function PinPreviewCard({
             <p className="text-base font-extrabold grad-text leading-tight">
               {formatPrice(pin.price)}<span className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>{rentSuffix({ listingType: pin.lt, rentFrequency: pin.rf })}</span>
             </p>
-            <button onClick={onClose} aria-label="Close" className="p-0.5 -mt-0.5 -mr-1 hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
-              <X size={15} />
-            </button>
+            <span className="flex items-center gap-1.5 -mt-0.5 -mr-1 flex-shrink-0">
+              <button onClick={() => setMinimised(true)} aria-label="Minimise the card" title="Minimise — see more of the map" className="p-0.5 hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
+                <ChevronDown size={16} />
+              </button>
+              <button onClick={onClose} aria-label="Close" className="p-0.5 hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
+                <X size={15} />
+              </button>
+            </span>
           </div>
           <p className="text-[13px] font-semibold leading-snug line-clamp-2 mt-0.5" style={{ color: 'var(--text)' }}>{pin.title}</p>
           {isProject && pin.dev && <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>by <span className="font-semibold" style={{ color: 'var(--teal)' }}>{pin.dev}</span></p>}
@@ -114,6 +157,7 @@ export default function PinPreviewCard({
         </div>
       </div>
 
+      <div className={minimised ? 'hidden' : undefined}>
       <DirectionsPanel
         routes={routes}
         loading={routesLoading}
@@ -124,8 +168,54 @@ export default function PinPreviewCard({
         onToggleSteps={() => setStepsOpen(o => !o)}
         hasStart={hasStart}
       />
+      </div>
 
-      <div className="flex items-center gap-2 px-3 py-2.5" style={{ borderTop: '1px solid var(--border)' }}>
+      {near && (
+        <div className="px-3 py-2" style={{ borderTop: '1px solid var(--border)' }}>
+          <div className="flex items-center gap-1.5 overflow-x-auto overflow-y-hidden scrollbar-hide">
+            <span className="text-[10px] font-semibold uppercase tracking-wide flex-shrink-0" style={{ color: 'var(--text-muted)' }}>Nearby</span>
+            {NEAR_OPTIONS.map(o => {
+              const on = near.kind === o.key
+              return (
+                <button key={o.key} type="button" onClick={() => near.onKind(o.key)} aria-pressed={on}
+                  className="flex items-center gap-1 flex-shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors"
+                  style={on ? { background: o.color, color: '#fff', border: `1px solid ${o.color}` } : { background: 'var(--bg-alt)', color: 'var(--text-mid)', border: '1px solid var(--border)' }}>
+                  <o.icon size={11} /> {o.label}
+                </button>
+              )
+            })}
+          </div>
+          {near.kind && !minimised && (
+            near.loading ? <p className="text-[11px] mt-2" style={{ color: 'var(--text-muted)' }}>Finding the nearest places…</p>
+            : near.places.length === 0 ? <p className="text-[11px] mt-2" style={{ color: 'var(--text-muted)' }}>Nothing listed within about 15 km of this spot yet.</p>
+            : (
+              <ul className="mt-1.5 max-h-[80px] sm:max-h-[118px] overflow-y-auto -mx-1">
+                {near.places.map(p => {
+                  const active = near.activeName === p.name
+                  return (
+                    <li key={p.id} className="flex items-center gap-1 rounded-lg" style={active ? { background: 'rgba(29,78,216,0.08)' } : undefined}>
+                      <button type="button" onClick={() => near.onPick(p)} title="Show the route on the map" className="flex items-center gap-2 flex-1 min-w-0 px-1 py-1 text-left">
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[12px] font-medium truncate" style={{ color: 'var(--text)' }}>{p.name}</span>
+                          {p.label && <span className="block text-[10px] truncate" style={{ color: 'var(--text-muted)' }}>{p.label}</span>}
+                        </span>
+                        <span className="text-[11px] font-semibold flex-shrink-0" style={{ color: active ? '#1D4ED8' : 'var(--text-mid)' }}>{nearDistance(p.distanceKm)}</span>
+                      </button>
+                      {/* Hospitals and schools have no page of their own — only UAE Explore places link out. */}
+                      {p.slug && (
+                        <a href={placeHref({ category: p.placeCategory, slug: p.slug })} target="_blank" rel="noopener noreferrer" title={`About ${p.name}`} aria-label={`About ${p.name}`}
+                          className="p-1.5 flex-shrink-0 hover:opacity-70" style={{ color: 'var(--text-muted)' }}><ArrowUpRight size={12} /></a>
+                      )}
+                    </li>
+                  )
+                })}
+              </ul>
+            )
+          )}
+        </div>
+      )}
+
+      <div className={minimised ? 'hidden' : 'flex items-center gap-2 px-3 py-2.5'} style={{ borderTop: '1px solid var(--border)' }}>
         <a
           href={pinHref(pin)}
           target="_blank"

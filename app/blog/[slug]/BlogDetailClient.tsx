@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import Navbar from '@/components/layouts/Navbar'
 import ReviewsSection from '@/components/shared/ReviewsSection'
+import RealEstateLinks from '@/components/shared/RealEstateLinks'
 import Footer from '@/components/layouts/Footer'
 import { blogAPI } from '@/lib/api'
 import { formatDate, cn } from '@/lib/utils'
@@ -21,7 +22,7 @@ export default function BlogDetailClient({ post }: { post: BlogPost }) {
   const [related, setRelated] = useState<BlogPost[]>([])
   const [toc, setToc] = useState<TocItem[]>([])
   const contentRef = useRef<HTMLDivElement>(null)
-  const shareUrl = typeof window !== 'undefined' ? window.location.href : `https://www.distressdealsuae.com/blog/${post.slug}`
+  const shareUrl = `https://www.distressdealsuae.com/blog/${post.slug}`
 
   // Counted once per visitor by the backend.
   useEffect(() => { blogAPI.trackView(post._id).catch(() => {}) }, [post._id])
@@ -195,6 +196,8 @@ export default function BlogDetailClient({ post }: { post: BlogPost }) {
           </div>
         </section>
       )}
+
+      <RealEstateLinks />
 
       <ReviewsSection type="blog" slug={post.slug} name={post.title} />
 

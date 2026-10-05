@@ -178,6 +178,9 @@ export interface ContentPageData {
   heroEyebrow?: string
   heroTitle: string
   heroIntro: string
+  // Legal pages only: the whole document as formatted text, and its "Last updated" date.
+  bodyHtml?: string
+  updatedLabel?: string
   stats?: MiniStat[]
   sections: ContentSection[]
   ctaTitle?: string
@@ -273,12 +276,17 @@ export interface AreaStats {
   area: string; slug: string; count: number
   avgPrice: number; minPrice: number; maxPrice: number; avgPricePerSqft?: number
   saleCount: number; rentCount: number; sampleImage?: string
+  // New projects in the area, their lowest starting price, the emirate, and whether a written guide exists.
+  projectCount?: number; projectsFrom?: number; emirate?: string; hasGuide?: boolean
 }
 
 export interface AreaContent {
   _id: string; area: string; slug: string; heroImage?: string; overview?: string
   highlights: { label: string }[]; amenities: { icon: string; label: string }[]
   isFeatured: boolean; createdAt: string
+  emirate?: string; heroImageCredit?: { name: string; url: string; license?: string }
+  sections?: { heading: string; body: string }[]; faqs?: { q: string; a: string }[]
+  metaTitle?: string; metaDescription?: string; focusKeyword?: string; seoKeywords?: string[]
 }
 
 export interface AreaContentWithStats extends AreaContent {

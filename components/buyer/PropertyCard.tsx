@@ -12,6 +12,7 @@ import {
 import { useAuthStore }      from '@/store/authStore'
 import { useFavoritesStore } from '@/store/favoritesStore'
 import InfoBadge, { OFF_PLAN_NOTE } from '@/components/shared/InfoBadge'
+import { propertyKeyword } from '@/lib/listingSeo'
 import { useCompareStore }   from '@/store/compareStore'
 import { formatPrice, formatArea, cn, rentSuffix } from '@/lib/utils'
 import ImageSlider            from '@/components/buyer/ImageSlider'
@@ -187,10 +188,12 @@ export default function PropertyCard({
               {p.title}
             </h3>
 
-            <div className="flex items-center gap-1.5 text-[0.9rem] mb-4">
+            <div className="flex items-center gap-1.5 text-[0.9rem] mb-1">
               <MapPin size={12} style={{ color: 'var(--teal)', opacity: 0.8, flexShrink: 0 }} />
               <span className="min-w-0 truncate font-semibold" style={{ color: 'var(--text-mid)' }}>{p.location?.area}, {p.location?.city}</span>
             </div>
+            {/* One search phrase per card — what this listing is, in the words people search for. */}
+            <p className="text-xs truncate mb-4" style={{ color: 'var(--text-muted)' }}>{propertyKeyword(p)}</p>
 
             <div className="flex items-center gap-2 flex-wrap mb-4">
               {p.type && <SpecPill icon={Home} bold>{formatType(p.type)}</SpecPill>}
@@ -333,12 +336,13 @@ export default function PropertyCard({
           </h3>
 
           {/* Location */}
-          <div className="flex items-center gap-1.5 text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
+          <div className="flex items-center gap-1.5 text-xs mb-1" style={{ color: 'var(--text-muted)' }}>
             <MapPin size={11} style={{ color: 'var(--teal)', opacity: 0.7, flexShrink: 0 }} />
             <span className="min-w-0 truncate">
               {p.location?.area}, {p.location?.city}
             </span>
           </div>
+          <p className="text-[0.7rem] truncate mb-4" style={{ color: 'var(--text-muted)' }}>{propertyKeyword(p)}</p>
 
           {/* Specs */}
           <div

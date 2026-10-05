@@ -3,14 +3,14 @@ import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'rea
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
-import { LayoutList, List, Map as MapIcon, Navigation, PanelLeftClose, PanelLeftOpen, Search, Home, SlidersHorizontal, X } from 'lucide-react'
+import { ChevronDown, ChevronUp, LayoutList, List, Map as MapIcon, Navigation, PanelLeftClose, PanelLeftOpen, Search, Home, SlidersHorizontal, X } from 'lucide-react'
 import Navbar from '@/components/layouts/Navbar'
 import { Pill, FilterDropdown, DropdownOption, TYPES, AREAS, BEDS, PRICES } from '@/components/buyer/PropertyFilterBar'
 import MapListPanel from '@/components/map/MapListPanel'
-import PinPreviewCard from '@/components/map/PinPreviewCard'
+import PinPreviewCard, { type NearKind, type NearPlace } from '@/components/map/PinPreviewCard'
 import { MapToolbar, RadiusControl, LayersControl, HeatLegend } from '@/components/map/MapTools'
 import type { MapEngineHandle } from '@/components/map/MapEngine'
-import { propertyAPI, projectAPI } from '@/lib/api'
+import { propertyAPI, projectAPI, placeAPI } from '@/lib/api'
 import { AVAILABILITY_FILTERS, AVAILABLE_WITHIN } from '@/lib/rental'
 import MapPlaceSearch from '@/components/map/MapPlaceSearch'
 import type { ResolvedPlace } from '@/lib/placeSearch'
@@ -58,6 +58,9 @@ function initialViewFromParams(sp: URLSearchParams) {
 // panel with a live market snapshot, price/heat pins that cluster, draw-your-own
 // area and radius search, near-me, Street View, traffic/transit/satellite layers,
 // and shareable views.
+// One shared empty list, so the map is not told its landmarks changed on every render.
+const NO_PLACES: NearPlace[] = []
+
 export default function MapSearchClient() {
   return (
     <Suspense fallback={null}>
@@ -154,8 +157,11 @@ function MapSearchClientInner() {
   }, [onlyKind, onlySlug])
   // Tapping a landmark: the fastest driving route from the project to it, with time and distance.
   const [landmarkRoute, setLandmarkRoute] = useState<{ name: string; category: string; route: RouteInfo | null; loading: boolean; error?: boolean } | null>(null)
+  // The route pill over the map can be shrunk to just "18 min · 9.5 km".
+  const [routeMin, setRouteMin] = useState(false)
   const routeToLandmark = (l: { name: string; category: string; lat: number; lng: number }) => {
-    const from = pins[0]
+    // From the selected pin when there is one (places shown around it), else the one project the map was opened for.
+    const from = shownPins.find(p => p.id === selectedId) ?? pins[0]
     if (!from) return
     setLandmarkRoute({ name: l.name, category: l.category, route: null, loading: true })
     fetchRoute({ lat: from.lat, lng: from.lng }, { lat: l.lat, lng: l.lng })
@@ -305,6 +311,46 @@ function MapSearchClientInner() {
   )
   const stats = useMemo(() => computeStats(visiblePins), [visiblePins])
   const selectedPin = useMemo(() => shownPins.find(p => p.id === selectedId) ?? null, [shownPins, selectedId])
+
+  // While something is selected the map shows only it (and anything stacked at the same spot), so the places and
+  // routes around it are easy to read. The list still has everything; closing the card brings every pin back.
+  const mapPins = useMemo(() => {
+    if (!selectedPin) return shownPins
+    const keep = new Set(stackIds && stackIds.includes(selectedPin.id) ? stackIds : [selectedPin.id])
+    return shownPins.filter(p => keep.has(p.id))
+  }, [shownPins, selectedPin, stackIds])
+
+  // "Nearby" on the selected pin's card: the nearest tourist places, cafés & restaurants, malls & markets, hospitals or schools, dropped
+  // on the map around it. Loaded once per pin, the first time one of the three is picked.
+  const [nearKind, setNearKind] = useState<NearKind | null>(null)
+  const [nearData, setNearData] = useState<{ id: string; groups: Record<NearKind, NearPlace[]> } | null>(null)
+  const [nearLoading, setNearLoading] = useState(false)
+  useEffect(() => { setNearKind(null); setNearData(null); setNearLoading(false); setLandmarkRoute(null) }, [selectedPin?.id])
+  useEffect(() => {
+    if (!nearKind || !selectedPin || nearData?.id === selectedPin.id) return
+    let alive = true
+    const id = selectedPin.id
+    setNearLoading(true)
+    placeAPI.getAround(selectedPin.lat, selectedPin.lng)
+      .then(r => {
+        if (!alive) return
+        const d = r.data.data || {}
+        const list = (rows: any[]): NearPlace[] => (rows || []).filter(p => p.coordinates?.lat != null && p.coordinates?.lng != null)
+          .map(p => ({ id: p._id, name: p.name, slug: p.slug, placeCategory: p.category, label: p.subcategory || p.cuisine || '', lat: p.coordinates.lat, lng: p.coordinates.lng, distanceKm: p.distanceKm }))
+        setNearData({ id, groups: { tourist: list(d.tourist), cafes: list(d.cafes), shopping: list(d.shopping), hospitals: list(d.hospitals), schools: list(d.schools), airports: list(d.airports) } })
+      })
+      .catch(() => { if (alive) setNearData({ id, groups: { tourist: [], cafes: [], shopping: [], hospitals: [], schools: [], airports: [] } }) })
+      .finally(() => { if (alive) setNearLoading(false) })
+    return () => { alive = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nearKind, selectedPin?.id])
+  const nearPlaces = nearKind && selectedPin && nearData?.id === selectedPin.id ? nearData.groups[nearKind] : NO_PLACES
+  const NEAR_MARK: Record<NearKind, string> = { tourist: 'tourist', cafes: 'cafe', shopping: 'shopping', hospitals: 'hospital', schools: 'school', airports: 'airport' }
+  const nearLandmarks = useMemo(() => nearPlaces.map(p => ({ name: p.name, category: NEAR_MARK[nearKind!], lat: p.lat, lng: p.lng })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [nearPlaces, nearKind])
+  const mapLandmarks = useMemo(() => [...(only ? landmarks : []), ...nearLandmarks], [only, landmarks, nearLandmarks])
+  const pickNearKind = (k: NearKind) => { setLandmarkRoute(null); setNearKind(cur => (cur === k ? null : k)) }
 
   // Where drive times to the selected property are measured from: the drive-time search's places,
   // else the place picked in the search box, else the visitor's own location.
@@ -668,7 +714,7 @@ function MapSearchClientInner() {
           <div className="flex-1 min-w-0 relative">
             <MapEngine
               engineRef={engineRef}
-              pins={shownPins}
+              pins={mapPins}
               selectedId={selectedId}
               hoverId={hoverId}
               onSelect={selectOne}
@@ -686,7 +732,8 @@ function MapSearchClientInner() {
               colorMode={colorMode}
               clustering={clustering}
               userLocation={userLocation}
-              landmarks={only ? landmarks : undefined}
+              landmarks={mapLandmarks}
+              landmarkOrigin={nearLandmarks.length && selectedPin ? { id: selectedPin.id, lat: selectedPin.lat, lng: selectedPin.lng } : null}
               onLandmarkSelect={routeToLandmark}
               commutePlaces={commuteOrigins.length ? commuteOrigins : fromPlace ? [{ tag: 'A', label: fromPlace.label, lat: fromPlace.lat, lng: fromPlace.lng }] : []}
               routes={landmarkRoute?.route ? [{ tag: 'A', path: landmarkRoute.route.path }] : routes.map(r => ({ tag: r.origin.tag, path: r.route.path }))}
@@ -709,21 +756,22 @@ function MapSearchClientInner() {
               </button>
             )}
 
-            {/* Route to a tapped landmark */}
-            {only && landmarkRoute && (
-              <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 rounded-2xl pl-4 pr-2 py-2 shadow-lg max-w-[calc(100%-1.5rem)]"
+            {/* Route to a tapped landmark — a slim pill; minimised it is just the time and distance. */}
+            {landmarkRoute && (
+              <div className={cn('absolute left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 rounded-full shadow-lg max-w-[calc(100%-1.5rem)]', only ? 'top-14' : 'top-3', 'p-1')}
                 style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-                <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(29,78,216,0.10)' }}>
-                  <Navigation size={15} style={{ color: '#1D4ED8' }} />
-                </span>
-                <span className="min-w-0">
-                  <span className="block text-[11px]" style={{ color: 'var(--text-muted)' }}>Fastest route to</span>
-                  <span className="block text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>{landmarkRoute.name}</span>
-                </span>
-                <span className="text-sm font-bold whitespace-nowrap" style={{ color: '#1D4ED8' }}>
-                  {landmarkRoute.loading ? 'Finding route…' : landmarkRoute.route ? `${formatDrive(landmarkRoute.route.duration)} · ${formatKm(landmarkRoute.route.distance)}` : 'No route found'}
-                </span>
-                <button onClick={() => setLandmarkRoute(null)} className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 hover:bg-[var(--bg-alt)]" aria-label="Close route"><X size={14} /></button>
+                <button type="button" onClick={() => setRouteMin(v => !v)} className="flex items-center gap-2 min-w-0 rounded-full pr-1"
+                  title={routeMin ? `Route to ${landmarkRoute.name} — show the name` : 'Minimise'} aria-label={routeMin ? 'Show the route details' : 'Minimise the route details'} aria-expanded={!routeMin}>
+                  <span className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(29,78,216,0.10)' }}>
+                    <Navigation size={12} style={{ color: '#1D4ED8' }} />
+                  </span>
+                  {!routeMin && <span className="text-xs font-semibold truncate max-w-[9rem] sm:max-w-[15rem]" style={{ color: 'var(--text)' }}>{landmarkRoute.name}</span>}
+                  <span className="text-xs font-bold whitespace-nowrap" style={{ color: '#1D4ED8' }}>
+                    {landmarkRoute.loading ? 'Finding route…' : landmarkRoute.route ? `${formatDrive(landmarkRoute.route.duration)} · ${formatKm(landmarkRoute.route.distance)}` : 'No route found'}
+                  </span>
+                  {routeMin ? <ChevronDown size={13} className="flex-shrink-0" style={{ color: 'var(--text-muted)' }} /> : <ChevronUp size={13} className="flex-shrink-0" style={{ color: 'var(--text-muted)' }} />}
+                </button>
+                <button onClick={() => setLandmarkRoute(null)} className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 hover:bg-[var(--bg-alt)]" aria-label="Close route" title="Remove the route"><X size={13} /></button>
               </div>
             )}
 
@@ -815,6 +863,8 @@ function MapSearchClientInner() {
                     hasStart={previewOrigins.length > 0}
                     fromPlace={commuteOrigins.length ? null : fromPlace}
                     onFromPlace={setFromPlace}
+                    near={{ kind: nearKind, loading: nearLoading, places: nearPlaces, onKind: pickNearKind, activeName: landmarkRoute?.name,
+                      onPick: p => routeToLandmark({ name: p.name, category: NEAR_MARK[nearKind || 'tourist'], lat: p.lat, lng: p.lng }) }}
                   />
                 )}
               </>

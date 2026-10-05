@@ -21,9 +21,10 @@ import MarketWatchSection from '@/components/MarketWatchSection'
 import FeaturedProjectsSection from '@/components/FeaturedProjectsSection'
 import MapExploreSection from '@/components/MapExploreSection'
 import MortgageSection from '@/components/MortgageSection'
-import { propertyAPI, homepageAPI, communityContentAPI, projectAPI } from '@/lib/api'
+import { propertyAPI, homepageAPI, projectAPI } from '@/lib/api'
 import { HOME_ICON_MAP, DEFAULT_HOME_ICON } from '@/lib/homeIcons'
-import type { Property, Project, HomepageContent, CommunityContentWithStats } from '@/types'
+import type { Property, Project, HomepageContent, CommunityContentWithStats, Developer } from '@/types'
+import HomeKeywordSections, { type HomeArea } from '@/components/HomeKeywordSections'
 import PopularSearches from '@/components/PopularSearches'
 import AreaPriceMap from '@/components/AreaPriceMap'
 import type { QuickLinksData } from '@/lib/quickLinks'
@@ -167,13 +168,16 @@ function WhyCard({ icon, title, description }: { icon: string; title: string; de
 }
 
 /* ─── HOME PAGE ─────────────────────────────────────────────── */
-export default function HomeClient({ content, popularSearches }: { content: HomepageContent; popularSearches?: Partial<Record<ListingKind, QuickLinksData | null>> }) {
+export default function HomeClient({ content, popularSearches, guides }: {
+  content: HomepageContent
+  popularSearches?: Partial<Record<ListingKind, QuickLinksData | null>>
+  guides?: { areas: HomeArea[]; communities: CommunityContentWithStats[]; developers: (Developer & { projectCount?: number })[] }
+}) {
   const [hlIdx,   setHlIdx]   = useState(0)
   // Featured section: featured properties, topped up with the newest listings (then new projects) so it's never
   // empty or half-full. null = still loading.
   const [featured, setFeatured] = useState<({ kind: 'property'; item: Property } | { kind: 'project'; item: Project })[] | null>(null)
   const [areaStats, setAreaStats] = useState<AreaStat[] | null>(null)
-  const [communities, setCommunities] = useState<CommunityContentWithStats[]>([])
   const heroRef = useRef<HTMLElement>(null)
 
   const headlines = content.heroHeadlines.length > 0 ? content.heroHeadlines : ['Find Your Dream Home']
@@ -209,12 +213,6 @@ export default function HomeClient({ content, popularSearches }: { content: Home
     propertyAPI.getAreaStats(6)
       .then(r => { if (r.data.success) setAreaStats(r.data.data || []) })
       .catch(() => setAreaStats([]))
-  }, [])
-
-  useEffect(() => {
-    communityContentAPI.getAll()
-      .then(r => { if (r.data.success) setCommunities((r.data.data || []).slice(0, 6)) })
-      .catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -555,12 +553,12 @@ export default function HomeClient({ content, popularSearches }: { content: Home
               viewport={{ once: true }}
               className="text-center mb-14"
             >
-              <p className="eyebrow mb-3">Discover Communities</p>
+              <p className="eyebrow mb-3">Dubai Real Estate by Area</p>
               <h2 className="heading-lg mb-4">
-                Explore <span className="grad-text">Prime Areas</span>
+                Explore Dubai's <span className="grad-text">Prime Property Areas</span>
               </h2>
-              <p className="max-w-lg mx-auto" style={{ color: 'var(--text-muted)' }}>
-                Find luxury villas, waterfront apartments and investment opportunities in Dubai's most desirable locations.
+              <p className="max-w-xl mx-auto" style={{ color: 'var(--text-muted)' }}>
+                Villas, apartments and townhouses for sale and rent, distress deals and off-plan investment opportunities in Dubai's most desirable locations.
               </p>
             </motion.div>
 
@@ -583,36 +581,6 @@ export default function HomeClient({ content, popularSearches }: { content: Home
           </div>
         </section>
       ) : null}
-
-      {/* ─── COMMUNITIES (compact — full guides live at /communities) ── */}
-      {communities.length > 0 && (
-        <section className="pb-16">
-          <div className="wrap">
-            <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
-              <h3 className="font-semibold text-sm flex items-center gap-2" style={{ color: 'var(--text)' }}>
-                <Layers size={15} style={{ color: 'var(--teal)' }} /> Popular Communities
-              </h3>
-              <Link href="/communities" className="text-xs font-medium flex items-center gap-1" style={{ color: 'var(--teal)' }}>
-                View all <ArrowRight size={12} />
-              </Link>
-            </div>
-            <div className="flex flex-wrap gap-2.5">
-              {communities.map(c => (
-                <Link
-                  key={c._id}
-                  href={`/communities/${c.slug}`}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
-                  style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-mid)' }}
-                >
-                  <MapPin size={12} style={{ color: 'var(--teal)', opacity: 0.7 }} />
-                  {c.name}
-                  {c.area && <span style={{ color: 'var(--text-muted)' }}>· {c.area}</span>}
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* ─── FEATURED PROPERTIES ───────────────────────────── */}
       {!(featured && featured.length === 0) && (
@@ -662,6 +630,9 @@ export default function HomeClient({ content, popularSearches }: { content: Home
 
       {/* ─── COMPARE PRICES BY AREA ───────────────────────── */}
       <AreaPriceMap />
+
+      {/* ─── PROPERTY BY AREA, COMMUNITY & DEVELOPER (keyword links, in the HTML) ── */}
+      {guides && <HomeKeywordSections areas={guides.areas} communities={guides.communities} developers={guides.developers} />}
 
       {/* ─── WHY DISTRESS DEALS ────────────────────────────── */}
       <section className="section relative overflow-hidden">

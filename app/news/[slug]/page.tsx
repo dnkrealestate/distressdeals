@@ -29,6 +29,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   return {
     title,
     description,
+    keywords: Array.from(new Set([item.category, 'UAE real estate news', 'Dubai property news', 'UAE property market'].filter(Boolean))),
+    robots: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 },
     alternates: { canonical: `/news/${item.slug}` },
     openGraph: { title: item.title, description, type: 'article', url: `/news/${item.slug}`, images, publishedTime: item.publishedAt || item.createdAt },
     twitter: { card: 'summary_large_image', title: item.title, description, images: images.map(i => i.url) },

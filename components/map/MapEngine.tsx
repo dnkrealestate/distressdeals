@@ -48,6 +48,8 @@ interface Props {
   commutePlaces?: { tag: string; label: string; lat: number; lng: number }[]
   // A project's nearby landmarks (metro, schools, malls…) — shown around it when the map is opened for that project.
   landmarks?: { name: string; category: string; lat: number; lng: number }[]
+  // What landmark distances are measured from (the selected pin); when set, the map frames it with its landmarks.
+  landmarkOrigin?: { id: string; lat: number; lng: number } | null
   // A landmark was tapped — the page draws the fastest route to it.
   onLandmarkSelect?: (l: { name: string; category: string; lat: number; lng: number }) => void
   // Road routes to draw (one line per start point) — the directions to the selected property.
@@ -281,6 +283,7 @@ export default function MapEngine(props: Props) {
   const commuteMarkersRef = useRef<any[]>([])
   const landmarkMarkersRef = useRef<any[]>([])
   const landmarkInfoRef = useRef<any>(null)
+  const landmarkFitRef = useRef('')
   const routeLinesRef = useRef<any[]>([])
   const areaOverlayRef = useRef<any>(null)
   const lastAreaKeyRef = useRef('')
@@ -483,9 +486,10 @@ export default function MapEngine(props: Props) {
     if (!map || !g) return
     landmarkMarkersRef.current.forEach(m => m.setMap(null))
     landmarkMarkersRef.current = []
-    const COLORS: Record<string, string> = { metro: '#2563EB', school: '#16A34A', mall: '#DB2777', hospital: '#DC2626', airport: '#0891B2', landmark: '#D97706' }
-    const GLYPH: Record<string, string> = { metro: 'M', school: 'S', mall: '🛍', hospital: '+', airport: '✈', landmark: '★' }
-    const origin = propsRef.current.pins[0]
+    const COLORS: Record<string, string> = { metro: '#2563EB', school: '#16A34A', mall: '#DB2777', hospital: '#DC2626', airport: '#0891B2', landmark: '#D97706', tourist: '#D97706', cafe: '#B45309', shopping: '#DB2777' }
+    const GLYPH: Record<string, string> = { metro: 'M', school: 'S', mall: '🛍', hospital: '+', airport: '✈', landmark: '★', tourist: '★', cafe: '☕', shopping: '🛍' }
+    const LABEL: Record<string, string> = { tourist: 'Tourist place', cafe: 'Café / restaurant', shopping: 'Mall / market' }
+    const origin = propsRef.current.landmarkOrigin ?? propsRef.current.pins[0]
     const km = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
       const R = 6371, dLat = (b.lat - a.lat) * Math.PI / 180, dLng = (b.lng - a.lng) * Math.PI / 180
       const x = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2
@@ -505,13 +509,24 @@ export default function MapEngine(props: Props) {
         const div = document.createElement('div')
         div.style.cssText = 'font:600 12px system-ui;padding:2px 4px;max-width:200px'
         div.textContent = l.name
-        if (dist) { const s = document.createElement('div'); s.style.cssText = 'font-weight:400;color:#64748b;margin-top:2px'; s.textContent = `${l.category.charAt(0).toUpperCase() + l.category.slice(1)} · ${dist}`; div.appendChild(s) }
+        if (dist) { const s = document.createElement('div'); s.style.cssText = 'font-weight:400;color:#64748b;margin-top:2px'; s.textContent = `${LABEL[l.category] || l.category.charAt(0).toUpperCase() + l.category.slice(1)} · ${dist}`; div.appendChild(s) }
         landmarkInfoRef.current = new g.maps.InfoWindow({ content: div })
         landmarkInfoRef.current.open({ map, anchor: m })
       })
       return m
     })
-  }, [props.landmarks, props.pins, status])
+    // Places around a selected pin: bring them and the pin into view together — once per set, not on every refresh.
+    const sel = propsRef.current.landmarkOrigin, shown = (props.landmarks ?? []).filter(l => l.lat || l.lng)
+    const key = sel && shown.length ? `${sel.id}|${shown.map(l => l.name).join('|')}` : ''
+    if (key && key !== landmarkFitRef.current) {
+      const b = new g.maps.LatLngBounds()
+      b.extend({ lat: sel!.lat, lng: sel!.lng })
+      shown.forEach(l => b.extend({ lat: l.lat, lng: l.lng }))
+      fitSafely(b)
+    }
+    landmarkFitRef.current = key
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.landmarks, props.pins, props.landmarkOrigin?.id, status])
 
   // Directions: each route is a white casing under a coloured line, then the map frames all of them.
   useEffect(() => {

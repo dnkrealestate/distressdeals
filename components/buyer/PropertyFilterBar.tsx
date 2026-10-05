@@ -4,9 +4,10 @@ import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
-  ChevronDown, Home, Bed, Bath, DollarSign, MapPin, SlidersHorizontal, Tag,
+  ChevronDown, Home, Bed, Bath,  MapPin, SlidersHorizontal, Tag,
   Building2, Castle, Layers, Store, LayoutGrid, TreePine, Warehouse, Maximize2,
 } from 'lucide-react'
+import DirhamIcon from '@/components/shared/DirhamIcon'
 import { cn } from '@/lib/utils'
 import type { PropertyFilters } from '@/types'
 import { AVAILABILITY_FILTERS, AVAILABLE_WITHIN } from '@/lib/rental'
@@ -349,7 +350,7 @@ export function PropertyFilterBar({
         )}
 
         {/* Price */}
-        <FilterDropdown label={PRICES.find(p => p.min === filters.priceMin && p.max === filters.priceMax && (p.min || p.max))?.l || 'Price'} icon={DollarSign} active={!!filters.priceMin || !!filters.priceMax} widthClass="w-48">
+        <FilterDropdown label={PRICES.find(p => p.min === filters.priceMin && p.max === filters.priceMax && (p.min || p.max))?.l || 'Price'} icon={DirhamIcon} active={!!filters.priceMin || !!filters.priceMax} widthClass="w-48">
           {close => (
             <div className="flex flex-col gap-1">
               {PRICES.map(p => (

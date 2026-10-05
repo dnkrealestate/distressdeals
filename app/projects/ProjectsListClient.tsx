@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback, useRef, Suspense, Fragment } from 're
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Search, ChevronRight, MapPin, Building2, Globe2, ChevronDown, X, LayoutList, Grid3X3, TrendingUp, Sparkles, CalendarClock, Wallet, Home } from 'lucide-react'
+import { Search, ChevronRight, MapPin, Building2, Globe2, ChevronDown, X, LayoutList, Grid3X3, TrendingUp, Sparkles, CalendarClock, Home } from 'lucide-react'
+import DirhamIcon from '@/components/shared/DirhamIcon'
 
 import Navbar from '@/components/layouts/Navbar'
 import ProjectCompareBar from '@/components/buyer/ProjectCompareBar'
@@ -341,7 +342,7 @@ function ProjectsListClientInner({ bottom }: { bottom?: React.ReactNode }) {
           </FilterDropdown>
           <FilterDropdown
             label={PRICE_CHOICES.find(pc => pc.min === filters.priceMin && pc.max === filters.priceMax && (pc.min || pc.max))?.l || (filters.priceMin || filters.priceMax ? 'Custom price' : 'Price')}
-            icon={Wallet} active={!!(filters.priceMin || filters.priceMax)} widthClass="w-52">
+            icon={DirhamIcon} active={!!(filters.priceMin || filters.priceMax)} widthClass="w-52">
             {close => (
               <div className="flex flex-col gap-1">
                 {PRICE_CHOICES.map(pc => <DropdownOption key={pc.l} active={filters.priceMin === pc.min && filters.priceMax === pc.max} onClick={() => { setFilters(f => ({ ...f, priceMin: pc.min, priceMax: pc.max, page: 1 })); close() }}>{pc.min || pc.max ? `AED ${pc.l}` : pc.l}</DropdownOption>)}

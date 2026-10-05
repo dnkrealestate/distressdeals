@@ -4,9 +4,10 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
-  Search, MapPin, Home, SlidersHorizontal, DollarSign, Bed, Maximize2, Calendar,
+  Search, MapPin, Home, SlidersHorizontal,  Bed, Maximize2, Calendar,
   ChevronDown, X, Check, Sparkles, Loader2, Map as MapIcon,
 } from 'lucide-react'
+import DirhamIcon from '@/components/shared/DirhamIcon'
 import { propertyAPI } from '@/lib/api'
 import {
   CATEGORIES, RESIDENTIAL_TYPES, COMMERCIAL_TYPES, BATHS, SIZES,
@@ -1051,7 +1052,7 @@ export default function SearchBar({
             {/* Price */}
             <FilterDropdown
               label={PRICE_RANGES.find(p => p.min === priceRange.min && p.max === priceRange.max && (p.min || p.max))?.label || 'Price'}
-              icon={DollarSign}
+              icon={DirhamIcon}
               active={!!priceRange.min || !!priceRange.max}
               widthClass="w-52"
               fullWidth
