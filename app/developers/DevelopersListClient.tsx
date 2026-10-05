@@ -16,10 +16,13 @@ function DeveloperCard({ dev, delay }: { dev: DeveloperWithStats; delay: number 
   return (
     <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay }}>
       <Link href={`/developers/${dev.slug}`}>
-        <div className="card-hover group h-full flex flex-col">
-          <div className="h-40 relative flex items-center justify-center flex-shrink-0 overflow-hidden" style={{ background: '#fff', borderBottom: '1px solid var(--border)' }}>
+        <div className="card-hover light-card group h-full flex flex-col">
+          <div className="h-28 relative flex items-center justify-center flex-shrink-0 overflow-hidden" style={{ background: '#fff', borderBottom: '1px solid var(--border)' }}>
             {dev.logo ? (
-              <Image src={dev.logo} alt={dev.name} fill className="object-contain p-6 transition-transform duration-500 group-hover:scale-105" sizes="(max-width:768px)100vw,400px" />
+              // Every logo sits in the same 150×52 box, whatever its own shape, so the grid looks even.
+              <span className="relative block w-[150px] h-[52px] transition-transform duration-500 group-hover:scale-105">
+                <Image src={dev.logo} alt={dev.name} fill className="object-contain" sizes="150px" />
+              </span>
             ) : (
               <Building2 size={32} style={{ color: 'var(--teal)', opacity: 0.35 }} />
             )}

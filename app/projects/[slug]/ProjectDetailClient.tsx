@@ -327,10 +327,13 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                   {project.status.replace('_', ' ')}
                 </span>
                 {(project.developerLogo || project.developer) && (
-                  <span className="absolute bottom-3 right-3 md:bottom-4 md:right-4 flex items-center justify-center rounded-lg md:rounded-xl px-2.5 py-1.5 md:px-3 md:py-2 shadow-md h-9 min-w-[72px] md:h-11 md:min-w-[96px]"
+                  // With a logo the chip is one fixed size (88×36, 108×42 on desktop) for every developer; a name-only
+                  // chip grows with the name.
+                  <span className={cn('absolute bottom-3 right-3 md:bottom-4 md:right-4 flex items-center justify-center rounded-lg md:rounded-xl px-2.5 py-1.5 md:px-3 md:py-2 shadow-md h-9 md:h-[42px]',
+                    project.developerLogo ? 'w-[88px] md:w-[108px]' : 'min-w-[72px] md:min-w-[96px]')}
                     style={{ background: '#fff' }}>
                     {project.developerLogo
-                      ? <Image src={project.developerLogo} alt={project.developer} width={140} height={40} className="object-contain w-auto h-full max-w-[84px] md:max-w-[112px]" />
+                      ? <Image src={project.developerLogo} alt={project.developer} width={140} height={40} className="object-contain w-full h-full" />
                       : <span className="text-xs md:text-sm font-bold tracking-wide uppercase" style={{ color: '#0F172A' }}>{project.developer}</span>}
                   </span>
                 )}

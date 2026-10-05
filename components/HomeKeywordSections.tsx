@@ -104,11 +104,12 @@ export default function HomeKeywordSections({ areas, communities, developers }: 
               href="/developers" cta={`All ${developers.length} developers`} />
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
               {topDevs.map(d => (
-                <Link key={d._id} href={`/developers/${d.slug}`} className="card-hover group p-4 flex flex-col items-center text-center gap-2">
-                  <span className="w-full h-12 flex items-center justify-center">
+                <Link key={d._id} href={`/developers/${d.slug}`} className="card-hover light-card group p-4 flex flex-col items-center text-center gap-2">
+                  {/* Every logo sits in the same 88×32 box, whatever its own shape, so the row looks even. */}
+                  <span className="w-[88px] h-8 flex items-center justify-center">
                     {d.logo
                       // eslint-disable-next-line @next/next/no-img-element
-                      ? <img src={d.logo} alt={`${d.name} — property developer in the UAE`} loading="lazy" decoding="async" className="max-h-11 max-w-full object-contain" />
+                      ? <img src={d.logo} alt={`${d.name} — property developer in the UAE`} loading="lazy" decoding="async" className="w-full h-full object-contain" />
                       : <Landmark size={22} style={{ color: 'var(--teal)', opacity: 0.4 }} />}
                   </span>
                   <h3 className="text-xs font-semibold leading-snug group-hover:text-[var(--teal)] transition-colors" style={{ color: 'var(--text)' }}>{d.name} projects</h3>

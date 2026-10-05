@@ -518,6 +518,13 @@ body {
 @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
 /* Our own themes, declared so browsers draw form controls/scrollbars to match and never apply their own auto-dark. */
+/* A card that stays light in dark mode too — for developer logos, which are drawn for a white background.
+   It resets the theme colours inside itself, so its text and border follow. */
+.light-card, [data-theme="dark"] .light-card {
+  --surface: #FFFFFF; --bg-alt: #F1F5F9; --border: #E2E8F0; --border-soft: #F1F5F9;
+  --text: #1E293B; --text-mid: #475569; --text-muted: #64748B;
+  background: #FFFFFF; border-color: #E2E8F0; color: #1E293B; color-scheme: light;
+}
 [data-theme="light"] { color-scheme: light; }
 [data-theme="dark"] { color-scheme: dark; }
 

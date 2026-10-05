@@ -6,7 +6,7 @@ import Navbar from '@/components/layouts/Navbar'
 import Footer from '@/components/layouts/Footer'
 import PlaceCard from '@/components/explore/PlaceCard'
 import RealEstateLinks from '@/components/shared/RealEstateLinks'
-import { blogAPI, newsAPI, areaContentAPI, communityContentAPI, buildingContentAPI, placeAPI, developerAPI } from '@/lib/api'
+import { blogAPI, newsAPI, areaContentAPI, communityContentAPI, buildingContentAPI, placeAPI, developerAPI, propertyAPI } from '@/lib/api'
 import { resolveSeo } from '@/lib/seo'
 import { formatDate, formatPrice } from '@/lib/utils'
 import { EXPLORE_SECTIONS, sectionHref } from '@/lib/explore'
@@ -75,7 +75,7 @@ function ArticleCard({ href, image, eyebrow, title, text, meta }: { href: string
 }
 
 export default async function InsightsPage() {
-  const [newsRes, blogRes, areaRes, communityRes, buildingRes, exploreRes, developerRes] = await Promise.all([
+  const [newsRes, blogRes, areaRes, communityRes, buildingRes, exploreRes, developerRes, areaStatsRes] = await Promise.all([
     newsAPI.getAll({ status: 'published', limit: 7 }).catch(() => null),
     blogAPI.getAll({ status: 'published', limit: 6 }).catch(() => null),
     areaContentAPI.getAll().catch(() => null),
@@ -83,6 +83,7 @@ export default async function InsightsPage() {
     buildingContentAPI.getAll().catch(() => null),
     placeAPI.getSummary(4).catch(() => null),
     developerAPI.getAll().catch(() => null),
+    propertyAPI.getAllAreas().catch(() => null),
   ])
   const news: NewsItem[] = rows(newsRes)
   const posts: BlogPost[] = rows(blogRes)
@@ -95,6 +96,13 @@ export default async function InsightsPage() {
   const placeTotal = explore.reduce((a, s) => a + s.count, 0)
   // Photos first, so the grids look full.
   const withPhoto = <T extends { heroImage?: string }>(list: T[]) => [...list].sort((a, b) => Number(!!b.heroImage) - Number(!!a.heroImage))
+  // Areas and communities: the ones with the most listings (properties + new projects) first, then the ones with a
+  // photo. Area counts come from the listings themselves (GET /properties/areas), matched by page address.
+  const areaListed = new Map<string, number>((rows(areaStatsRes) as any[]).map(a => [a.slug, (a.count || 0) + (a.projectCount || 0)]))
+  const listedIn = (x: any) => areaListed.get(x.slug) ?? (x.count || 0)
+  const busiest = <T extends { heroImage?: string }>(list: T[], n: (x: T) => number) => [...list].sort((a, b) => n(b) - n(a) || Number(!!b.heroImage) - Number(!!a.heroImage))
+  const areasByListings = busiest(areas, listedIn)
+  const communitiesByListings = busiest(communities, c => c.count || 0)
 
   const nav = [
     news.length && { href: '#news', label: 'News' },
@@ -232,7 +240,7 @@ export default async function InsightsPage() {
           <section aria-labelledby="areas">
             <SectionHead id="areas" icon={MapPin} title="Area Guides" subtitle="Where to buy and rent — property types, lifestyle and prices by area" href="/areas" cta={`All ${areas.length} areas`} />
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {withPhoto(areas).slice(0, 8).map(a => (
+              {areasByListings.slice(0, 8).map(a => (
                 <GuideTile key={a._id} href={`/areas/${a.slug}`} image={a.heroImage} title={a.area}
                   sub={a.count ? `${a.count} listing${a.count === 1 ? '' : 's'}` : undefined} meta={a.avgPrice > 0 ? `avg ${formatPrice(Math.round(a.avgPrice))}` : undefined} />
               ))}
@@ -244,12 +252,12 @@ export default async function InsightsPage() {
           <section aria-labelledby="communities">
             <SectionHead id="communities" icon={Layers} title="Community Guides" subtitle="Residential communities and master developments, with properties for sale and rent" href="/communities" cta={`All ${communities.length} communities`} />
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {withPhoto(communities).slice(0, 12).map(c => (
+              {communitiesByListings.slice(0, 12).map(c => (
                 <GuideTile key={c._id} href={`/communities/${c.slug}`} image={c.heroImage} title={c.name} sub={c.area && c.area !== c.name ? c.area : c.emirate} meta={c.count ? `${c.count} listings` : undefined} />
               ))}
             </div>
             <div className="flex flex-wrap gap-2 mt-4">
-              {withPhoto(communities).slice(12, 40).map(c => (
+              {communitiesByListings.slice(12, 40).map(c => (
                 <Link key={c._id} href={`/communities/${c.slug}`} className="px-3 py-1.5 rounded-full text-[11px] font-medium"
                   style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-mid)' }}>{c.name}</Link>
               ))}
@@ -280,10 +288,11 @@ export default async function InsightsPage() {
             <SectionHead id="developers" icon={Landmark} title="Developer Guides" subtitle="UAE property developers — their off-plan projects, starting prices and where they build" href="/developers" cta={`All ${developers.length} developers`} />
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
               {developers.slice(0, 12).map(d => (
-                <Link key={d._id} href={`/developers/${d.slug}`} className="card-hover group p-4 flex flex-col items-center text-center gap-2">
-                  <span className="w-full h-14 flex items-center justify-center">
+                <Link key={d._id} href={`/developers/${d.slug}`} className="card-hover light-card group p-4 flex flex-col items-center text-center gap-2">
+                  {/* Every logo sits in the same 88×32 box (as on the homepage), whatever its own shape. */}
+                  <span className="w-[88px] h-8 flex items-center justify-center">
                     {d.logo
-                      ? <img src={d.logo} alt={`${d.name} — property developer`} loading="lazy" decoding="async" className="max-h-12 max-w-full object-contain" />
+                      ? <img src={d.logo} alt={`${d.name} — property developer`} loading="lazy" decoding="async" className="w-full h-full object-contain" />
                       : <Landmark size={24} style={{ color: 'var(--teal)', opacity: 0.4 }} />}
                   </span>
                   <span className="text-xs font-semibold leading-snug group-hover:text-[var(--teal)]" style={{ color: 'var(--text)' }}>{d.name}</span>
