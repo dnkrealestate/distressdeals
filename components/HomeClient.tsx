@@ -11,6 +11,8 @@ import {
   MapPin, Layers,
 } from 'lucide-react'
 
+
+
 import Navbar       from '@/components/layouts/Navbar'
 import Footer       from '@/components/layouts/Footer'
 import SearchBar    from '@/components/buyer/SearchBar'
