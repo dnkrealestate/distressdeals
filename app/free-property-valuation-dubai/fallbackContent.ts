@@ -1,4 +1,5 @@
 import type { ContentPageData } from '@/types'
+import type { Faq } from '@/components/shared/FaqSection'
 
 export const PAGE_KEY = 'free-property-valuation-dubai'
 
@@ -24,3 +25,12 @@ export const FALLBACK_CONTENT: ContentPageData = {
     },
   ],
 }
+
+// Shown under the page with FAQPage markup.
+export const FAQS: Faq[] = [
+  { q: 'Is the property valuation really free?', a: 'Yes. There is no charge and no obligation to list with us afterwards.' },
+  { q: 'How do you value my property?', a: 'We compare your property with recent sales of similar units in the same building or community, adjusting for size, floor, view, layout and condition.' },
+  { q: 'Is this the same as a bank valuation?', a: 'No. A bank valuation is done by a valuer appointed by the lender when a mortgage is being arranged. Our valuation is a market price guide to help you decide how to price your property.' },
+  { q: 'How long does a valuation take?', a: 'Usually a short time after we have your property details. A viewing may be needed for an accurate figure on villas or unusual units.' },
+  { q: 'What should I prepare?', a: 'The unit number and building or community, the size, the number of bedrooms, any upgrades, and whether the property is vacant or tenanted.' },
+]

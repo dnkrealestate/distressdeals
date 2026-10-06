@@ -57,6 +57,12 @@ const NAV: NavItem[] = [
           { label: 'Townhouses',  href: '/for-sale?type=townhouse' },
           { label: 'Penthouses',  href: '/for-sale?type=penthouse' },
         ] },
+        { heading: 'Distress Deals', links: [
+          { label: 'Distress Sale Dubai',     href: '/distress-sale-dubai' },
+          { label: 'Distressed Apartments',   href: '/distressed-apartments-dubai' },
+          { label: 'Distressed Villas',       href: '/distressed-villas-dubai' },
+          { label: 'All Distressed Property', href: '/distressed-property-for-sale' },
+        ] },
         { heading: 'Explore Dubai', links: [
           { label: 'Area Insights', href: '/areas' },
           { label: 'Communities',   href: '/communities' },

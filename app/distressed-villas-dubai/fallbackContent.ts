@@ -1,4 +1,5 @@
 import type { ContentPageData } from '@/types'
+import type { Faq } from '@/components/shared/FaqSection'
 
 export const PAGE_KEY = 'distressed-villas-dubai'
 
@@ -42,3 +43,12 @@ export const FALLBACK_CONTENT: ContentPageData = {
   ctaButtonLabel: 'View Villas for Sale',
   ctaButtonHref: '/buyer/properties?type=villa',
 }
+
+// Shown under the page with FAQPage markup.
+export const FAQS: Faq[] = [
+  { q: 'Why do villa owners in Dubai sell below market?', a: 'Villas cost more to hold than apartments and have fewer buyers at any moment, so an owner with a deadline — a relocation, a family change, a loan — often has to discount more to sell within that time.' },
+  { q: 'Which communities have the most distressed villas?', a: 'Below-market villas appear across Dubai’s villa communities, including Arabian Ranches, Dubai Hills Estate, Jumeirah Park, Jumeirah Golf Estates, Damac Hills and Palm Jumeirah. What is listed changes week to week.' },
+  { q: 'Should I inspect a distressed villa before buying?', a: 'Yes. An empty or under-maintained villa can need work on air conditioning, the roof, the pool or the garden. An independent inspection before you sign is money well spent.' },
+  { q: 'Are service charges higher for villas?', a: 'They vary widely by community. Always compare the full annual cost — service charges, maintenance and utilities — not only the purchase price.' },
+  { q: 'Can I get a mortgage on a distressed villa?', a: 'Yes, if the villa meets your bank’s criteria. Get a pre-approval first so you can make a firm offer to a seller who needs a quick sale.' },
+]

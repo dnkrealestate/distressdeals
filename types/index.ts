@@ -171,6 +171,15 @@ export interface HomepageContent {
 }
 
 export interface ContentCard { icon?: string; title: string; body: string; meta?: string; image?: string }
+// A request from a website form with no listing attached (admin "Requests" page).
+export interface ContactRequest {
+  _id: string; name: string; email: string; phone?: string; message: string
+  source: 'contact_form' | 'valuation_request' | 'fast_sale_request'
+  status?: 'new' | 'contacted' | 'closed'; note?: string; isRead?: boolean
+  handledBy?: { _id: string; name: string } | null
+  createdAt: string; updatedAt?: string
+}
+
 export interface ContentSection { heading: string; body?: string; cards?: ContentCard[] }
 export interface ContentPageData {
   _id?: string
@@ -181,6 +190,8 @@ export interface ContentPageData {
   // Legal pages only: the whole document as formatted text, and its "Last updated" date.
   bodyHtml?: string
   updatedLabel?: string
+  // Landing pages: questions & answers at the bottom of the page.
+  faqs?: { q: string; a: string }[]
   stats?: MiniStat[]
   sections: ContentSection[]
   ctaTitle?: string

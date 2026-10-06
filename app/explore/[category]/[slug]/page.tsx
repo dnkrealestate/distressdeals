@@ -1,4 +1,5 @@
 import { cache } from 'react'
+import Image from 'next/image'
 import type { Metadata } from 'next'
 import { notFound, permanentRedirect } from 'next/navigation'
 import Link from 'next/link'
@@ -12,7 +13,7 @@ import ReviewsSection from '@/components/shared/ReviewsSection'
 import RealEstateLinks from '@/components/shared/RealEstateLinks'
 import FaqSection, { type Faq } from '@/components/shared/FaqSection'
 import { placeAPI } from '@/lib/api'
-import { shareImages } from '@/lib/seo'
+import { shareImages, fitTitle, fitDescription } from '@/lib/seo'
 import { formatPrice } from '@/lib/utils'
 import { EXPLORE_SECTIONS, sectionByKey, sectionByPath, placeHref, sectionHref, emirateFromSlug } from '@/lib/explore'
 import { placeTitle, placeDescription, placeKeywords, placeJsonLd } from '@/lib/placeSeo'
@@ -43,7 +44,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const url = placeHref(place)
   const alt = `${place.name}, ${whereOf(place)}`
   return {
-    title, description,
+    title: fitTitle(title), description: fitDescription(description),
     keywords: placeKeywords(place),
     alternates: { canonical: url },
     robots: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1, 'max-video-preview': -1 },
@@ -107,7 +108,7 @@ export default async function PlacePage({ params, searchParams }: Props) {
       <section className="relative pt-20 pb-10 overflow-hidden" style={light ? { minHeight: 380 } : undefined}>
         {light ? (
           <>
-            <img src={place.heroImage} alt={`${place.name} — ${kind} in ${where}`} title={place.name} width={1600} height={900} decoding="async" className="absolute inset-0 w-full h-full object-cover" fetchPriority="high" />
+            <Image src={place.heroImage!} alt={`${place.name} — ${kind} in ${where}`} title={place.name} fill priority sizes="100vw" quality={70} className="object-cover" />
             <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(8,8,8,0.45) 0%, rgba(8,8,8,0.35) 45%, var(--bg) 98%)' }} />
             {place.heroImageCredit?.name && (
               <a href={place.heroImageCredit.url} target="_blank" rel="noopener noreferrer nofollow"

@@ -4,7 +4,8 @@ import Footer from '@/components/layouts/Footer'
 import { ContentPageRenderer } from '@/components/ContentPageRenderer'
 import { resolveSeo } from '@/lib/seo'
 import { getContentPage } from '@/lib/contentPages'
-import { PAGE_KEY, FALLBACK_CONTENT } from './fallbackContent'
+import { PAGE_KEY, FALLBACK_CONTENT, FAQS } from './fallbackContent'
+import LandingExtras, { otherGuides } from '@/components/LandingExtras'
 
 // Content is edited in the admin — rebuild this page from the latest data at most every 60 s (otherwise a production
 // build freezes it at build time and edits never show).
@@ -38,6 +39,8 @@ export default async function DubaiPropertyAuctionsPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       <Navbar />
       <ContentPageRenderer content={content} />
+      <LandingExtras listingTitle="Below-market property for sale now" listingParams={{ listingType: 'sale' }} viewAllHref="/for-sale"
+        faqTitle="Dubai property auctions: FAQs" faqs={content.faqs?.length ? content.faqs : FAQS} related={otherGuides(`/${PAGE_KEY}`)} />
       <Footer />
     </div>
   )

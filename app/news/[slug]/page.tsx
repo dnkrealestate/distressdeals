@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import { newsAPI } from '@/lib/api'
 import NewsDetailClient from './NewsDetailClient'
 import type { NewsItem } from '@/types'
-import { shareImages } from '@/lib/seo'
+import { shareImages, fitTitle, fitDescription } from '@/lib/seo'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -27,8 +27,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   const images = shareImages(item.coverImage)
 
   return {
-    title,
-    description,
+    title: fitTitle(title),
+    description: fitDescription(description),
     keywords: Array.from(new Set([item.category, 'UAE real estate news', 'Dubai property news', 'UAE property market'].filter(Boolean))),
     robots: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 },
     alternates: { canonical: `/news/${item.slug}` },

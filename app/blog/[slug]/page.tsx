@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import { blogAPI } from '@/lib/api'
 import BlogDetailClient from './BlogDetailClient'
 import type { BlogPost } from '@/types'
-import { shareImages } from '@/lib/seo'
+import { shareImages, fitTitle, fitDescription } from '@/lib/seo'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -32,8 +32,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   const images = shareImages(post.coverImage)
 
   return {
-    title,
-    description,
+    title: fitTitle(title),
+    description: fitDescription(description),
     keywords: Array.from(new Set([...(post.tags || []), post.category, 'UAE real estate', 'Dubai property guide'].filter(Boolean))),
     robots: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 },
     alternates: { canonical: `/blog/${post.slug}` },

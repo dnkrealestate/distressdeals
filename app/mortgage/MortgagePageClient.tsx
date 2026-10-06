@@ -21,14 +21,14 @@ export default function MortgagePageClient() {
             <span className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--teal)' }}>Financial Tools</span>
           </motion.div>
 
-          <motion.h1 initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.6 }} className="heading-xl mb-6 max-w-2xl mx-auto">
+          <h1 className="heading-xl mb-6 max-w-2xl mx-auto">
             Dubai Mortgage &amp; <span className="grad-text">Rental Yield Calculator</span>
-          </motion.h1>
+          </h1>
 
-          <motion.p initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.6 }}
+          <p
             className="text-base md:text-lg max-w-xl mx-auto leading-relaxed" style={{ color: 'var(--text-muted)' }}>
             Estimate your mortgage payments and rental returns, then talk to our in-house team — not a third-party call center.
-          </motion.p>
+          </p>
         </div>
       </section>
 

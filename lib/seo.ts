@@ -14,6 +14,33 @@ export const DEFAULT_SHARE_IMAGE = {
 }
 export const shareImages = (url?: string | null, alt?: string) => (url ? [{ url, ...(alt ? { alt } : {}) }] : [DEFAULT_SHARE_IMAGE])
 
+// Google shows about 60 characters of a title. The root layout adds " | Distress Deals UAE" (21) to every title, which
+// pushes many past that — so: keep the full brand when it fits, a shorter one when that fits, otherwise just the title,
+// shortened at a word boundary. Use for every page title: `title: fitTitle(title)`.
+const BRAND = ' | Distress Deals UAE', SHORT_BRAND = ' | Distress Deals', MAX_TITLE = 60
+const cutAt = (s: string, max: number) => {
+  if (s.length <= max) return s
+  const cut = s.slice(0, max + 1)
+  return cut.slice(0, Math.max(cut.lastIndexOf(' '), Math.floor(max * 0.6))).replace(/[\s|:—–\-,·(&]+$/, '')
+}
+export function fitTitle(raw: string): Metadata['title'] {
+  const t = raw.replace(/\s+/g, ' ').trim()
+  if (/distress\s*deals/i.test(t)) return { absolute: cutAt(t, MAX_TITLE) }
+  if (t.length + BRAND.length <= MAX_TITLE) return t                       // the layout's template adds the full brand
+  if (t.length + SHORT_BRAND.length <= MAX_TITLE) return { absolute: t + SHORT_BRAND }
+  return { absolute: cutAt(t, MAX_TITLE) }
+}
+// Search results show about 155–160 characters of a description — longer ones are cut by Google mid-sentence. Trim at a
+// sentence or word boundary instead.
+export function fitDescription(raw: string, max = 158): string {
+  const d = raw.replace(/\s+/g, ' ').trim()
+  if (d.length <= max) return d
+  const cut = d.slice(0, max)
+  const sentence = cut.lastIndexOf('. ')
+  if (sentence > max * 0.6) return cut.slice(0, sentence + 1)
+  return cut.slice(0, cut.lastIndexOf(' ')).replace(/[\s,;:—–\-]+$/, '') + '…'
+}
+
 export interface SeoDefaults {
   title: string
   description: string
@@ -31,15 +58,13 @@ export async function resolveSeo(pageKey: string, defaults: SeoDefaults): Promis
     .catch(() => ({}) as { title?: string; description?: string; keywords?: string })
 
   const title = override.title || defaults.title
-  const description = override.description || defaults.description
+  const description = fitDescription(override.description || defaults.description)
   const keywords = override.keywords
     ? override.keywords.split(',').map(k => k.trim()).filter(Boolean)
     : defaults.keywords
 
   return {
-    // The root layout's title template appends " | Distress Deals UAE" — skip it when the title already names the
-    // brand, so it never shows twice.
-    title: /distress\s*deals/i.test(title) ? { absolute: title } : title,
+    title: fitTitle(title),
     description,
     ...(keywords?.length ? { keywords } : {}),
     alternates: { canonical: defaults.path },

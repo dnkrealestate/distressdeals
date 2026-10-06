@@ -7,7 +7,7 @@ import PlaceCard from '@/components/explore/PlaceCard'
 import FaqSection, { type Faq } from '@/components/shared/FaqSection'
 import RealEstateLinks from '@/components/shared/RealEstateLinks'
 import { placeAPI } from '@/lib/api'
-import { shareImages } from '@/lib/seo'
+import { shareImages, fitTitle, fitDescription } from '@/lib/seo'
 import { EXPLORE_SECTIONS, EMIRATES, sectionHref, placeHref, type ExploreSection } from '@/lib/explore'
 import type { Metadata } from 'next'
 import type { Place } from '@/types'
@@ -34,7 +34,7 @@ export function sectionListMetadata(section: ExploreSection, emirate: string | u
     : section.seoDescription
   const canonical = `${sectionHref(section, emirate)}${page > 1 ? `?page=${page}` : ''}`
   return {
-    title, description,
+    title: fitTitle(title), description: fitDescription(description),
     keywords: [emirate ? `${section.label.toLowerCase()} in ${emirate}` : `${section.label.toLowerCase()} in UAE`, `best ${section.label.toLowerCase()} ${emirate || 'UAE'}`, `${emirate || 'UAE'} ${section.singular} guide`, `${section.label.toLowerCase()} near me ${emirate || 'UAE'}`, `properties for sale in ${emirate || 'UAE'}`, `apartments for rent in ${emirate || 'UAE'}`, `off-plan projects in ${emirate || 'UAE'}`, `${emirate || 'UAE'} real estate`],
     alternates: { canonical },
     // Search results and re-sorted lists are the same content — keep only the plain list in the index.

@@ -1,4 +1,5 @@
 import type { ContentPageData } from '@/types'
+import type { Faq } from '@/components/shared/FaqSection'
 
 export const PAGE_KEY = 'distress-sale-dubai'
 
@@ -50,3 +51,12 @@ export const FALLBACK_CONTENT: ContentPageData = {
   ctaButtonLabel: 'Browse Distress Listings',
   ctaButtonHref: '/for-sale',
 }
+
+// Shown under the page with FAQPage markup.
+export const FAQS: Faq[] = [
+  { q: 'What is a distress sale in Dubai?', a: 'A sale where the owner offers a property below its usual market value because they need to sell quickly — for example after a relocation, a change in their finances or a large off-plan payment. The property itself is usually in normal condition.' },
+  { q: 'Are distress deals in Dubai genuine?', a: 'Many are, but the word is also used on listings that are not below market. A genuine distress sale is priced clearly below recent sales of similar properties, has a clear reason for the seller’s timeline, and has clean paperwork. We check all three before a listing goes live.' },
+  { q: 'Who can buy a distress sale property in Dubai?', a: 'Anyone who can buy property in Dubai — UAE residents and overseas buyers alike can own freehold property in the designated freehold areas, where most distress sales are listed.' },
+  { q: 'How quickly does a distress sale complete?', a: 'A cash purchase can often be completed within a few weeks once the Form F (MOU) is signed and the developer’s no-objection certificate is issued. A mortgage purchase takes longer because the bank must value the property and issue final approval.' },
+  { q: 'Do buyers pay a fee to use Distress Deals UAE?', a: 'No. Buyers can browse and enquire for free. The standard government costs of buying — the Land Department transfer fee and trustee fee — apply as with any purchase.' },
+]

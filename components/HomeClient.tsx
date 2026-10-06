@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
+import { getImageProps } from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowRight,
@@ -22,13 +22,16 @@ import BlogSection  from '@/components/BlogSection'
 import MarketWatchSection from '@/components/MarketWatchSection'
 import FeaturedProjectsSection from '@/components/FeaturedProjectsSection'
 import MapExploreSection from '@/components/MapExploreSection'
-import MortgageSection from '@/components/MortgageSection'
+import dynamic from 'next/dynamic'
 import { propertyAPI, homepageAPI, projectAPI } from '@/lib/api'
 import { HOME_ICON_MAP, DEFAULT_HOME_ICON } from '@/lib/homeIcons'
 import type { Property, Project, HomepageContent, CommunityContentWithStats, Developer } from '@/types'
 import HomeKeywordSections, { type HomeArea } from '@/components/HomeKeywordSections'
 import PopularSearches from '@/components/PopularSearches'
-import AreaPriceMap from '@/components/AreaPriceMap'
+// The price map and the mortgage calculator sit far down the page and are fully interactive — their code is loaded
+// once the page is up, so it does not hold back the first screen. The placeholders keep the layout from jumping.
+const AreaPriceMap = dynamic(() => import('@/components/AreaPriceMap'), { ssr: false, loading: () => <div className="section"><div className="wrap"><div className="shimmer rounded-3xl" style={{ height: 620 }} /></div></div> })
+const MortgageSection = dynamic(() => import('@/components/MortgageSection'), { ssr: false, loading: () => <div className="section"><div className="wrap"><div className="shimmer rounded-3xl" style={{ height: 560 }} /></div></div> })
 import type { QuickLinksData } from '@/lib/quickLinks'
 import type { ListingKind } from '@/lib/listingTags'
 
@@ -57,6 +60,23 @@ function hexToRgba(hex: string, alpha: number): string {
   if (Number.isNaN(num) || full.length !== 6) return `rgba(148,163,184,${alpha})`
   const r = (num >> 16) & 255, g = (num >> 8) & 255, b = num & 255
   return `rgba(${r},${g},${b},${alpha})`
+}
+
+/* ─── HERO BANNER ───────────────────────────────────────────── */
+// One <picture>: the browser downloads only the photo for its screen size (desktop or mobile), resized and compressed
+// by Next.js, and fetches it first since it is the largest thing on screen.
+function HeroBanner({ desktop, mobile }: { desktop: string; mobile: string }) {
+  const common = { alt: '', fill: true, sizes: '100vw', quality: 65, priority: true } as const
+  const { props: { srcSet: desktopSet } } = getImageProps({ ...common, src: desktop })
+  const { props: { srcSet: mobileSet, ...img } } = getImageProps({ ...common, src: mobile })
+  return (
+    <picture>
+      <source media="(min-width: 768px)" srcSet={desktopSet} />
+      <source media="(max-width: 767px)" srcSet={mobileSet} />
+      {/* eslint-disable-next-line jsx-a11y/alt-text */}
+      <img {...img} className="object-cover object-center md:object-right" />
+    </picture>
+  )
 }
 
 /* ─── ANIMATED HEADLINE ─────────────────────────────────────── */
@@ -253,24 +273,7 @@ export default function HomeClient({ content, popularSearches, guides }: {
             className="absolute overflow-hidden inset-1.5 sm:inset-2.5 md:inset-3 rounded-2xl sm:rounded-3xl"
             style={{ border: '1px solid rgba(255,255,255,0.18)' }}
           >
-            <Image
-              src={content.heroBannerDesktopDay || '/banners/home_banner_day.webp'}
-              alt=""
-              fill
-              priority
-              quality={100}
-              sizes="100vw"
-              className="object-cover object-right hidden md:block"
-            />
-            <Image
-              src={content.heroBannerMobileDay || '/banners/home_banner_day_mobile.webp'}
-              alt=""
-              fill
-              priority
-              quality={100}
-              sizes="100vw"
-              className="object-cover object-center md:hidden"
-            />
+            <HeroBanner desktop={content.heroBannerDesktopDay || '/banners/home_banner_day.webp'} mobile={content.heroBannerMobileDay || '/banners/home_banner_day_mobile.webp'} />
           </div>
 
           {/* Soft left-to-right fade so text always sits on a clean surface (theme-aware) */}
@@ -296,28 +299,25 @@ export default function HomeClient({ content, popularSearches, guides }: {
             {/* Color-shade orbs — clipped to the banner photo, drifting slowly
                 and weightlessly across the full frame (no easing "snap",
                 just a long, gentle loop that sweeps edge to edge) */}
-            <motion.div
-              className="absolute"
+            {/* CSS animations (globals.css: orbDriftA/B) — they run on the compositor, not the page's main thread. */}
+            <div
+              className="absolute hero-orb-a"
               style={{
                 bottom: '8%', left: '3%',
                 width: 760, height: 760,
                 borderRadius: '100%',
                 background: `radial-gradient(circle, ${hexToRgba(content.heroShadeColor1 || '#FD7147', 0.5)} 0%, transparent 60%)`,
               }}
-              animate={{ x: [0, 340, -160, 0], y: [0, -220, 120, 0] }}
-              transition={{ duration: 26, repeat: Infinity, ease: 'easeInOut' }}
             />
 
-            <motion.div
-              className="absolute"
+            <div
+              className="absolute hero-orb-b"
               style={{
                 bottom: '-18%', right: '0%',
                 width: 960, height: 960,
                 borderRadius: '50%',
                 background: `radial-gradient(circle, ${hexToRgba(content.heroShadeColor2 || '#CB0101', 0.5)} 0%, transparent 60%)`,
               }}
-              animate={{ x: [0, -320, 200, 0], y: [0, 200, -140, 0] }}
-              transition={{ duration: 32, repeat: Infinity, ease: 'easeInOut' }}
             />
           </div>
         </div>
@@ -354,7 +354,9 @@ export default function HomeClient({ content, popularSearches, guides }: {
             <AnimatePresence mode="wait">
               <motion.div
                 key={hlIdx}
-                initial={{ y: 70, opacity: 0 }}
+                // The first headline is shown as it comes from the server — it is the page's largest text, and fading
+                // it in from invisible would hold back how fast the page counts as loaded. Later ones slide in.
+                initial={hlIdx === 0 ? false : { y: 70, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: -70, opacity: 0 }}
                 transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}

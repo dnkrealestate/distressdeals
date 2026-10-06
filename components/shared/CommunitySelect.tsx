@@ -11,7 +11,7 @@ export interface CommunityOption { name: string; area?: string; emirate?: string
 let cache: Promise<CommunityOption[]> | null = null
 const loadCommunities = (fresh = false) => {
   if (!cache || fresh) {
-    cache = communityContentAPI.getAll()
+    cache = communityContentAPI.getAll({ fields: 'card' })
       .then(r => (r.data.data || []).map((c: any) => ({ name: c.name, area: c.area, emirate: c.emirate || 'Dubai' })))
       .catch(() => { cache = null; return [] })
   }

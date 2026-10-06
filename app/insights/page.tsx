@@ -79,7 +79,7 @@ export default async function InsightsPage() {
     newsAPI.getAll({ status: 'published', limit: 7 }).catch(() => null),
     blogAPI.getAll({ status: 'published', limit: 6 }).catch(() => null),
     areaContentAPI.getAll().catch(() => null),
-    communityContentAPI.getAll().catch(() => null),
+    communityContentAPI.getAll({ fields: 'card' }).catch(() => null),
     buildingContentAPI.getAll().catch(() => null),
     placeAPI.getSummary(4).catch(() => null),
     developerAPI.getAll().catch(() => null),

@@ -4,7 +4,7 @@ import { notFound, permanentRedirect } from 'next/navigation'
 import { projectAPI } from '@/lib/api'
 import ProjectDetailClient from './ProjectDetailClient'
 import type { Project } from '@/types'
-import { shareImages } from '@/lib/seo'
+import { shareImages, fitTitle, fitDescription } from '@/lib/seo'
 import { projectKeywords } from '@/lib/listingSeo'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
@@ -29,8 +29,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   const images = shareImages(project.coverImage)
 
   return {
-    title,
-    description,
+    title: fitTitle(title),
+    description: fitDescription(description),
     keywords: projectKeywords(project),
     alternates: { canonical: `/projects/${project.slug}` },
     openGraph: { title, description, type: 'website', url: `/projects/${project.slug}`, images },

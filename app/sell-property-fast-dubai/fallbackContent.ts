@@ -1,4 +1,5 @@
 import type { ContentPageData } from '@/types'
+import type { Faq } from '@/components/shared/FaqSection'
 
 export const PAGE_KEY = 'sell-property-fast-dubai'
 
@@ -35,3 +36,12 @@ export const FALLBACK_CONTENT: ContentPageData = {
     },
   ],
 }
+
+// Shown under the page with FAQPage markup.
+export const FAQS: Faq[] = [
+  { q: 'How can I sell my Dubai property quickly?', a: 'Price it realistically against recent sales from the start, have your title deed and service-charge statement ready, and list it with a team that verifies the property and presents it to ready buyers.' },
+  { q: 'How long does it take to sell a property in Dubai?', a: 'It depends on the price, location and type of property. A well-priced property with clean paperwork sells much faster than one priced above recent sales.' },
+  { q: 'What documents do I need to sell?', a: 'Your title deed, Emirates ID or passport, a service-charge clearance from the developer, and — if there is a mortgage — a liability letter from your bank.' },
+  { q: 'Can I sell a property that still has a mortgage?', a: 'Yes. The outstanding loan is paid off from the sale proceeds at transfer, and the bank releases the mortgage at the Land Department trustee office.' },
+  { q: 'Do you buy properties directly?', a: 'We do not buy properties ourselves. We verify your listing, price it with you and market it to buyers looking for fast, fair deals, with one agent handling the sale from start to finish.' },
+]

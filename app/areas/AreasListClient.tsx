@@ -11,8 +11,8 @@ import Footer from '@/components/layouts/Footer'
 import { propertyAPI, areaContentAPI } from '@/lib/api'
 import { formatPrice } from '@/lib/utils'
 import type { AreaStats } from '@/types'
+import { mergeAreaCards, type AreaCardData } from '@/lib/areaCards'
 
-type AreaCardData = AreaStats & { heroImage?: string; isFeatured?: boolean }
 
 function AreaCard({ area, delay }: { area: AreaCardData; delay: number }) {
   return (
@@ -52,25 +52,21 @@ function AreaCard({ area, delay }: { area: AreaCardData; delay: number }) {
   )
 }
 
-export default function AreasListClient() {
-  const [areas, setAreas] = useState<AreaCardData[]>([])
+// `initial` comes from the server with the page (whole list in the HTML); fetched here only if that failed.
+export default function AreasListClient({ initial }: { initial?: AreaCardData[] }) {
+  const [areas, setAreas] = useState<AreaCardData[]>(initial || [])
   const [query, setQuery] = useState('')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!initial)
 
   useEffect(() => {
+    if (initial) return
     Promise.all([
       propertyAPI.getAllAreas(),
       areaContentAPI.getAll().catch(() => ({ data: { success: false, data: [] } })),
     ])
       .then(([statsRes, contentRes]) => {
         if (!statsRes.data.success) return
-        const contentByArea = new Map((contentRes.data.data || []).map((c: any) => [c.area, c]))
-        const merged = statsRes.data.data.map((a: AreaStats) => {
-          const c = contentByArea.get(a.area) as any
-          return { ...a, heroImage: c?.heroImage, isFeatured: c?.isFeatured }
-        })
-        merged.sort((a: AreaCardData, b: AreaCardData) => (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0))
-        setAreas(merged)
+        setAreas(mergeAreaCards(statsRes.data.data as AreaStats[], contentRes.data.data || []))
       })
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -96,14 +92,14 @@ export default function AreasListClient() {
             <span className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--teal)' }}>Area Guides</span>
           </motion.div>
 
-          <motion.h1 initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.6 }} className="heading-xl mb-6 max-w-2xl mx-auto">
+          <h1 className="heading-xl mb-6 max-w-2xl mx-auto">
             UAE Area Guides: <span className="grad-text">Property Prices by Neighbourhood</span>
-          </motion.h1>
+          </h1>
 
-          <motion.p initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.6 }}
+          <p
             className="text-base md:text-lg max-w-xl mx-auto leading-relaxed mb-10" style={{ color: 'var(--text-muted)' }}>
             Where to buy and rent property in Dubai, Abu Dhabi, Sharjah and the Northern Emirates — area guides with property types, lifestyle, off-plan projects and real prices from our own verified listings.
-          </motion.p>
+          </p>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="max-w-md mx-auto">
             <div className="input-glass flex items-center gap-2 h-12 px-4 rounded-xl">

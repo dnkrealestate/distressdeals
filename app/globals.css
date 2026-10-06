@@ -445,6 +445,13 @@ body {
 }
 
 /* ── Animations ──────────────────────────────────── */
+/* Homepage hero colour orbs — slow drift, compositor-only (transform), paused for people who prefer less motion. */
+@keyframes orbDriftA { 0%, 100% { transform: translate(0, 0); } 33% { transform: translate(340px, -220px); } 66% { transform: translate(-160px, 120px); } }
+@keyframes orbDriftB { 0%, 100% { transform: translate(0, 0); } 33% { transform: translate(-320px, 200px); } 66% { transform: translate(200px, -140px); } }
+.hero-orb-a { animation: orbDriftA 26s ease-in-out infinite; will-change: transform; }
+.hero-orb-b { animation: orbDriftB 32s ease-in-out infinite; will-change: transform; }
+@media (prefers-reduced-motion: reduce) { .hero-orb-a, .hero-orb-b { animation: none; } }
+
 @keyframes shimmer {
   0%   { background-position: -200% 0; }
   100% { background-position:  200% 0; }

@@ -63,7 +63,7 @@ export default async function HomePage() {
   const list = (p: Promise<any>) => p.then(r => (r.data.success && Array.isArray(r.data.data) ? r.data.data : [])).catch(() => [])
   const [content, sale, rent, projects, areas, communities, developers] = await Promise.all([
     getHomepageContent(), links('sale'), links('rent'), links('projects'),
-    list(propertyAPI.getAllAreas()), list(communityContentAPI.getAll()), list(developerAPI.getAll()),
+    list(propertyAPI.getAllAreas()), list(communityContentAPI.getAll({ fields: 'card' })), list(developerAPI.getAll()),
   ])
   // Areas and communities with the most listings (properties + new projects) first; ties keep their A–Z order.
   const listed = (x: any) => (x.count || 0) + (x.projectCount || 0)
@@ -71,5 +71,12 @@ export default async function HomePage() {
   communities.sort((a: any, b: any) => listed(b) - listed(a) || Number(!!b.isFeatured) - Number(!!a.isFeatured) || String(a.name).localeCompare(String(b.name)))
   // Featured developers first (the "Featured" switch in Admin → Developers), then the ones with the most projects.
   developers.sort((a: any, b: any) => Number(!!b.isFeatured) - Number(!!a.isFeatured) || (b.projectCount || 0) - (a.projectCount || 0))
-  return <HomeClient content={content} popularSearches={{ sale, rent, projects }} guides={{ areas, communities, developers }} />
+  // Only the fields the sections show — everything handed to the page is also embedded in its HTML, so full records
+  // (descriptions, SEO fields, photos credits…) would make every visitor download several hundred KB for nothing.
+  const guides = {
+    areas: areas.map((a: any) => ({ area: a.area, slug: a.slug, count: a.count, projectCount: a.projectCount })),
+    communities: communities.map((c: any) => ({ _id: c._id, name: c.name, slug: c.slug, area: c.area, count: c.count, isFeatured: c.isFeatured })),
+    developers: developers.map((d: any) => ({ _id: d._id, name: d.name, slug: d.slug, logo: d.logo, projectCount: d.projectCount, isFeatured: d.isFeatured })),
+  }
+  return <HomeClient content={content} popularSearches={{ sale, rent, projects }} guides={guides} />
 }

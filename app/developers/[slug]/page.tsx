@@ -13,7 +13,7 @@ import { formatPrice, isHandedOver } from '@/lib/utils'
 import FaqSection, { type Faq } from '@/components/shared/FaqSection'
 import LinkPagination from '@/components/shared/LinkPagination'
 import type { DeveloperWithStats, Project } from '@/types'
-import { DEFAULT_SHARE_IMAGE } from '@/lib/seo'
+import { DEFAULT_SHARE_IMAGE, fitTitle, fitDescription } from '@/lib/seo'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -62,8 +62,8 @@ export async function generateMetadata({ params, searchParams }: { params: { slu
   const keywords = [dev.focusKeyword, ...(dev.seoKeywords || [])].filter(Boolean) as string[]
 
   return {
-    title,
-    description,
+    title: fitTitle(title),
+    description: fitDescription(description),
     ...(keywords.length ? { keywords } : {}),
     // Page 2+ of the list is its own crawlable page.
     alternates: { canonical: `/developers/${dev.slug}${pageFrom(searchParams) > 1 ? `?page=${pageFrom(searchParams)}` : ''}` },

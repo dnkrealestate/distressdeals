@@ -1,4 +1,5 @@
 import { cache } from 'react'
+import Image from 'next/image'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
@@ -14,7 +15,7 @@ import { propertyAPI, areaContentAPI, projectAPI } from '@/lib/api'
 import { formatPrice } from '@/lib/utils'
 import { HOME_ICON_MAP } from '@/lib/homeIcons'
 import type { AreaStats, AreaContentWithStats, Property, Project } from '@/types'
-import { shareImages } from '@/lib/seo'
+import { shareImages, fitTitle, fitDescription } from '@/lib/seo'
 import FaqSection, { type Faq } from '@/components/shared/FaqSection'
 import RealEstateLinks from '@/components/shared/RealEstateLinks'
 
@@ -88,8 +89,8 @@ export async function generateMetadata({ params, searchParams }: { params: { slu
     : [`properties for sale in ${area.area}`, `apartments for sale in ${area.area}`, `apartments for rent in ${area.area}`, `${area.area} property prices`, `off-plan projects in ${area.area}`, `${area.area} ${emirate} real estate`]
 
   return {
-    title,
-    description,
+    title: fitTitle(title),
+    description: fitDescription(description),
     keywords,
     robots: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 },
     alternates: { canonical: `/areas/${area.slug}${num(searchParams?.page) > 1 ? `?page=${num(searchParams?.page)}` : ''}` },
@@ -166,7 +167,7 @@ export default async function AreaDetailPage({ params, searchParams }: { params:
       <section className="relative pt-20 pb-12 overflow-hidden">
         {content?.heroImage ? (
           <>
-            <img src={content.heroImage} alt={`${area.area}, ${emirate} — area guide and properties`} title={area.area} fetchPriority="high" className="absolute inset-0 w-full h-full object-cover" />
+            <Image src={content.heroImage} alt={`${area.area}, ${emirate} — area guide and properties`} title={area.area} fill priority sizes="100vw" quality={70} className="object-cover" />
             <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(8,8,8,0.55) 0%, var(--bg) 92%)' }} />
             {content.heroImageCredit?.name && (
               <a href={content.heroImageCredit.url} target="_blank" rel="noopener noreferrer nofollow"

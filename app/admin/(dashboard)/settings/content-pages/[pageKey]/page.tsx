@@ -8,11 +8,26 @@ import type { ContentPageData, ContentSection, ContentCard, MiniStat } from '@/t
 import toast from 'react-hot-toast'
 import { GUIDE_DEFAULTS } from '@/lib/guideContent'
 import { FALLBACK_CONTENT as ABOUT } from '@/app/about/fallbackContent'
-import { FALLBACK_CONTENT as DISTRESS_SALE } from '@/app/distress-sale-dubai/fallbackContent'
-import { FALLBACK_CONTENT as DISTRESSED_VILLAS } from '@/app/distressed-villas-dubai/fallbackContent'
-import { FALLBACK_CONTENT as AUCTIONS } from '@/app/dubai-property-auctions/fallbackContent'
-import { FALLBACK_CONTENT as SELL_FAST } from '@/app/sell-property-fast-dubai/fallbackContent'
-import { FALLBACK_CONTENT as VALUATION } from '@/app/free-property-valuation-dubai/fallbackContent'
+import { FALLBACK_CONTENT as DISTRESS_SALE, FAQS as DISTRESS_SALE_FAQS } from '@/app/distress-sale-dubai/fallbackContent'
+import { FALLBACK_CONTENT as DISTRESSED_VILLAS, FAQS as DISTRESSED_VILLAS_FAQS } from '@/app/distressed-villas-dubai/fallbackContent'
+import { FALLBACK_CONTENT as AUCTIONS, FAQS as AUCTIONS_FAQS } from '@/app/dubai-property-auctions/fallbackContent'
+import { FALLBACK_CONTENT as SELL_FAST, FAQS as SELL_FAST_FAQS } from '@/app/sell-property-fast-dubai/fallbackContent'
+import { FALLBACK_CONTENT as VALUATION, FAQS as VALUATION_FAQS } from '@/app/free-property-valuation-dubai/fallbackContent'
+import { FALLBACK_CONTENT as APARTMENTS, FAQS as APARTMENTS_FAQS } from '@/app/distressed-apartments-dubai/fallbackContent'
+import { FALLBACK_CONTENT as DISTRESSED_ALL, FAQS as DISTRESSED_ALL_FAQS } from '@/app/distressed-property-for-sale/fallbackContent'
+import { FALLBACK_CONTENT as PANIC, FAQS as PANIC_FAQS } from '@/app/panic-selling-dubai/fallbackContent'
+
+// Landing pages' built-in questions & answers — what the page shows until FAQs are saved here.
+const BUILT_IN_FAQS: Record<string, { q: string; a: string }[]> = {
+  'distress-sale-dubai': DISTRESS_SALE_FAQS,
+  'distressed-villas-dubai': DISTRESSED_VILLAS_FAQS,
+  'dubai-property-auctions': AUCTIONS_FAQS,
+  'sell-property-fast-dubai': SELL_FAST_FAQS,
+  'free-property-valuation-dubai': VALUATION_FAQS,
+  'distressed-apartments-dubai': APARTMENTS_FAQS,
+  'distressed-property-for-sale': DISTRESSED_ALL_FAQS,
+  'panic-selling-dubai': PANIC_FAQS,
+}
 
 // What each page shows on the website before anyone has saved a version here — the editor opens with it, so the
 // form is never empty for a page that visibly has content.
@@ -20,12 +35,16 @@ const BUILT_IN: Record<string, ContentPageData> = {
   ...GUIDE_DEFAULTS,
   'about': ABOUT, 'distress-sale-dubai': DISTRESS_SALE, 'distressed-villas-dubai': DISTRESSED_VILLAS,
   'dubai-property-auctions': AUCTIONS, 'sell-property-fast-dubai': SELL_FAST, 'free-property-valuation-dubai': VALUATION,
+  'distressed-apartments-dubai': APARTMENTS, 'distressed-property-for-sale': DISTRESSED_ALL, 'panic-selling-dubai': PANIC,
 }
 
 const PAGE_LABELS: Record<string, { label: string; path: string }> = {
   'about':                         { label: 'About Page',              path: '/about' },
   'distress-sale-dubai':           { label: 'Distress Sale Dubai',     path: '/distress-sale-dubai' },
   'distressed-villas-dubai':       { label: 'Distressed Villas Dubai', path: '/distressed-villas-dubai' },
+  'distressed-apartments-dubai':   { label: 'Distressed Apartments Dubai', path: '/distressed-apartments-dubai' },
+  'distressed-property-for-sale':  { label: 'Distressed Property for Sale', path: '/distressed-property-for-sale' },
+  'panic-selling-dubai':           { label: 'Panic Selling Dubai',     path: '/panic-selling-dubai' },
   'dubai-property-auctions':       { label: 'Dubai Property Auctions', path: '/dubai-property-auctions' },
   'sell-property-fast-dubai':      { label: 'Sell Property Fast',      path: '/sell-property-fast-dubai' },
   'free-property-valuation-dubai': { label: 'Free Property Valuation', path: '/free-property-valuation-dubai' },
@@ -148,9 +167,18 @@ export default function ContentPageEditor({ params }: { params: { pageKey: strin
     setLoading(true)
     contentPageAPI.get(pageKey)
       .then(r => {
-        if (r.data.success && r.data.data) { setContent(r.data.data); setIsSaved(true) }
+        if (r.data.success && r.data.data) {
+          const saved = r.data.data
+          // A page saved before FAQs were editable: show the questions the website is using, so they can be edited.
+          setContent(saved.faqs?.length || !BUILT_IN_FAQS[pageKey] ? saved : { ...saved, faqs: structuredClone(BUILT_IN_FAQS[pageKey]) })
+          setIsSaved(true)
+        }
         // Nothing saved yet — start from what the website shows by default.
-        else { setContent(BUILT_IN[pageKey] ? structuredClone(BUILT_IN[pageKey]) : { pageKey, heroTitle: '', heroIntro: '', sections: [] }); setIsSaved(false) }
+        else {
+          const base = BUILT_IN[pageKey] ? structuredClone(BUILT_IN[pageKey]) : { pageKey, heroTitle: '', heroIntro: '', sections: [] }
+          setContent(BUILT_IN_FAQS[pageKey] ? { ...base, faqs: structuredClone(BUILT_IN_FAQS[pageKey]) } : base)
+          setIsSaved(false)
+        }
       })
       .catch(() => toast.error('Failed to load page content'))
       .finally(() => setLoading(false))
@@ -187,6 +215,20 @@ export default function ContentPageEditor({ params }: { params: { pageKey: strin
   }
   const addStat = () => setContent({ ...content, stats: [...stats, { value: '', label: '' }] })
   const removeStat = (i: number) => setContent({ ...content, stats: stats.filter((_, idx) => idx !== i) })
+
+  const faqs = content.faqs || []
+  const updateFaq = (i: number, patch: Partial<{ q: string; a: string }>) => {
+    const next = [...faqs]; next[i] = { ...next[i], ...patch }
+    setContent({ ...content, faqs: next })
+  }
+  const addFaq = () => setContent({ ...content, faqs: [...faqs, { q: '', a: '' }] })
+  const removeFaq = (i: number) => setContent({ ...content, faqs: faqs.filter((_, idx) => idx !== i) })
+  const moveFaq = (i: number, d: -1 | 1) => {
+    const j = i + d
+    if (j < 0 || j >= faqs.length) return
+    const next = [...faqs]; [next[i], next[j]] = [next[j], next[i]]
+    setContent({ ...content, faqs: next })
+  }
 
   const updateSection = (i: number, patch: Partial<ContentSection>) => {
     const next = [...content.sections]; next[i] = { ...next[i], ...patch }
@@ -258,6 +300,26 @@ export default function ContentPageEditor({ params }: { params: { pageKey: strin
           </div>
           <button onClick={addSection} className="btn-ghost btn-sm gap-1.5 mt-3"><Plus size={12} /> Add section</button>
         </Section>
+
+        {BUILT_IN_FAQS[pageKey] && (
+          <Section title="Questions & answers" description="Shown at the bottom of the page, and marked up so Google can show them as rich results. Leave a question or answer empty to drop it.">
+            <div className="space-y-3">
+              {faqs.map((f, i) => (
+                <div key={i} className="p-4 rounded-xl space-y-2" style={{ border: '1px solid var(--border)', background: 'var(--bg-alt)' }}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold w-6 text-center flex-shrink-0" style={{ color: 'var(--text-muted)' }}>{i + 1}</span>
+                    <input className="input flex-1 font-semibold" placeholder="Question" value={f.q} onChange={e => updateFaq(i, { q: e.target.value })} />
+                    <button onClick={() => moveFaq(i, -1)} disabled={i === 0} className="btn-ghost btn-sm px-2 disabled:opacity-30" aria-label="Move up">↑</button>
+                    <button onClick={() => moveFaq(i, 1)} disabled={i === faqs.length - 1} className="btn-ghost btn-sm px-2 disabled:opacity-30" aria-label="Move down">↓</button>
+                    <button onClick={() => removeFaq(i)} className="btn-ghost btn-sm p-2 flex-shrink-0" aria-label="Remove question"><X size={13} /></button>
+                  </div>
+                  <textarea className="input w-full" rows={3} placeholder="Answer" value={f.a} onChange={e => updateFaq(i, { a: e.target.value })} />
+                </div>
+              ))}
+            </div>
+            <button onClick={addFaq} className="btn-ghost btn-sm gap-1.5 mt-3"><Plus size={12} /> Add question</button>
+          </Section>
+        )}
 
         <Section title="Closing Call-to-Action" description="Optional gradient banner shown at the end of the page. Leave the title blank to hide it.">
           <div className="space-y-2">

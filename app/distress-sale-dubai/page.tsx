@@ -1,11 +1,11 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import Navbar from '@/components/layouts/Navbar'
 import Footer from '@/components/layouts/Footer'
 import { ContentPageRenderer } from '@/components/ContentPageRenderer'
 import { resolveSeo } from '@/lib/seo'
 import { getContentPage } from '@/lib/contentPages'
-import { PAGE_KEY, FALLBACK_CONTENT } from './fallbackContent'
+import { PAGE_KEY, FALLBACK_CONTENT, FAQS } from './fallbackContent'
+import LandingExtras, { otherGuides } from '@/components/LandingExtras'
 
 // Content is edited in the admin — rebuild this page from the latest data at most every 60 s (otherwise a production
 // build freezes it at build time and edits never show).
@@ -40,26 +40,8 @@ export default async function DistressSaleDubaiPage() {
       <Navbar />
       <ContentPageRenderer content={content} />
 
-      <section className="section section-alt">
-        <div className="wrap" style={{ maxWidth: 820 }}>
-          <h2 className="heading-lg mb-6">Related Guides</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Link href="/distressed-villas-dubai" className="card p-5 group">
-              <h3 className="font-semibold text-sm mb-1 group-hover:text-[var(--teal)] transition-colors" style={{ color: 'var(--text)' }}>Distressed Villas in Dubai</h3>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Villa-specific below-market listings and what to check.</p>
-            </Link>
-            <Link href="/dubai-property-auctions" className="card p-5 group">
-              <h3 className="font-semibold text-sm mb-1 group-hover:text-[var(--teal)] transition-colors" style={{ color: 'var(--text)' }}>Dubai Property Auctions</h3>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>How auctions differ from a negotiated distress sale.</p>
-            </Link>
-            <Link href="/sell-property-fast-dubai" className="card p-5 group">
-              <h3 className="font-semibold text-sm mb-1 group-hover:text-[var(--teal)] transition-colors" style={{ color: 'var(--text)' }}>Sell Your Property Fast</h3>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Need a quick, verified exit? Here's how it works.</p>
-            </Link>
-          </div>
-        </div>
-      </section>
-
+      <LandingExtras listingTitle="Distress sale property for sale now" listingParams={{ listingType: 'sale' }} viewAllHref="/for-sale"
+        faqTitle="Distress sale in Dubai: FAQs" faqs={content.faqs?.length ? content.faqs : FAQS} related={otherGuides(`/${PAGE_KEY}`)} />
       <Footer />
     </div>
   )

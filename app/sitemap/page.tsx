@@ -26,7 +26,10 @@ const GROUPS: { heading: string; links: { label: string; href: string }[] }[] = 
     heading: 'Distress Sales',
     links: [
       { label: 'Distress Sale Dubai', href: '/distress-sale-dubai' },
+      { label: 'Distressed Property for Sale', href: '/distressed-property-for-sale' },
+      { label: 'Distressed Apartments in Dubai', href: '/distressed-apartments-dubai' },
       { label: 'Distressed Villas in Dubai', href: '/distressed-villas-dubai' },
+      { label: 'Panic Selling in Dubai', href: '/panic-selling-dubai' },
       { label: 'Dubai Property Auctions', href: '/dubai-property-auctions' },
       { label: 'Sell Your Property Fast', href: '/sell-property-fast-dubai' },
       { label: 'Free Property Valuation', href: '/free-property-valuation-dubai' },

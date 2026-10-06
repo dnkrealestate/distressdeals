@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next'
-import { propertyAPI, blogAPI, newsAPI, projectAPI, communityContentAPI, buildingContentAPI, placeAPI } from '@/lib/api'
+import { propertyAPI, blogAPI, newsAPI, projectAPI, communityContentAPI, buildingContentAPI, placeAPI, areaContentAPI } from '@/lib/api'
 import { EXPLORE_SECTIONS, EMIRATES, sectionHref, placeHref } from '@/lib/explore'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.distressdealsuae.com'
@@ -10,16 +10,19 @@ const STATIC_ROUTES = [
   '', '/for-sale', '/for-rent', '/projects', '/insights', '/blog', '/news',
   '/about', '/areas', '/communities', '/buildings', '/explore',
   '/explore/attractions', '/explore/food', '/explore/malls', '/explore/markets', '/explore/hotels', '/explore/activities', '/mortgage', '/developers',
-  '/auth/login', '/auth/register', '/seller/register', '/contact',
+  '/contact',
   '/distress-sale-dubai', '/distressed-villas-dubai', '/dubai-property-auctions',
+  '/distressed-apartments-dubai', '/distressed-property-for-sale', '/panic-selling-dubai',
   '/sell-property-fast-dubai', '/free-property-valuation-dubai',
   '/privacy', '/terms', '/cookies', '/delete-account', '/sitemap',
 ]
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // Static pages carry no "last changed" date — a made-up one (today, on every request) teaches search engines to ignore
+  // the field. Only the homepage, whose listings change every day, says today.
   const entries: MetadataRoute.Sitemap = STATIC_ROUTES.map(path => ({
     url: `${SITE_URL}${path}`,
-    lastModified: new Date(),
+    ...(path === '' ? { lastModified: new Date() } : {}),
     changeFrequency: path === '' ? 'daily' : 'weekly',
     priority: path === '' ? 1 : 0.6,
   }))
@@ -44,9 +47,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     allPages(page => projectAPI.getAll({ limit: 100, page })),
   ])
 
-  const areas = await propertyAPI.getAreaStats(200).then(r => r.data.data || []).catch(() => [])
+  // Every area with a page — with listings or a written guide — dated by its guide's last edit when it has one.
+  const areas = await propertyAPI.getAllAreas().then(r => r.data.data || []).catch(() => [])
+  const guideEdited = new Map<string, string>(await areaContentAPI.getAll().then(r => (r.data.data || []).map((g: any) => [g.slug, g.updatedAt])).catch(() => []))
   const developers = await projectAPI.getAllDevelopers().then(r => r.data.data || []).catch(() => [])
-  const communities = await communityContentAPI.getAll().then(r => r.data.data || []).catch(() => [])
+  const communities = await communityContentAPI.getAll({ fields: 'card' }).then(r => r.data.data || []).catch(() => [])
   const buildings = await buildingContentAPI.getAll().then(r => r.data.data || []).catch(() => [])
 
   for (const p of properties) {
@@ -81,11 +86,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     })
   }
-  for (const a of areas as { area: string }[]) {
+  for (const a of areas as { area: string; slug?: string }[]) {
     if (!a.area) continue
+    const slug = a.slug || a.area.toLowerCase().trim().replace(/\s+/g, '-')
+    const edited = guideEdited.get(slug)
     entries.push({
-      url: `${SITE_URL}/areas/${encodeURIComponent(a.area.toLowerCase().replace(/\s+/g, '-'))}`,
-      lastModified: new Date(),
+      url: `${SITE_URL}/areas/${encodeURIComponent(slug)}`,
+      ...(edited ? { lastModified: new Date(edited) } : {}),
       changeFrequency: 'weekly',
       priority: 0.7,
     })
@@ -117,12 +124,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // UAE Explore: every place, plus each section's per-emirate page.
   const places = await allPages(page => placeAPI.getAll({ limit: 60, page, sort: 'name' }), 60)
-  for (const p of places as { category: string; slug: string; emirate: string }[]) {
-    entries.push({ url: `${SITE_URL}${placeHref(p)}`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.6 })
+  for (const p of places as { category: string; slug: string; emirate: string; updatedAt?: string }[]) {
+    entries.push({ url: `${SITE_URL}${placeHref(p)}`, ...(p.updatedAt ? { lastModified: new Date(p.updatedAt) } : {}), changeFrequency: 'monthly', priority: 0.6 })
   }
   for (const s of EXPLORE_SECTIONS) for (const e of EMIRATES) {
     if (!places.some((p: any) => p.category === s.key && p.emirate === e)) continue
-    entries.push({ url: `${SITE_URL}${sectionHref(s, e)}`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.6 })
+    entries.push({ url: `${SITE_URL}${sectionHref(s, e)}`, changeFrequency: 'weekly', priority: 0.6 })
   }
 
   return entries

@@ -423,6 +423,10 @@ export const quickLinksAPI = {
 export const contactAPI = {
   submit: (data: { name: string; email: string; phone?: string; message: string; source: 'contact_form' | 'valuation_request' | 'fast_sale_request' }) =>
     api.post('/contact', data),
+  // Admin "Requests" page (manage_leads): valuation, fast-sale and contact-form requests.
+  adminList:   (params?: any) => api.get('/contact/admin', { params }),
+  adminUpdate: (id: string, data: { status?: string; note?: string }) => api.patch(`/contact/admin/${id}`, data),
+  adminDelete: (id: string) => api.delete(`/contact/admin/${id}`),
 }
 
 // ── Content pages (admin-editable body content for the distress-sale landing pages + About) ──

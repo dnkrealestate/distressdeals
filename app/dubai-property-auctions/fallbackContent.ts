@@ -1,4 +1,5 @@
 import type { ContentPageData } from '@/types'
+import type { Faq } from '@/components/shared/FaqSection'
 
 export const PAGE_KEY = 'dubai-property-auctions'
 
@@ -36,3 +37,12 @@ export const FALLBACK_CONTENT: ContentPageData = {
   ctaButtonLabel: 'Read the Distress Sale Guide',
   ctaButtonHref: '/distress-sale-dubai',
 }
+
+// Shown under the page with FAQPage markup.
+export const FAQS: Faq[] = [
+  { q: 'How do property auctions work in Dubai?', a: 'Registered bidders compete for a property at a set time, and the highest bid above the reserve price wins. The winning bidder usually has to pay a deposit straight away and complete the purchase within a fixed period.' },
+  { q: 'Is an auction better than a negotiated distress sale?', a: 'Not always. An auction can be fast, but you often have little time to inspect the property or check its history, and competition can push the price up. A negotiated distress sale gives you time to compare prices and check the paperwork.' },
+  { q: 'Can I view a property before an auction?', a: 'Sometimes, but viewing windows are often short and some properties are sold without a viewing. Read the auction terms carefully before you register to bid.' },
+  { q: 'What costs come with buying at auction?', a: 'Expect the usual Land Department transfer and registration costs, plus any fees set by the auction organiser. Check the full cost before you bid.' },
+  { q: 'Where can I find below-market property without bidding?', a: 'On our distress sale listings — verified properties priced below market by owners who need a quick sale, where you negotiate directly through one dedicated agent.' },
+]

@@ -1,4 +1,5 @@
 import { cache } from 'react'
+import Image from 'next/image'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
@@ -13,10 +14,11 @@ import PlaceCard from '@/components/explore/PlaceCard'
 import { formatPrice } from '@/lib/utils'
 import ProjectCard from '@/components/buyer/ProjectCard'
 import FaqSection, { type Faq } from '@/components/shared/FaqSection'
+import { DistressSection, DailyLifeSection, NearbyCommunitiesSection, type Around, type NearbyCommunity } from '@/components/CommunityExtras'
 import LinkPagination from '@/components/shared/LinkPagination'
 import { HOME_ICON_MAP } from '@/lib/homeIcons'
 import type { CommunityContentWithStats, Property, Project, Place } from '@/types'
-import { shareImages } from '@/lib/seo'
+import { shareImages, fitTitle, fitDescription } from '@/lib/seo'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -31,6 +33,10 @@ const getCommunity = cache(async (slug: string): Promise<CommunityContentWithSta
     return null
   }
 })
+
+// Every community guide — for the "Communities near …" links.
+const getAllCommunities = cache(async (): Promise<CommunityContentWithStats[]> =>
+  communityContentAPI.getAll({ fields: 'card' }).then(r => (r.data.success && Array.isArray(r.data.data) ? r.data.data : [])).catch(() => []))
 
 const PER_PAGE = 40
 type SP = { page?: string; pp?: string }
@@ -69,8 +75,8 @@ export async function generateMetadata({ params, searchParams }: { params: { slu
   const keywords = [community.focusKeyword, ...(community.seoKeywords || [])].filter(Boolean) as string[]
 
   return {
-    title,
-    description,
+    title: fitTitle(title),
+    description: fitDescription(description),
     ...(keywords.length ? { keywords } : {}),
     alternates: { canonical: `/communities/${community.slug}${num(searchParams?.page) > 1 ? `?page=${num(searchParams?.page)}` : ''}` },
     openGraph: { title, description, type: 'website', url: `/communities/${community.slug}`, images: shareImages(community.heroImage) },
@@ -86,9 +92,20 @@ export default async function CommunityDetailPage({ params, searchParams }: { pa
   const [listingPage, projectPage] = await Promise.all([getCommunityListings(community.name, page), getCommunityProjects(community.name, pPage)])
   const listings = listingPage.data, projects = projectPage.data
   // Things to do around the community (UAE Explore) — only when it has a map position.
-  const nearPlaces: Place[] = community.coordinates?.lat != null
-    ? await placeAPI.getNear(community.coordinates.lat, community.coordinates.lng, 8).then(r => r.data.data.places || []).catch(() => [])
-    : []
+  const pin = community.coordinates?.lat != null ? community.coordinates : null
+  const empty: Around = { schools: [], hospitals: [], shopping: [], cafes: [], airports: [] }
+  const [nearPlaces, around, allCommunities] = await Promise.all([
+    pin ? placeAPI.getNear(pin.lat, pin.lng, 8).then(r => (r.data.data.places || []) as Place[]).catch(() => [] as Place[]) : Promise.resolve([] as Place[]),
+    // Schools, hospitals, shops, cafés and airports around the pin (OpenStreetMap + UAE Explore data).
+    pin ? placeAPI.getAround(pin.lat, pin.lng).then(r => ({ ...empty, ...(r.data.data || {}) }) as Around).catch(() => empty) : Promise.resolve(empty),
+    getAllCommunities(),
+  ])
+  // The 5 closest other communities with a guide (by map position; same area when there is no pin).
+  const kmTo = (c: { lat: number; lng: number }) => pin ? Math.hypot((c.lat - pin.lat) * 111.32, (c.lng - pin.lng) * 111.32 * Math.cos((pin.lat * Math.PI) / 180)) : 0
+  const nearby: NearbyCommunity[] = (pin
+    ? allCommunities.filter(c => c.slug !== community.slug && c.coordinates?.lat != null).map(c => ({ name: c.name, slug: c.slug, area: c.area, distanceKm: +kmTo(c.coordinates!).toFixed(1) })).sort((a, b) => a.distanceKm - b.distanceKm)
+    : allCommunities.filter(c => c.slug !== community.slug && community.area && c.area === community.area).map(c => ({ name: c.name, slug: c.slug, area: c.area }))
+  ).slice(0, 5)
 
   // The place itself, with its map position — helps local search.
   const placeJsonLd = {
@@ -130,6 +147,22 @@ export default async function CommunityDetailPage({ params, searchParams }: { pa
       q: `What amenities are near ${community.name}?`,
       a: `Nearby: ${list(community.amenities.slice(0, 8).map(a => a.label))}.`,
     } : { q: '', a: '' },
+    around.schools.length ? {
+      q: `Which schools are near ${community.name}?`,
+      a: `The closest schools to ${community.name} include ${list(around.schools.slice(0, 4).map(p => `${p.name} (${p.distanceKm} km)`))}.`,
+    } : { q: '', a: '' },
+    around.hospitals.length ? {
+      q: `What is the nearest hospital or clinic to ${community.name}?`,
+      a: `${around.hospitals[0].name} is about ${around.hospitals[0].distanceKm} km away${around.hospitals.length > 1 ? `; others nearby include ${list(around.hospitals.slice(1, 4).map(p => p.name))}` : ''}.`,
+    } : { q: '', a: '' },
+    around.airports.length ? {
+      q: `How far is ${community.name} from the airport?`,
+      a: `The nearest airport is ${around.airports[0].name}, about ${around.airports[0].distanceKm} km away in a straight line${around.airports[1] ? `; ${around.airports[1].name} is about ${around.airports[1].distanceKm} km` : ''}.`,
+    } : { q: '', a: '' },
+    {
+      q: `Can I find distress deals in ${community.name}?`,
+      a: `Distress sales — properties priced below market because the owner needs a quick sale — come up in ${community.name} from time to time. ${listingPage.total ? `We currently list ${listingPage.total} verified propert${listingPage.total === 1 ? 'y' : 'ies'} here.` : 'There are none listed right now.'} Our distress sale guide explains how to check that a discount is genuine before you buy.`,
+    },
     community.highlights?.length ? {
       q: `Why live in ${community.name}?`,
       a: `${community.name} is known for ${list(community.highlights.slice(0, 5).map(h => h.label.toLowerCase()))}.`,
@@ -158,7 +191,7 @@ export default async function CommunityDetailPage({ params, searchParams }: { pa
       <section className="relative pt-20 pb-12 overflow-hidden">
         {community.heroImage ? (
           <>
-            <img src={community.heroImage} alt={community.name} className="absolute inset-0 w-full h-full object-cover" />
+            <Image src={community.heroImage} alt={community.name} fill priority sizes="100vw" quality={70} className="object-cover" />
             <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(8,8,8,0.55) 0%, var(--bg) 92%)' }} />
             {community.heroImageCredit?.name && (
               <a href={community.heroImageCredit.url} target="_blank" rel="noopener noreferrer nofollow"
@@ -178,8 +211,8 @@ export default async function CommunityDetailPage({ params, searchParams }: { pa
             {' '}/ {community.name}
           </p>
           <h1 className="heading-xl mb-3 flex items-center gap-3" style={community.heroImage ? { color: '#fff' } : undefined}>
-            <Layers size={28} style={{ color: 'var(--teal)' }} />
-            {community.name}
+            <Layers size={28} className="flex-shrink-0" style={{ color: 'var(--teal)' }} />
+            <span>{community.name}<span className="block text-base md:text-lg font-semibold mt-1" style={{ color: community.heroImage ? 'rgba(255,255,255,0.85)' : 'var(--text-mid)' }}>Property for Sale, Rent &amp; Distress Deals</span></span>
           </h1>
           {community.area && (
             <p className="text-sm flex items-center gap-1.5 mb-6" style={{ color: community.heroImage ? 'rgba(255,255,255,0.85)' : 'var(--text-muted)' }}>
@@ -238,6 +271,8 @@ export default async function CommunityDetailPage({ params, searchParams }: { pa
         </section>
       )}
 
+      <DistressSection name={community.name} listed={listingPage.total} />
+
       <section className="section pb-20">
         <div className="wrap">
           <h2 id="listings" className="text-lg font-bold mb-6 scroll-mt-24" style={{ color: 'var(--text)' }}>
@@ -283,6 +318,10 @@ export default async function CommunityDetailPage({ params, searchParams }: { pa
           </div>
         </section>
       )}
+
+      <DailyLifeSection name={community.name} around={around} />
+
+      <NearbyCommunitiesSection name={community.name} area={community.area} nearby={nearby} />
 
       <ReviewsSection type="community" slug={community.slug} name={community.name} />
 

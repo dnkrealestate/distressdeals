@@ -1,6 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // A second build folder for local performance testing (NEXT_DIST_DIR=.next-perf) — never set in production.
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   images: {
+    // AVIF first (roughly a third smaller than WebP), WebP for browsers without it. Optimised copies are cached.
+    formats: ['image/avif', 'image/webp'],
     remotePatterns: [
       { protocol: 'https', hostname: 'res.cloudinary.com' },
       { protocol: 'https', hostname: 'lh3.googleusercontent.com' },

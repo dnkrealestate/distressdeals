@@ -35,8 +35,11 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts",
-    "next.config.mjs"
-, "components/buyer/PropertyCard.tsx", "app/layout.tsx"  ],
+    "next.config.mjs",
+    "components/buyer/PropertyCard.tsx",
+    "app/layout.tsx",
+    ".next-perf/types/**/*.ts"
+  ],
   "exclude": [
     "node_modules"
   ]

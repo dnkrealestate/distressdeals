@@ -19,7 +19,10 @@ const FOOTER_LINKS = {
   ],
   'Distress Sales': [
     { label: 'Distress Sale Dubai',        href: '/distress-sale-dubai'          },
+    { label: 'Distressed Property for Sale', href: '/distressed-property-for-sale' },
+    { label: 'Distressed Apartments',      href: '/distressed-apartments-dubai'  },
     { label: 'Distressed Villas',          href: '/distressed-villas-dubai'      },
+    { label: 'Panic Selling in Dubai',     href: '/panic-selling-dubai'          },
     { label: 'Dubai Property Auctions',    href: '/dubai-property-auctions'      },
     { label: 'Sell Your Property Fast',    href: '/sell-property-fast-dubai'     },
     { label: 'Free Property Valuation',    href: '/free-property-valuation-dubai' },

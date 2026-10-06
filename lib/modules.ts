@@ -60,6 +60,7 @@ export const PATH_MODULE: [string, AgentPermission][] = [
   ['/admin/properties', 'approve_listings'],
   ['/admin/leads', 'manage_leads'],
   ['/admin/mortgage', 'manage_leads'],
+  ['/admin/requests', 'manage_leads'],
   ['/admin/meetings', 'schedule_meetings'],
   ['/admin/agents', 'manage_agents'],
 ]

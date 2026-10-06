@@ -4,7 +4,8 @@ import Footer from '@/components/layouts/Footer'
 import { ContentPageRenderer } from '@/components/ContentPageRenderer'
 import { resolveSeo } from '@/lib/seo'
 import { getContentPage } from '@/lib/contentPages'
-import { PAGE_KEY, FALLBACK_CONTENT } from './fallbackContent'
+import { PAGE_KEY, FALLBACK_CONTENT, FAQS } from './fallbackContent'
+import LandingExtras, { otherGuides } from '@/components/LandingExtras'
 
 // Content is edited in the admin — rebuild this page from the latest data at most every 60 s (otherwise a production
 // build freezes it at build time and edits never show).
@@ -38,6 +39,8 @@ export default async function DistressedVillasDubaiPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       <Navbar />
       <ContentPageRenderer content={content} />
+      <LandingExtras listingTitle="Distressed villas for sale now" listingParams={{ type: 'villa', listingType: 'sale' }} viewAllHref="/for-sale?type=villa"
+        faqTitle="Distress sale of villas in Dubai: FAQs" faqs={content.faqs?.length ? content.faqs : FAQS} related={otherGuides(`/${PAGE_KEY}`)} />
       <Footer />
     </div>
   )

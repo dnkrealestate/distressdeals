@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -76,13 +76,16 @@ function BlogCard({ post, delay }: { post: BlogPost; delay: number }) {
   )
 }
 
-export default function BlogListClient() {
+// `initial` is the first page of posts, loaded by the server with the page so the articles are in the HTML search engines
+// read. The list only fetches again when the reader changes category, searches or pages.
+export default function BlogListClient({ initial }: { initial?: { data: BlogPost[]; total: number } }) {
   const [activeCat, setActiveCat] = useState('All')
   const [query, setQuery] = useState('')
-  const [posts, setPosts] = useState<BlogPost[]>([])
-  const [total, setTotal] = useState(0)
+  const [posts, setPosts] = useState<BlogPost[]>(initial?.data || [])
+  const [total, setTotal] = useState(initial?.total || 0)
   const [page, setPage] = useState(1)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!initial)
+  const useInitial = useRef(!!initial)
   const limit = 12
 
   const load = useCallback(() => {
@@ -94,6 +97,7 @@ export default function BlogListClient() {
   }, [activeCat, query, page])
 
   useEffect(() => {
+    if (useInitial.current) { useInitial.current = false; return }   // the server already sent page 1
     const t = setTimeout(load, query ? 350 : 0) // debounce free-text search only
     return () => clearTimeout(t)
   }, [load, query])
@@ -121,14 +125,14 @@ export default function BlogListClient() {
             <span className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--teal)' }}>Blog & News</span>
           </motion.div>
 
-          <motion.h1 initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.6 }} className="heading-xl mb-6 max-w-2xl mx-auto">
+          <h1 className="heading-xl mb-6 max-w-2xl mx-auto">
             Dubai Property <span className="grad-text">Market Blog</span>
-          </motion.h1>
+          </h1>
 
-          <motion.p initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.6 }}
+          <p
             className="text-base md:text-lg max-w-xl mx-auto leading-relaxed mb-10" style={{ color: 'var(--text-muted)' }}>
             Market trends, buying guides, and the latest regulatory news — curated by our Dubai real estate specialists.
-          </motion.p>
+          </p>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="max-w-md mx-auto">
             <div className="input-glass flex items-center gap-2 h-12 px-4 rounded-xl">

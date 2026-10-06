@@ -1,4 +1,5 @@
 import { cache } from 'react'
+import Image from 'next/image'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
@@ -16,7 +17,7 @@ import { placeHref } from '@/lib/explore'
 import { formatPrice } from '@/lib/utils'
 import { HOME_ICON_MAP } from '@/lib/homeIcons'
 import type { BuildingContent, Place } from '@/types'
-import { shareImages } from '@/lib/seo'
+import { shareImages, fitTitle, fitDescription } from '@/lib/seo'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -46,8 +47,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   const alt = `${building.name}${where ? `, ${where}` : ''}`
 
   return {
-    title,
-    description,
+    title: fitTitle(title),
+    description: fitDescription(description),
     keywords: building.seoKeywords?.length ? [building.focusKeyword || building.name, ...building.seoKeywords] : [building.name, `${building.name} location`, `${building.name} floors`, `${building.name} apartments`, building.area ? `buildings in ${building.area}` : '', building.area ? `apartments for sale in ${building.area}` : '', building.emirate ? `towers in ${building.emirate}` : '', building.developer ? `${building.developer} buildings` : ''].filter(Boolean),
     alternates: { canonical: `/buildings/${building.slug}` },
     robots: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 },
@@ -118,7 +119,7 @@ export default async function BuildingDetailPage({ params }: { params: { slug: s
       <section className="relative pt-20 pb-12 overflow-hidden">
         {building.heroImage ? (
           <>
-            <img src={building.heroImage} alt={`${building.name}${where ? ` — building in ${where}` : ''}`} title={building.name} width={1600} height={900} fetchPriority="high" className="absolute inset-0 w-full h-full object-cover" />
+            <Image src={building.heroImage} alt={`${building.name}${where ? ` — building in ${where}` : ''}`} title={building.name} fill priority sizes="100vw" quality={70} className="object-cover" />
             <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(8,8,8,0.55) 0%, var(--bg) 92%)' }} />
             {building.heroImageCredit?.name && (
               <a href={building.heroImageCredit.url} target="_blank" rel="noopener noreferrer nofollow"

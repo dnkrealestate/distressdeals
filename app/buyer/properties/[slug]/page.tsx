@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import { propertyAPI } from '@/lib/api'
 import PropertyDetailClient from './PropertyDetailClient'
 import type { Property } from '@/types'
-import { shareImages } from '@/lib/seo'
+import { shareImages, fitTitle, fitDescription } from '@/lib/seo'
 import { propertyKeywords } from '@/lib/listingSeo'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
@@ -33,8 +33,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   const images = shareImages(property.images?.[0]?.url)
 
   return {
-    title,
-    description,
+    title: fitTitle(title),
+    description: fitDescription(description),
     keywords: propertyKeywords(property),
     alternates: { canonical: `/buyer/properties/${property.slug}` },
     openGraph: { title, description, type: 'website', url: `/buyer/properties/${property.slug}`, images },

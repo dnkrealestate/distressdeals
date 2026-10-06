@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -70,12 +70,14 @@ function NewsCard({ item, delay }: { item: NewsItem; delay: number }) {
   )
 }
 
-export default function NewsListClient() {
+// `initial` is the first page of articles, loaded by the server with the page (in the HTML search engines read).
+export default function NewsListClient({ initial }: { initial?: { data: NewsItem[]; total: number } }) {
   const [activeCat, setActiveCat] = useState('All')
-  const [items, setItems] = useState<NewsItem[]>([])
-  const [total, setTotal] = useState(0)
+  const [items, setItems] = useState<NewsItem[]>(initial?.data || [])
+  const [total, setTotal] = useState(initial?.total || 0)
   const [page, setPage] = useState(1)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!initial)
+  const useInitial = useRef(!!initial)
   const limit = 12
 
   const load = useCallback(() => {
@@ -86,7 +88,10 @@ export default function NewsListClient() {
       .finally(() => setLoading(false))
   }, [activeCat, page])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    if (useInitial.current) { useInitial.current = false; return }   // the server already sent page 1
+    load()
+  }, [load])
   useEffect(() => { setPage(1) }, [activeCat])
 
   const featured = page === 1 && activeCat === 'All' ? items[0] : null
@@ -109,14 +114,14 @@ export default function NewsListClient() {
             <span className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--teal)' }}>News</span>
           </motion.div>
 
-          <motion.h1 initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.6 }} className="heading-xl mb-6 max-w-2xl mx-auto">
+          <h1 className="heading-xl mb-6 max-w-2xl mx-auto">
             Dubai Real Estate <span className="grad-text">News &amp; Updates</span>
-          </motion.h1>
+          </h1>
 
-          <motion.p initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.6 }}
+          <p
             className="text-base md:text-lg max-w-xl mx-auto leading-relaxed" style={{ color: 'var(--text-muted)' }}>
             Regulatory updates, market announcements, and industry news from across Dubai real estate.
-          </motion.p>
+          </p>
         </div>
       </section>
 

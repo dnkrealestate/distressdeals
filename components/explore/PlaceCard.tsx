@@ -1,10 +1,11 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { MapPin, Star } from 'lucide-react'
 import { placeHref, sectionByKey } from '@/lib/explore'
 import type { Place } from '@/types'
 
 // A place in a grid or a row — photo (or the section's icon when there is none), name, where it is, and its rating
-// once it has reviews. Server component: plain <img> with lazy loading, no JS.
+// once it has reviews. Server component: a resized, lazy-loaded photo, no JS.
 export default function PlaceCard({ place, compact = false }: { place: Place; compact?: boolean }) {
   const section = sectionByKey(place.category)
   const Icon = section?.icon || MapPin
@@ -15,7 +16,7 @@ export default function PlaceCard({ place, compact = false }: { place: Place; co
       <div className={`relative ${compact ? 'h-28 sm:h-32' : 'h-28 sm:h-44'} flex-shrink-0 overflow-hidden flex items-center justify-center`}
         style={{ background: 'linear-gradient(135deg, var(--bg-alt), rgba(203,1,1,0.08))' }}>
         {place.heroImage
-          ? <img src={place.heroImage} alt={`${place.name}, ${where}`} loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+          ? <Image src={place.heroImage} alt={`${place.name}, ${where}`} fill sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" quality={70} className="object-cover transition-transform duration-500 group-hover:scale-105" />
           : <Icon size={34} style={{ color: 'var(--teal)', opacity: 0.35 }} />}
         {tag && (
           <span className="absolute top-2 left-2 sm:top-3 sm:left-3 max-w-[85%] truncate px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-wide"
