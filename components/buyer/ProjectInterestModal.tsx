@@ -1,6 +1,7 @@
 'use client'
+import { trackFeed } from '@/lib/feed'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Send, CheckCircle2, Loader2 } from 'lucide-react'
@@ -21,6 +22,8 @@ export default function ProjectInterestModal({
   const [submitting, setSubmitting] = useState(false)
   const [sent, setSent] = useState(false)
   const [outcome, setOutcome] = useState<{ duplicate?: boolean } & LeadAccountMeta>({})
+  // The enquiry form was opened — one of the strongest signals for the personalised feed.
+  useEffect(() => { if (open && projectId) trackFeed({ type: 'enquiry_started', itemId: projectId, itemKind: 'project' }) }, [open, projectId])
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()

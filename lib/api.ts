@@ -10,6 +10,8 @@ import { forceSignOut } from './accountNotice'
 const BASE = process.env.NEXT_PUBLIC_API_URL
   || (process.env.NODE_ENV === 'production' ? 'https://data.distressdealsuae.com/api/v1' : 'http://localhost:5000/api/v1')
 
+export const API_BASE_URL = BASE.replace(/\/$/, '')
+
 const api = axios.create({
   baseURL: BASE,
   timeout: 15000,
@@ -416,6 +418,19 @@ export const mortgageAPI = {
 // "Compare prices by area" map — lowest / average / highest per area.
 export const areaPricesAPI = {
   get: (params: { purpose: 'buy' | 'rent'; type?: string; beds?: string }) => api.get('/area-prices', { params }),
+}
+
+// Personalised For Sale feed (backend services/feed). Anonymous visitor id; events go through lib/feed.ts.
+export const feedAPI = {
+  page:        (params: Record<string, any>) => api.get('/feed', { params }),
+  sections:    (visitorId: string) => api.get('/feed/sections', { params: { visitorId } }),
+  experiments: (visitorId: string) => api.get('/feed/experiments', { params: { visitorId } }),
+  // Admin
+  analytics:   (days = 30) => api.get('/admin/feed/analytics', { params: { days } }),
+  listExperiments: () => api.get('/admin/feed/experiments'),
+  createExperiment: (data: any) => api.post('/admin/feed/experiments', data),
+  updateExperiment: (id: string, data: any) => api.patch(`/admin/feed/experiments/${id}`, data),
+  deleteExperiment: (id: string) => api.delete(`/admin/feed/experiments/${id}`),
 }
 
 // Market reference prices (backend services/comparablePriceService). The public call returns figures only; the rest is

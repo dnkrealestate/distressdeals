@@ -1,5 +1,6 @@
 'use client'
-import { useState } from 'react'
+import { trackFeed } from '@/lib/feed'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { X, Send, CheckCircle2, MapPin, Bed, Maximize2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
@@ -16,6 +17,8 @@ interface Props { property: Property; onClose: () => void }
 
 export default function LeadModal({ property, onClose }: Props) {
   const { user } = useAuthStore()
+  // The enquiry form was opened — one of the strongest signals for the personalised feed.
+  useEffect(() => { if (property?._id) trackFeed({ type: 'enquiry_started', itemId: property._id, itemKind: 'property' }) }, [property?._id])
   const [submitted, setSubmitted] = useState(false)
   const [outcome, setOutcome] = useState<{ duplicate?: boolean; email?: string } & LeadAccountMeta>({})
   const [loading, setLoading]     = useState(false)

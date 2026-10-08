@@ -104,6 +104,7 @@ export default function PropertyCard({
   const hasPerks = !!offer && (!!offer.gifts?.length || !!offer.paymentPlan || !!offer.dldWaiver)
   const cardImages = offer?.thumbnail ? ([{ url: offer.thumbnail }] as any as Property['images']) : p?.images
   const hasOfferPrice = !!p && !!offerPrice(p, p.price)
+  const isDistress = !!p && p.listingType === 'sale' && (!!p.tags?.includes('distress-deals') || !!p.opportunity?.labels?.includes('distressed-deal'))
 
   const fav   = isFavorite(p._id)
   const inCmp = isInCompare(p._id)
@@ -156,6 +157,7 @@ export default function PropertyCard({
               <ListingBadge type={p.listingType} />
               {p.listingType === 'rent' && <RentalBadge property={p} onImage />}
               {p.completion === 'off_plan' && <InfoBadge label="Off-Plan" title="Off-plan initial sale" message={OFF_PLAN_NOTE} className="badge-purple" />}
+              {isDistress && <span className="badge text-[10px] font-bold" style={{ background: '#CB0101', color: '#fff', border: 'none' }}>DISTRESS DEAL</span>}
               {p.isFeatured && (
                 <span className="badge text-[10px]" style={{ background: 'rgba(203,1,1,0.20)', color: '#CB0101', border: '1px solid rgba(203,1,1,0.40)' }}>
                   ✦ Featured
@@ -272,6 +274,7 @@ export default function PropertyCard({
               <InfoBadge label="Off-Plan" title="Off-plan initial sale" message={OFF_PLAN_NOTE} className="badge-purple" />
             )}
 
+            {isDistress && <span className="badge text-[10px] font-bold" style={{ background: '#CB0101', color: '#fff', border: 'none' }}>DISTRESS DEAL</span>}
             {p.isFeatured && (
               <span
                 className="badge text-[10px]"

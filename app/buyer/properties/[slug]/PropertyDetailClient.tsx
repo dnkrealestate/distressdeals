@@ -1,4 +1,5 @@
 'use client'
+import { useItemTracking } from '@/components/feed/useItemTracking'
 import { OfferBanner, PriceInForce } from '@/components/buyer/OfferParts'
 import { offerPrice } from '@/lib/offer'
 import { useState, useEffect, useRef } from 'react'
@@ -81,6 +82,7 @@ const LocationMap = dynamic(() => import('@/components/shared/LocationMap'), {
 
 export default function PropertyDetailClient({ property }: { property: Property }) {
   const router = useRouter()
+  useItemTracking('property', property._id)
   const [similar,  setSimilar]      = useState<Property[]>([])
   const [recommended, setRecommended] = useState<Property[]>([])
   const [forYou,   setForYou]       = useState<Property[]>([])

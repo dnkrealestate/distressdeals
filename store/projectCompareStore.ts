@@ -1,3 +1,4 @@
+import { trackFeed } from '@/lib/feed'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import toast from 'react-hot-toast'
@@ -36,6 +37,7 @@ export const useProjectCompareStore = create<ProjectCompareState>()(
           return
         }
         if (list.length >= MAX_PROJECT_COMPARE) { toast.error(`You can compare up to ${MAX_PROJECT_COMPARE} projects`); return }
+        trackFeed({ type: 'property_compare', itemId: project._id, itemKind: 'project' })
         set({ projects: [...list, project] })
         toast.success('Added to compare')
       },

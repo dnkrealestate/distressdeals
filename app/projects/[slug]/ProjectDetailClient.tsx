@@ -1,4 +1,5 @@
 'use client'
+import { useItemTracking } from '@/components/feed/useItemTracking'
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
@@ -97,7 +98,7 @@ function FloorPlanTabs({ floorPlans }: { floorPlans: NonNullable<Project['floorP
           {(() => {
             const ref = Number(fp.referencePrice) || 0, price = Number(fp.price) || 0
             const pct = ref > 0 && price > 0 ? ((ref - price) / ref) * 100 : 0
-            if (pct < 1 || pct > 60) return null
+            if (pct <= 0 || pct > 60) return null
             return (
               <span className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
                 <s>{formatPrice(ref)}</s>
@@ -253,6 +254,7 @@ function Fact({ icon: Icon, label, value }: { icon: any; label: string; value: s
 }
 
 export default function ProjectDetailClient({ project }: { project: Project }) {
+  useItemTracking('project', project._id)
   // "Our Deal Price" only when a documented reference price stands behind it; otherwise the normal starting price.
   const projectClaim = dealClaim(project)
   // While a priced offer is live, the offer price is the price shown, with the normal price struck through.

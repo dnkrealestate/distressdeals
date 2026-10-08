@@ -420,6 +420,8 @@ export interface PropertyFilters {
   // Feature tag from a "More searches" link — cheap, luxury, installments…
   tag?: string
   offer?: string          // 'true' = only listings with a limited-time offer running
+  // "More filters" (components/feed/MoreFilters.tsx)
+  developer?: string; distress?: string; discountMin?: number; waterfront?: string; paymentPlan?: string; roiMin?: number; handoverBy?: number
 }
 
 export interface PaginatedResponse<T> {

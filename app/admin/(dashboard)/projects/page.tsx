@@ -181,6 +181,7 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
   const [submitting, setSubmitting] = useState(false)
   const [developers, setDevelopers] = useState<Developer[]>([])
   const [permitQrImage, setPermitQrImage] = useState(project?.permitQrImage || '')
+  const [discountPct, setDiscountPct] = useState<string | null>(null)
   const [offer, setOffer] = useState<Offer | null>(project?.offer && !project.offer.fromDeveloper ? project.offer : null)
   const [uploadingQr, setUploadingQr] = useState(false)
 
@@ -749,9 +750,45 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
                 <Field label="Reference Number">
                   <input className="input" value={project?.referenceId || 'Assigned on save'} disabled style={{ opacity: 0.7 }} />
                 </Field>
+                {/* Market Price is the main price; the Distress Deals Price is ours. Enter the market price and a discount and
+                    the Distress Deals Price is filled in — or type the Distress Deals Price and the discount is shown. */}
+                {(() => {
+                  const mv = Number(watch('marketValue')) || 0, price = Number(watch('priceFrom')) || 0
+                  const shown = discountPct ?? (mv > 0 && price > 0 && price < mv ? String(Math.round(((mv - price) / mv) * 1000) / 10) : '')
+                  const applyPct = (raw: string, market = mv) => {
+                    setDiscountPct(raw)
+                    const n = Number(raw)
+                    if (market > 0 && n > 0 && n < 100) setValue('priceFrom', Math.round(market * (100 - n) / 100), { shouldDirty: true, shouldValidate: true })
+                  }
+                  return (
+                    <div className="grid grid-cols-2 gap-4">
+                      <Field label="Market Price (AED)">
+                        <input className="input" type="number" placeholder="The normal market price of the starting unit" {...register('marketValue', {
+                          // A discount already entered keeps applying when the market price changes.
+                          onChange: e => { const n = Number(discountPct); if (n > 0) applyPct(String(n), Number(e.target.value) || 0) },
+                        })} />
+                        {mv > 0 && <p className="text-[11px] mt-1 font-medium" style={{ color: 'var(--teal)' }}>{formatPrice(mv)}</p>}
+                      </Field>
+                      <Field label="Discount (%) — optional">
+                        <input className="input" type="number" min={0} max={90} step="0.5" placeholder={mv > 0 ? 'e.g. 20' : 'Enter the market price first'} disabled={!(mv > 0)}
+                          value={shown} onChange={e => applyPct(e.target.value)} />
+                        <div className="flex flex-wrap gap-1.5 mt-1.5">
+                          {[5, 10, 15, 20, 25, 30].map(n => (
+                            <button key={n} type="button" disabled={!(mv > 0)} onClick={() => applyPct(String(n))} className="px-2.5 py-1 rounded-full text-[11px] font-medium disabled:opacity-40"
+                              style={{ background: Number(shown) === n ? 'rgba(203,1,1,0.10)' : 'var(--surface)', border: `1px solid ${Number(shown) === n ? 'rgba(203,1,1,0.4)' : 'var(--border)'}`, color: Number(shown) === n ? '#CB0101' : 'var(--text-mid)' }}>{n}%</button>
+                          ))}
+                        </div>
+                        {mv > 0 && price > 0 && price >= mv && <p className="text-[11px] mt-1" style={{ color: '#B45309' }}>The Distress Deals Price is not below the market price.</p>}
+                      </Field>
+                    </div>
+                  )
+                })()}
                 <div className="grid grid-cols-2 gap-4">
                   <Field label="Distress Deals Price (AED) *">
-                    <input className="input" type="number" {...register('priceFrom', { required: true, min: 1 })} />
+                    <input className="input" type="number" {...register('priceFrom', { required: true, min: 1, onChange: () => setDiscountPct(null) })} />
+                    {Number(watch('marketValue')) > 0 && Number(watch('priceFrom')) > 0 && Number(watch('priceFrom')) < Number(watch('marketValue')) && (
+                      <p className="text-[11px] mt-1 font-medium" style={{ color: '#047857' }}>{(Math.round(((Number(watch('marketValue')) - Number(watch('priceFrom'))) / Number(watch('marketValue'))) * 1000) / 10)}% below the market price · saving {formatPrice(Number(watch('marketValue')) - Number(watch('priceFrom')))}</p>
+                    )}
                     {Number(watch('priceFrom') || 0) > 0 && (
                       <p className="text-[11px] mt-1 font-medium" style={{ color: 'var(--teal)' }}>{formatPrice(Number(watch('priceFrom')))}</p>
                     )}
@@ -772,9 +809,9 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
                     <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Our deal price against the comparable market price for the same unit. Enter only real, documented figures — when a field is empty nothing is assumed and nothing is claimed.</p>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Field label="Reference / Comparable Market Price (AED)">
-                      <input className="input" type="number" placeholder="Verified by you — leave empty to use the automatic reference" {...register('marketValue')} />
-                      {Number(watch('marketValue') || 0) > 0 && <p className="text-[11px] mt-1 font-medium" style={{ color: 'var(--teal)' }}>{formatPrice(Number(watch('marketValue')))}</p>}
+                    <Field label="Market Price (AED)">
+                      <input className="input" disabled style={{ opacity: 0.7 }} value={Number(watch('marketValue') || 0) > 0 ? formatPrice(Number(watch('marketValue'))) : 'Not entered — the automatic reference is used when available'} />
+                      <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>Entered with the prices above.</p>
                     </Field>
                     <Field label="Our Deal Price (AED)">
                       <input className="input" value={Number(watch('priceFrom') || 0) > 0 ? formatPrice(Number(watch('priceFrom'))) : 'Enter it above'} disabled style={{ opacity: 0.7 }} />
@@ -1046,9 +1083,9 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
                             const ref = Number(fp.referencePrice) || 0, price = Number(fp.price) || 0
                             if (!(ref > 0 && price > 0)) return null
                             const pct = ((ref - price) / ref) * 100
-                            return pct >= 1 && pct <= 60
+                            return pct > 0 && pct <= 60
                               ? <p className="text-[11px] col-span-2 font-medium" style={{ color: '#047857' }}>{pct.toFixed(1)}% below market · potential advantage {formatPrice(Math.round(ref - price))}{pct > 30 ? ' — unusually large, please double-check' : ''}</p>
-                              : <p className="text-[11px] col-span-2" style={{ color: '#B45309' }}>{pct < 1 ? 'Not below the reference price — no claim is shown for this unit.' : 'Too large a difference to be shown — please check both prices.'}</p>
+                              : <p className="text-[11px] col-span-2" style={{ color: '#B45309' }}>{pct <= 0 ? 'Not below the reference price — no claim is shown for this unit.' : 'Too large a difference to be shown — please check both prices.'}</p>
                           })()}
                         </div>
                         <button type="button" onClick={() => removeFloorPlan(i)} className="btn-ghost btn-sm p-1.5 flex-shrink-0" style={{ color: '#FB7185' }}>

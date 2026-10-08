@@ -6,7 +6,7 @@ export function MarketValueHint({ price, marketValue }: { price: number; marketV
   if (!(marketValue > 0)) return <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>When set, the card shows "x% Below Market". Empty = nothing is claimed.</p>
   if (!(price > 0)) return null
   const pct = ((marketValue - price) / marketValue) * 100
-  if (pct < 1) return <p className="text-[11px] mt-1" style={{ color: '#B45309' }}>The price is not below this value — no "below market" badge will show.</p>
+  if (pct <= 0) return <p className="text-[11px] mt-1" style={{ color: '#B45309' }}>The price is not below this value — no "below market" badge will show.</p>
   if (pct > 60) return <p className="text-[11px] mt-1" style={{ color: '#B45309' }}>That is {pct.toFixed(0)}% below — too large to be shown. Please check the figure.</p>
   return <p className="text-[11px] mt-1 font-medium" style={{ color: '#047857' }}>{pct.toFixed(1)}% below market · potential advantage {formatPrice(Math.round(marketValue - price))}</p>
 }
@@ -16,7 +16,7 @@ export function MarketValueHint({ price, marketValue }: { price: number; marketV
 export function PricingOpportunityCalc({ dealPrice, reference, source }: { dealPrice: number; reference: number; source: string }) {
   const has = reference > 0 && dealPrice > 0
   const pct = has ? ((reference - dealPrice) / reference) * 100 : 0
-  const valid = has && pct >= 1 && pct <= 60
+  const valid = has && pct > 0 && pct <= 60
   const box = (label: string, value: string) => (
     <div className="rounded-lg px-3 py-2.5" style={{ background: 'var(--surface)', border: '1px dashed var(--border)' }}>
       <p className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>{label} <span className="font-normal">· automatic</span></p>
@@ -31,7 +31,7 @@ export function PricingOpportunityCalc({ dealPrice, reference, source }: { dealP
         {box('Below Market', valid ? `${pct.toFixed(1)}%` : '—')}
       </div>
       {!(reference > 0) && <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>No comparable market price entered — the project shows its normal price and no "below market" claim.</p>}
-      {has && pct < 1 && warn('The deal price is not below the comparable market price — no "below market" claim will be shown.')}
+      {has && pct <= 0 && warn('The deal price is not below the comparable market price — no "below market" claim will be shown.')}
       {has && pct > 60 && warn(`That is ${pct.toFixed(0)}% below — too large to be shown. Please check both prices.`)}
       {valid && pct > 30 && warn(`${pct.toFixed(0)}% is an unusually large difference. Please double-check both prices before saving.`)}
       {valid && !source.trim() && warn('Add where the comparable market price comes from (Market Price Source / Evidence) so the claim can be backed up.')}

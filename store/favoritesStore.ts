@@ -1,3 +1,4 @@
+import { trackFeed } from '@/lib/feed'
 import { create } from 'zustand'
 import { favAPI } from '@/lib/api'
 import toast from 'react-hot-toast'
@@ -28,6 +29,7 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
   toggleFavorite: async (id) => {
     const prev = get().favorites
     const isFav = prev.includes(id)
+    trackFeed({ type: isFav ? 'property_unsave' : 'property_save', itemId: id, itemKind: 'property' })
     set({ favorites: isFav ? prev.filter(f => f !== id) : [...prev, id] })
     try {
       await favAPI.toggle(id)
@@ -43,6 +45,7 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
   toggleProjectFavorite: async (id) => {
     const prev = get().projectFavorites
     const isFav = prev.includes(id)
+    trackFeed({ type: isFav ? 'property_unsave' : 'property_save', itemId: id, itemKind: 'project' })
     set({ projectFavorites: isFav ? prev.filter(f => f !== id) : [...prev, id] })
     try {
       await favAPI.toggleProject(id)

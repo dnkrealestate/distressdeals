@@ -31,6 +31,11 @@ import type { MapBounds } from '@/lib/googleMaps'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import { tagHeadline } from '@/lib/listingTags'
+import { feedAPI } from '@/lib/api'
+import { trackFeed, feedVisitorId, setFeedVariants } from '@/lib/feed'
+import FeedTracked from '@/components/feed/FeedTracked'
+import FeedSections from '@/components/feed/FeedSections'
+import MoreFilters, { ADVANCED_KEYS } from '@/components/feed/MoreFilters'
 
 // Loaded client-side only — the Maps script needs `window`.
 const PropertiesMapView = dynamic(() => import('@/components/buyer/PropertiesGoogleMapView'), {
@@ -43,6 +48,7 @@ const PropertiesMapView = dynamic(() => import('@/components/buyer/PropertiesGoo
 // building blocks now live in PropertyFilterBar.tsx, shared with the
 // map-search page.
 const SORT_OPTIONS = [
+  { v: 'relevance', l: 'For You' },            // the personalised feed — Buy page only
   { v: 'opportunity', l: 'Best Opportunities' },
   { v: 'recommended', l: 'Recommended'     },
   { v: 'newest',    l: 'Newest First'      },
@@ -128,20 +134,22 @@ function AlertCard({ filters }: { filters: PropertyFilters }) {
    counts row, so switching between them never costs the buyer these
    controls) ─────────────────────────────────────────────────── */
 function SortViewControls({
-  sortBy, onSortChange, view, onViewChange,
+  sortBy, onSortChange, view, onViewChange, feed = false, extra,
 }: {
   sortBy: string; onSortChange: (v: string) => void
   view: 'grid' | 'list' | 'map'; onViewChange: (v: 'grid' | 'list' | 'map') => void
+  feed?: boolean; extra?: React.ReactNode
 }) {
   return (
     <div className="flex items-center gap-2.5 flex-shrink-0">
+      {extra}
       <div className="relative hidden sm:block">
         <select
           value={sortBy}
           onChange={e => onSortChange(e.target.value)}
           className="select-field appearance-none pr-9 py-2 text-xs cursor-pointer min-w-[150px]"
         >
-          {SORT_OPTIONS.map(s => <option key={s.v} value={s.v}>{s.l}</option>)}
+          {SORT_OPTIONS.filter(s => feed || s.v !== 'relevance').map(s => <option key={s.v} value={s.v}>{s.l}</option>)}
         </select>
         <ArrowUpDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
       </div>
@@ -168,7 +176,7 @@ function SortViewControls({
 }
 
 /* ─── EMPTY STATE ───────────────────────────────────────────── */
-function EmptyState({ onClear }: { onClear: () => void }) {
+function EmptyState({ onClear, mixed = false }: { onClear: () => void; mixed?: boolean }) {
   return (
     <div className="flex flex-col items-center justify-center py-24 text-center">
       <div
@@ -177,8 +185,8 @@ function EmptyState({ onClear }: { onClear: () => void }) {
       >
         <Search size={24} style={{ color: 'var(--teal)' }} />
       </div>
-      <h3 className="font-semibold text-lg mb-2" style={{ color: 'var(--text)' }}>No properties found</h3>
-      <p className="muted mb-6 max-w-xs">Try adjusting your filters or search in a different area.</p>
+      <h3 className="font-semibold text-lg mb-2" style={{ color: 'var(--text)' }}>{mixed ? 'No listings match this search' : 'No properties found'}</h3>
+      <p className="muted mb-6 max-w-xs">{mixed ? 'No properties or new projects match these filters. Try adjusting them or search in a different area.' : 'Try adjusting your filters or search in a different area.'}</p>
       <button onClick={onClear} className="btn-primary btn-sm">Clear Filters</button>
     </div>
   )
@@ -196,8 +204,16 @@ function projectsApply(f: PropertyFilters, forced?: 'sale' | 'rent'): boolean {
   if (forced === 'rent' || f.listingType === 'rent') return false
   if (f.category && f.category !== 'residential') return false
   if (f.type && !PROJECT_TYPES.includes(f.type)) return false
+  if (f.distress || f.waterfront) return false
   return !f.bedrooms && !f.bathrooms && !f.sizeMin && !f.sizeMax && !f.rentalStatus && !f.availableWithin
 }
+// The Buy page's default order is the personalised feed ("For You"); Rent keeps Best Opportunities.
+const defaultSort = (forced?: 'sale' | 'rent') => (forced === 'sale' ? 'relevance' : 'opportunity')
+const advancedFrom = (sp: URLSearchParams) => ({
+  developer: sp.get('developer') || '', distress: sp.get('distress') === 'true' ? 'true' : '', discountMin: Number(sp.get('discountMin')) || 0,
+  waterfront: sp.get('waterfront') === 'true' ? 'true' : '', paymentPlan: sp.get('paymentPlan') === 'true' ? 'true' : '',
+  roiMin: Number(sp.get('roiMin')) || 0, handoverBy: Number(sp.get('handoverBy')) || 0,
+})
 
 // Which slice of each kind page `page` shows (po/jo = offsets, pr/j = counts). Projects take up to PROJECTS_PER_PAGE
 // slots, properties the rest; when one kind is used up the other fills the page.
@@ -291,6 +307,13 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
   const [projects, setProjects] = useState<Project[]>([])
   const [projectTotal, setProjectTotal] = useState(0)
   const [pageOrder, setPageOrder] = useState('')   // "ppjpj…" for the Best Opportunities order (see mixListings)
+  // The personalised feed ("For You") — cards in the order the server laid out, appended batch by batch.
+  const [feedItems, setFeedItems] = useState<{ kind: 'property' | 'project'; src: string; position: number; item: any }[]>([])
+  const [feedMeta, setFeedMeta] = useState<{ feedId: string; page: number; hasMore: boolean; total: number; searching: boolean } | null>(null)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const feedReqKey = useRef<string | null>(null)
+  const feedPending = useRef(false)
+  const [sectionIds, setSectionIds] = useState<Set<string>>(new Set())
   const [loading,    setLoading]    = useState(!initialProperties?.length)
   const [view,       setView]       = useState<'grid'|'list'|'map'>('list')
 
@@ -325,13 +348,16 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
     completion:  searchParams.get('completion')  || '',
     tag:         searchParams.get('tag')         || '',
     offer:       searchParams.get('offer') === 'true' ? 'true' : '',
-    sortBy:      searchParams.get('sortBy')      || 'opportunity',
+    ...advancedFrom(searchParams as any),
+    sortBy:      searchParams.get('sortBy')      || defaultSort(forcedListingType),
     page:        Number(searchParams.get('page')) || 1,
     limit:       PER_PAGE,
   })
 
   // One list, exactly PER_PAGE cards a page: up to PROJECTS_PER_PAGE new projects plus properties; once either kind
   // runs out the other fills the page. Each page's slice is worked out from both totals and fetched by offset.
+  // For You — the personalised feed — on the Buy page; every other sort works as before.
+  const feedMode = forcedListingType === 'sale' && (filters.sortBy || defaultSort(forcedListingType)) === 'relevance' && view !== 'map'
   const fetchList = useCallback(async () => {
     setLoading(true)
     const page = filters.page || 1
@@ -348,6 +374,38 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
     if (filters.completion) pParams.status = PROJECT_STATUS_FOR[filters.completion]
     if (filters.tag) pParams.tag = filters.tag
     if (filters.offer) pParams.offer = 'true'
+    if (filters.developer) pParams.developer = filters.developer
+    if (filters.discountMin) pParams.discountMin = filters.discountMin
+    if (filters.paymentPlan) pParams.paymentPlan = 'true'
+    if (filters.roiMin) pParams.roiMin = filters.roiMin
+    if (filters.handoverBy) pParams.handoverBy = filters.handoverBy
+
+    // ── For You: the personalised feed (backend services/feed). Filters still apply exactly; the feed only orders. ──
+    if (feedMode) {
+      const { sortBy: _s, ...feedFilters } = clean
+      const params = { ...feedFilters, listingType: 'sale', visitorId: feedVisitorId(), page: 1, perPage: PER_PAGE, ...(withProjects ? { projects: JSON.stringify(pParams) } : {}) }
+      // The page sets its filters more than once while it starts up — the same request is only sent once.
+      const reqKey = JSON.stringify(params)
+      if (feedReqKey.current === reqKey) { if (!feedPending.current) setLoading(false); return }
+      feedReqKey.current = reqKey
+      feedPending.current = true
+      try {
+        const res = await feedAPI.page(params)
+        if (feedReqKey.current !== reqKey) return              // a newer search has started since
+        const d = res.data.data
+        setFeedVariants(d.variants)
+        setFeedItems(d.items || [])
+        setFeedMeta({ feedId: d.feedId, page: 1, hasMore: !!d.hasMore, total: d.total || 0, searching: !!d.searching })
+        setTotal(d.total || 0); setProjectTotal(0); setTotalPages(1)
+      } catch {
+        feedReqKey.current = null
+        setFeedItems([]); setFeedMeta(null)
+      } finally {
+        feedPending.current = false
+        if (feedReqKey.current === reqKey || feedReqKey.current === null) setLoading(false)
+      }
+      return
+    }
 
     const getProps = (offset: number, limit: number) => propertyAPI.getAll({ ...clean, offset, limit })
       .then(r => r.data.success ? r.data.data : null)
@@ -395,11 +453,60 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
     } finally {
       setLoading(false)
     }
-  }, [filters, forcedListingType])
+  }, [filters, forcedListingType, feedMode])
 
   useEffect(() => { fetchList() }, [fetchList])
+  useEffect(() => { if (!feedMode) feedReqKey.current = null }, [feedMode])
 
-  const listItems = mixListings(properties, projects, filters.sortBy || 'opportunity', pageOrder)
+  // Next batch of the feed, appended as the visitor scrolls — never a card twice.
+  const loadMore = useCallback(async () => {
+    if (!feedMeta?.hasMore || loadingMore) return
+    setLoadingMore(true)
+    try {
+      const clean: any = {}
+      Object.entries(filters).forEach(([k, v]) => { if (v && k !== 'page' && k !== 'limit' && k !== 'sortBy') clean[k] = v })
+      const res = await feedAPI.page({ ...clean, listingType: 'sale', visitorId: feedVisitorId(), page: feedMeta.page + 1, perPage: PER_PAGE, feedId: feedMeta.feedId })
+      const d = res.data.data
+      setFeedItems(prev => { const have = new Set(prev.map(x => x.item?._id)); return [...prev, ...(d.items || []).filter((x: any) => !have.has(x.item?._id))] })
+      setFeedMeta(m => m ? { ...m, page: m.page + 1, hasMore: !!d.hasMore } : m)
+    } catch { /* the button stays, so the visitor can try again */ } finally {
+      setLoadingMore(false)
+    }
+  }, [feedMeta, loadingMore, filters])
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el || !feedMode || !feedMeta?.hasMore) return
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) loadMore() }, { rootMargin: '600px 0px' })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [feedMode, feedMeta, loadMore])
+
+  // What the visitor searches and filters for is a signal too (only real changes, never the first render).
+  const lastTracked = useRef<string | null>(null)
+  useEffect(() => {
+    const { page: _p, limit: _l, sortBy: _s, ...rest } = filters as any
+    const key = JSON.stringify(rest)
+    if (lastTracked.current === null) { lastTracked.current = key; return }
+    if (key === lastTracked.current) return
+    const prev = JSON.parse(lastTracked.current)
+    lastTracked.current = key
+    const f = Object.fromEntries(Object.entries(rest).filter(([, v]) => v))
+    if (rest.q && rest.q !== prev.q) trackFeed({ type: 'search', filters: f })
+    else if (rest.area && rest.area !== prev.area) trackFeed({ type: 'area_selected', filters: f })
+    else if (rest.type && rest.type !== prev.type) trackFeed({ type: 'property_type_selected', filters: f })
+    else if (rest.bedrooms && rest.bedrooms !== prev.bedrooms) trackFeed({ type: 'bedroom_filter', filters: f })
+    else if ((rest.priceMin || rest.priceMax) && (rest.priceMin !== prev.priceMin || rest.priceMax !== prev.priceMax)) trackFeed({ type: 'price_filter', filters: f })
+    else trackFeed({ type: 'filter_applied', filters: f })
+  }, [filters])
+
+  // A plain feed (no search, no filters): the place for "Continue browsing" / "Recommended for you".
+  const explicitSearch = ['q', 'area', 'community', 'type', 'bedrooms', 'bathrooms', 'priceMin', 'priceMax', 'sizeMin', 'sizeMax', 'category', 'completion', 'tag', 'offer', ...ADVANCED_KEYS]
+    .some(k => (filters as any)[k])
+  const listItems: (ListItem & { src?: string; position?: number })[] = feedMode
+    // Cards already shown in "Recommended for you" / "Because you viewed" above are not repeated in the feed.
+    ? feedItems.filter(x => x?.item && (explicitSearch || !sectionIds.has(x.item._id))).map(x => ({ kind: x.kind, item: x.item, key: `${x.kind}-${x.item._id}`, src: x.src, position: x.position }))
+    : mixListings(properties, projects, filters.sortBy || 'opportunity', pageOrder)
   const pageCount = totalPages
 
   // PropertyFinder-style "Apartments 1,234 · Villas 567 …" counts row —
@@ -497,6 +604,7 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
       completion:  searchParams.get('completion')  || '',
       tag:         searchParams.get('tag')         || '',
       offer:       searchParams.get('offer') === 'true' ? 'true' : '',
+      ...advancedFrom(searchParams as any),
       page: 1,
     }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -530,8 +638,9 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
   const clearFilters = () => {
     setFilters(f => ({
       ...f, type: '', q: '', area: '', bedrooms: '', category: '', bathrooms: '',
-      sizeMin: 0, sizeMax: 0, priceMin: 0, priceMax: 0, sortBy: 'opportunity', page: 1,
+      sizeMin: 0, sizeMax: 0, priceMin: 0, priceMax: 0, sortBy: defaultSort(forcedListingType), page: 1,
       furnishing: '', completion: '', rentalStatus: '', availableWithin: 0, tag: '', offer: '',
+      developer: '', distress: '', discountMin: 0, waterfront: '', paymentPlan: '', roiMin: 0, handoverBy: 0,
     }))
   }
 
@@ -671,7 +780,8 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
 
           <SortViewControls
             sortBy={filters.sortBy || 'newest'} onSortChange={v => setFilter('sortBy', v)}
-            view={view} onViewChange={setView}
+            view={view} onViewChange={setView} feed={forcedListingType === 'sale'}
+            extra={!isRent ? <MoreFilters value={filters} onChange={patch => setFilters(f => ({ ...f, ...patch, page: 1 }))} /> : undefined}
           />
         </div>
       </motion.div>
@@ -774,7 +884,8 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
           <div ref={sortViewRef}>
             <SortViewControls
               sortBy={filters.sortBy || 'newest'} onSortChange={v => setFilter('sortBy', v)}
-              view={view} onViewChange={setView}
+              view={view} onViewChange={setView} feed={forcedListingType === 'sale'}
+              extra={!isRent ? <MoreFilters value={filters} onChange={patch => setFilters(f => ({ ...f, ...patch, page: 1 }))} /> : undefined}
             />
           </div>
         </div>
@@ -817,9 +928,10 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
                 ))}
               </div>
             ) : listItems.length === 0 ? (
-              <EmptyState onClear={clearFilters} />
+              <EmptyState onClear={clearFilters} mixed={!isRent} />
             ) : (
               <>
+                {feedMode && !explicitSearch && <FeedSections view={view === 'list' ? 'list' : 'grid'} onShown={ids => setSectionIds(new Set(ids))} />}
                 <div className={cn(view === 'grid' ? 'grid gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3' : 'flex flex-col gap-4')}>
                   {listItems.map((entry, i) => (
                     <Fragment key={entry.key}>
@@ -827,9 +939,11 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: Math.min(i, 10) * 0.04 }}>
-                        {entry.kind === 'project'
-                          ? <ProjectCard project={entry.item} layout={view === 'grid' ? 'grid' : 'row'} markAsProject />
-                          : <PropertyCard property={entry.item} loading={!entry.item} layout={view === 'grid' ? 'grid' : 'row'} />}
+                        <FeedTracked kind={entry.kind} id={entry.item?._id} src={entry.src || `sort:${filters.sortBy || 'opportunity'}`} position={entry.position ?? i}>
+                          {entry.kind === 'project'
+                            ? <ProjectCard project={entry.item} layout={view === 'grid' ? 'grid' : 'row'} markAsProject />
+                            : <PropertyCard property={entry.item} loading={!entry.item} layout={view === 'grid' ? 'grid' : 'row'} />}
+                        </FeedTracked>
                       </motion.div>
                       {/* No sidebar below xl — the ad sits in the list instead, after the 6th listing. */}
                       {i === 5 && <AdSlot placement="listings" variant="wide" className="xl:hidden col-span-full" />}
@@ -837,6 +951,17 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
                   ))}
                 </div>
 
+                {feedMode ? (
+                  <div ref={sentinelRef} className="flex flex-col items-center gap-2 py-8">
+                    {feedMeta?.hasMore ? (
+                      <button type="button" onClick={loadMore} disabled={loadingMore} className="btn-outline btn-sm">
+                        {loadingMore ? 'Loading more…' : 'Show more properties'}
+                      </button>
+                    ) : (
+                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>You've seen all {listItems.length.toLocaleString()} matching listings.</p>
+                    )}
+                  </div>
+                ) : (
                 <Pagination
                   page={filters.page || 1}
                   totalPages={pageCount}
@@ -845,6 +970,7 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
                   perPage={PER_PAGE}
                   itemLabel={total + projectTotal === 1 ? 'listing' : 'listings'}
                 />
+                )}
               </>
             )}
 

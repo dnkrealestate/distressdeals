@@ -1,3 +1,4 @@
+import { trackFeed } from '@/lib/feed'
 import { create } from 'zustand'
 import type { Property } from '@/types'
 import toast from 'react-hot-toast'
@@ -56,6 +57,7 @@ export const useCompareStore = create<CompareState>((set, get) => ({
     }
 
     if (list.length >= 2) { toast.error('You can compare up to 2 properties'); return }
+    trackFeed({ type: 'property_compare', itemId: property._id, itemKind: 'property' })
     const next = [...list, property]
     set({ compareList: next })
     pushToServer(next)
