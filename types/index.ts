@@ -1,5 +1,5 @@
 export type UserRole = 'buyer' | 'seller' | 'agent' | 'editor' | 'admin' | 'super_admin'
-export type PropertyType = 'apartment' | 'villa' | 'townhouse' | 'penthouse' | 'studio' | 'office' | 'retail' | 'warehouse' | 'plot' | 'commercial_villa' | 'other'
+export type PropertyType = 'apartment' | 'villa' | 'townhouse' | 'penthouse' | 'studio' | 'commercial' | 'office' | 'retail' | 'warehouse' | 'plot' | 'commercial_villa' | 'other'
 export type PropertyCategory = 'residential' | 'commercial' | 'plot'
 export type ListingType = 'sale' | 'rent'
 export type RentFrequency = 'yearly' | 'monthly'
@@ -35,6 +35,58 @@ export interface PropertyImage { url: string; publicId: string; isPrimary: boole
 
 // Rent listings only: can a tenant move in now, soon, or is a tenant still in place.
 export type RentalStatus = 'available_now' | 'available_soon' | 'occupied'
+
+// A limited-time offer on a listing or a project (backend models/offerSchema.ts). `thumbnail` is the offer's own card
+// picture — it is not part of the gallery.
+export type GiftKind = 'car' | 'golden_visa' | 'gold' | 'furniture' | 'appliances' | 'service_charges' | 'dld_waiver' | 'cashback' | 'holiday' | 'other'
+export interface Offer {
+  enabled: boolean
+  title?: string; price?: number
+  // "20% off": the offer price is worked out from the normal price. Used instead of a fixed offer price.
+  discountPercent?: number
+  // True when this is the developer's offer on all its projects (set by the server), not the project's own.
+  fromDeveloper?: boolean
+  startsAt?: string; endsAt?: string
+  paymentPlan?: string          // a special payment plan for the offer period
+  dldWaiver?: string            // a DLD registration-fee waiver, e.g. "100% DLD fee waived"
+  gifts?: { kind: GiftKind; label: string }[]
+  thumbnail?: string; note?: string
+}
+
+// A project's official record at the Dubai Land Department (status, % completed, dates) — filled by the backend's DLD
+// sync when the project is linked to the register; absent otherwise.
+export interface ProjectDld {
+  projectId: string; projectNumber?: string; name: string; developerName?: string
+  status?: 'not_started' | 'active' | 'finished' | 'pending' | 'cancelled'; statusText?: string
+  percentCompleted?: number
+  startDate?: string; endDate?: string; completionDate?: string
+  units?: number; villas?: number; buildings?: number; escrowAgent?: string
+  matchedBy?: 'auto' | 'admin'; syncedAt?: string
+}
+
+// The market reference in use on a listing or a project (backend models/marketReferenceSchema.ts): our own verified
+// figure (ADMIN), or one calculated from registered sales (DLD / DUBAI_PULSE / LICENSED_PROVIDER / HYBRID).
+export interface MarketReference {
+  price: number; pricePerSqft?: number
+  source?: string; sourceType: 'ADMIN' | 'DLD' | 'DUBAI_PULSE' | 'LICENSED_PROVIDER' | 'HYBRID' | 'LISTINGS'
+  comparableCount?: number; confidence?: 'HIGH' | 'MEDIUM' | 'LOW' | 'INSUFFICIENT' | 'VERIFIED'
+  level?: string; calculatedAt?: string; periodStart?: string; periodEnd?: string
+  sizeTolerance?: number; publicEligible?: boolean; notes?: string; dealPrice?: number; unit?: string
+}
+
+// Opportunity Score of a listing or a project, computed on the server (backend utils/opportunity.ts). The below-market
+// fields are present only when there is a real reference value behind them.
+export interface Opportunity {
+  score: number
+  belowMarketPct?: number; advantage?: number; referenceValue?: number
+  // 'valuation' = verified by our team · 'transactions' = registered sales · 'comparables' = similar listings on our site
+  basis?: 'valuation' | 'comparables' | 'transactions'; comps?: number; confidence?: string
+  // Projects: the deal price the figure is calculated from, the unit it belongs to when it comes from a unit's own
+  // prices, and the rental yield worked out from the expected annual rent.
+  dealPrice?: number; unit?: string; rentalYield?: number
+  labels?: string[]; best?: boolean
+  factors?: Record<string, number>
+}
 
 export interface Property {
   _id: string; title: string; description: string; slug: string
@@ -83,6 +135,9 @@ export interface Property {
   deleteRequest?: { requestedBy: Partial<User>; reason?: string; requestedAt: string }
   stats: { views: number; favorites: number; leads: number; interestedCount: number }
   isFeatured: boolean; isPremium: boolean; tags: string[]
+  // Estimated market value (set by our team) · the price before the last reduction · the computed opportunity.
+  marketValue?: number; previousPrice?: number; opportunity?: Opportunity; marketReference?: MarketReference
+  offer?: Offer | null
   createdAt: string; updatedAt: string
 }
 
@@ -92,6 +147,8 @@ export interface Lead {
   status: LeadStatus; source: string; budget?: { min: number; max: number }
   name?: string; email?: string; phone?: string
   requirements?: string; priority: 'low' | 'medium' | 'high'
+  // The limited-time offer that was running when the enquiry came in (a snapshot — it stays even after the offer ends).
+  offer?: { title?: string; discountPercent?: number; fromDeveloper?: boolean; price?: number; normalPrice?: number; endsAt?: string; paymentPlan?: string; dldWaiver?: string; gifts?: string[]; note?: string }
   notes: { content: string; createdBy: User; createdAt: string }[]
   meetings: Meeting[]; timeline: { action: string; description: string; createdAt: string }[]
   deleteRequest?: { requestedBy: Partial<User>; reason?: string; requestedAt: string }
@@ -212,6 +269,13 @@ export interface Project {
   // Feature tags (automatic + admin overrides) — see backend utils/listingTags
   tags?: string[]; tagsAdded?: string[]; tagsRemoved?: string[]
   isFeatured: boolean; views: number; createdAt: string
+  // `priceFrom` is OUR deal price. Comparable market price for the same unit · documented developer incentives ·
+  // expected yearly rent (optional) · older typed-in yield % · the computed opportunity.
+  marketValue?: number; incentives?: string[]; expectedAnnualRent?: number; rentalYield?: number; opportunity?: Opportunity; marketReference?: MarketReference
+  // Where the comparable market price comes from — staff only, never present on the public site.
+  marketPriceSource?: string
+  dld?: ProjectDld
+  offer?: Offer | null
   developerLogo?: string
   // Admin list only (GET /projects/manage/all).
   createdBy?: { _id: string; name: string; displayId?: string; role?: string } | null
@@ -221,7 +285,7 @@ export interface Project {
   developerLogoWhite?: string
   coordinates?: { lat: number; lng: number }
   amenities?: Record<string, boolean>
-  floorPlans?: { label: string; image: string; bedrooms?: string; size?: string; price?: number }[]
+  floorPlans?: { label: string; image: string; bedrooms?: string; size?: string; price?: number; referencePrice?: number }[]
   masterPlan?: { image: string; description?: string }
   landmarks?: { name: string; category: 'metro' | 'school' | 'mall' | 'landmark' | 'airport' | 'hospital'; lat: number; lng: number }[]
   videos?: { platform: 'youtube' | 'vimeo' | 'dailymotion' | '3d_view'; url: string; title?: string }[]
@@ -232,6 +296,8 @@ export interface Developer {
   // All-white version of the logo (transparent background) for dark backgrounds.
   logoWhite?: string
   website?: string; establishedYear?: number; headquarters?: string; isFeatured: boolean
+  // An offer on ALL of this developer's projects ("30% off every project").
+  offer?: Offer | null
   // Staff tracking (admin lists only)
   createdBy?: { _id: string; name: string; displayId?: string } | null; updatedBy?: { _id: string; name: string; displayId?: string } | null; updatedAt?: string
   // Search appearance — written automatically when empty, editable in the admin.
@@ -353,6 +419,7 @@ export interface PropertyFilters {
   sortBy?: string; page?: number; limit?: number
   // Feature tag from a "More searches" link — cheap, luxury, installments…
   tag?: string
+  offer?: string          // 'true' = only listings with a limited-time offer running
 }
 
 export interface PaginatedResponse<T> {

@@ -8,6 +8,7 @@ import { Building2, MapPin, Layers, Globe, CalendarDays, Hammer, ArrowUpRight } 
 import Navbar from '@/components/layouts/Navbar'
 import Footer from '@/components/layouts/Footer'
 import ProjectCard from '@/components/buyer/ProjectCard'
+import { DeveloperOfferBanner } from '@/components/buyer/OfferParts'
 import { projectAPI, developerAPI } from '@/lib/api'
 import { formatPrice, isHandedOver } from '@/lib/utils'
 import FaqSection, { type Faq } from '@/components/shared/FaqSection'
@@ -229,6 +230,8 @@ export default async function DeveloperDetailPage({ params, searchParams }: { pa
 
       <section className="section pb-20">
         <div className="wrap">
+          {/* The developer's offer on all its projects — renders nothing when none is running */}
+          <DeveloperOfferBanner offer={dev.offer} name={dev.name} className="mb-8" />
           <h2 id="projects" className="text-lg font-bold mb-6 scroll-mt-24" style={{ color: 'var(--text)' }}>
             Projects by {dev.name}{listPage.total > 0 && <span className="font-normal text-sm ml-2" style={{ color: 'var(--text-muted)' }}>· {listPage.total}</span>}
           </h2>

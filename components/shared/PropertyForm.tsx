@@ -10,6 +10,11 @@ import {
 } from 'lucide-react'
 import { propertyAPI, projectAPI, uploadAPI } from '@/lib/api'
 import { cn, formatPrice } from '@/lib/utils'
+import { MarketValueHint } from '@/components/admin/MarketValueHint'
+import MarketReferencePanel from '@/components/admin/MarketReferencePanel'
+import OfferEditor from '@/components/admin/OfferEditor'
+import type { Offer } from '@/types'
+import { useAuthStore } from '@/store/authStore'
 import { UAE_EMIRATES } from '@/lib/constants'
 import CommunitySelect, { useCommunities, matchCommunity } from './CommunitySelect'
 import { reverseGeocode, type GeocodeResult } from '@/lib/distance'
@@ -47,6 +52,7 @@ const RESIDENTIAL_TYPES = [
   { value: 'studio', label: 'Studio' },
 ]
 const COMMERCIAL_TYPES = [
+  { value: 'commercial', label: 'Commercial (general)' },
   { value: 'office', label: 'Office' },
   { value: 'retail', label: 'Retail / Shop' },
   { value: 'warehouse', label: 'Warehouse' },
@@ -146,6 +152,7 @@ const AMENITY_GROUPS: { title: string; items: { key: string; label: string }[] }
 
 interface FormValues {
   title: string; titleAr?: string; price: number
+  marketValue?: number | string
   developer?: string; projectName?: string; permitNumber?: string
   address: string; district?: string; additionalAddress?: string; unitNo?: string
   area: string; community?: string; city: string; emirate: string; lat: number; lng: number
@@ -215,6 +222,9 @@ function ToggleGroup({ options, value, onChange }: { options: { value: string; l
 export default function PropertyForm({ property, onSuccess }: { property?: Property; onSuccess: (id: string) => void }) {
   const router = useRouter()
   const isEdit = !!property
+  const role = useAuthStore(s => s.user?.role)
+  const isStaffUser = role === 'admin' || role === 'super_admin' || role === 'agent'
+  const [offer, setOffer] = useState<Offer | null>(property?.offer || null)
   const [step, setStep] = useState<number>(1)
   const [submitting, setSubmitting] = useState(false)
   const [newImages, setNewImages] = useState<File[]>([])
@@ -275,6 +285,7 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
   const { register, handleSubmit, getValues, setValue, watch, control, formState: { errors } } = useForm<FormValues>({
     defaultValues: property ? {
       title: property.title, titleAr: property.titleAr, price: property.price,
+      marketValue: property.marketValue || '',
       developer: property.developer, projectName: property.projectName, permitNumber: property.permitNumber,
       address: property.location?.address, district: property.location?.district,
       additionalAddress: property.location?.additionalAddress, unitNo: property.location?.unitNo,
@@ -492,6 +503,10 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
       description, descriptionAr: descriptionAr || undefined,
       category, type, listingType,
       price: Number(data.price), furnishing, completion,
+      // Our team's estimate of what the property is worth — the reference for "x% below market" (0 clears it).
+      marketValue: Number(data.marketValue) > 0 ? Number(data.marketValue) : 0,
+      // Limited-time offer — our team only (null removes it).
+      ...(isStaffUser && { offer }),
       ...(listingType === 'rent' && {
         rentalStatus,
         ...(rentalStatus !== 'available_now' && availableFrom && { availableFrom }),
@@ -752,12 +767,18 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
                 <input className="input" placeholder="e.g. 71466785292" {...register('permitNumber')} />
               </Field>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {isStaffUser && <OfferEditor value={offer} onChange={setOffer} normalPrice={Number(watch('price')) || 0} priceLabel="price" />}
+            {property?._id && isStaffUser && property.listingType !== 'rent' && <MarketReferencePanel kind="property" id={property._id} isAdmin={role === 'admin' || role === 'super_admin'} />}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Field label="All Inclusive Price (AED) *">
                 <input className="input" type="number" placeholder="0" {...register('price', { required: true, min: 1 })} />
                 {(watch('price') || 0) > 0 && (
                   <p className="text-[11px] mt-1 font-medium" style={{ color: 'var(--teal)' }}>{formatPrice(Number(watch('price')))}</p>
                 )}
+              </Field>
+              <Field label="Verified Market Value (AED)">
+                <input className="input" type="number" placeholder="Empty = automatic reference" {...register('marketValue')} />
+                <MarketValueHint price={Number(watch('price')) || 0} marketValue={Number(watch('marketValue')) || 0} />
               </Field>
               <Field label="Developer">
                 <input className="input" placeholder="e.g. Emaar Properties" {...register('developer')} />

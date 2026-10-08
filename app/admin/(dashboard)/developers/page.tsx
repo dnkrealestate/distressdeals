@@ -1,4 +1,6 @@
 'use client'
+import OfferEditor from '@/components/admin/OfferEditor'
+import type { Offer } from '@/types'
 import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useForm } from 'react-hook-form'
@@ -34,6 +36,7 @@ function DeveloperForm({ developer, onClose, onSaved }: { developer: Developer |
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [processingUrl, setProcessingUrl] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [offer, setOffer] = useState<Offer | null>(developer?.offer || null)
   const [importUrl, setImportUrl] = useState(developer?.website || '')
   const [importing, setImporting] = useState(false)
   const [imported, setImported] = useState<DeveloperImport | null>(null)
@@ -130,6 +133,7 @@ function DeveloperForm({ developer, onClose, onSaved }: { developer: Developer |
       establishedYear: data.establishedYear ? Number(data.establishedYear) : undefined,
       headquarters: data.headquarters || undefined,
       isFeatured: !!data.isFeatured,
+      offer,                                   // the developer's offer on all its projects (null removes it)
       ...seoToPayload(seo),
     }
     try {
@@ -275,6 +279,8 @@ function DeveloperForm({ developer, onClose, onSaved }: { developer: Developer |
             <input type="checkbox" {...register('isFeatured')} />
             Feature this developer
           </label>
+
+          <OfferEditor value={offer} onChange={setOffer} normalPrice={0} developer />
 
           <EntitySeoSection
             seo={seo} onSeoChange={setSeo}

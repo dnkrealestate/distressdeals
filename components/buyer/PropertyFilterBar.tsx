@@ -29,7 +29,17 @@ export const RESIDENTIAL_TYPES = [
   { v: 'studio',     l: 'Studio',      icon: LayoutGrid  },
 ]
 
+// "Commercial" covers every commercial kind: choosing it also finds offices, shops, warehouses and commercial villas
+// (the backend expands it — utils/propertyTypes.ts). The specific kinds stay available under it.
+export const COMMERCIAL_GROUP = ['commercial', 'office', 'retail', 'warehouse', 'commercial_villa']
+// How many results a type pill would give: for "Commercial", the whole group added together.
+export const countForType = (stats: { type: string; count: number }[], type: string) =>
+  type === 'commercial'
+    ? stats.filter(s => COMMERCIAL_GROUP.includes(s.type)).reduce((n, s) => n + s.count, 0)
+    : stats.find(s => s.type === type)?.count || 0
+
 export const COMMERCIAL_TYPES = [
+  { v: 'commercial',       l: 'Commercial',       icon: Building2  },
   { v: 'office',           l: 'Office',           icon: Store      },
   { v: 'retail',           l: 'Retail',           icon: Store      },
   { v: 'warehouse',        l: 'Warehouse',        icon: Warehouse  },

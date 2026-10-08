@@ -13,6 +13,9 @@ import { useAuthStore }      from '@/store/authStore'
 import { useFavoritesStore } from '@/store/favoritesStore'
 import InfoBadge, { OFF_PLAN_NOTE } from '@/components/shared/InfoBadge'
 import { propertyKeyword } from '@/lib/listingSeo'
+import { OpportunityBadges } from '@/components/buyer/OpportunityBadges'
+import { OfferRibbon, OfferGifts, OfferPriceTag } from '@/components/buyer/OfferParts'
+import { liveOffer, offerPrice } from '@/lib/offer'
 import { useCompareStore }   from '@/store/compareStore'
 import { formatPrice, formatArea, cn, rentSuffix } from '@/lib/utils'
 import ImageSlider            from '@/components/buyer/ImageSlider'
@@ -96,6 +99,11 @@ export default function PropertyCard({
   if (loading) return <CardSkeleton compact={compact} layout={layout} />
 
   const p = property!
+  // While an offer is live its own picture is the card image (it is not part of the gallery on the detail page).
+  const offer = p ? liveOffer(p) : null
+  const hasPerks = !!offer && (!!offer.gifts?.length || !!offer.paymentPlan || !!offer.dldWaiver)
+  const cardImages = offer?.thumbnail ? ([{ url: offer.thumbnail }] as any as Property['images']) : p?.images
+  const hasOfferPrice = !!p && !!offerPrice(p, p.price)
 
   const fav   = isFavorite(p._id)
   const inCmp = isInCompare(p._id)
@@ -135,13 +143,14 @@ export default function PropertyCard({
     return (
       <>
       <Link href={`/buyer/properties/${p.slug || p._id}`}>
-        <div className="prop-card group flex flex-col sm:flex-row">
+        <div className={`prop-card group flex flex-col sm:flex-row${offer ? ' offer-card' : ''}`}>
 
           {/* ── Image — full height, stretches to match the body ──── */}
           <div className="relative overflow-hidden flex-shrink-0 h-56 sm:h-auto sm:w-[340px] sm:self-stretch">
-            <ImageSlider images={p.images} alt={p.title} sizes="(max-width:768px)100vw,340px" />
+            <ImageSlider images={cardImages} alt={p.title} sizes="(max-width:768px)100vw,340px" />
 
             <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 45%)' }} />
+            <OfferRibbon item={p} />
 
             <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
               <ListingBadge type={p.listingType} />
@@ -158,10 +167,12 @@ export default function PropertyCard({
           {/* ── Body ───────────────────────────────────── */}
           <div className="flex flex-col flex-1 p-5 min-w-0">
             <div className="flex items-start justify-between gap-3 mb-1.5">
+              {hasOfferPrice ? <OfferPriceTag item={p} normalPrice={p.price} size="text-2xl" suffix={p.listingType === 'rent' ? <span className="text-xs font-normal" style={{ color: 'var(--text-muted)' }}> {rentSuffix(p)}</span> : null} /> : (
               <div className="flex items-baseline gap-2 flex-wrap">
                 <span className="text-2xl font-bold grad-text">{formatPrice(p.price)}</span>
                 {p.listingType === 'rent' && <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{rentSuffix(p)}</span>}
               </div>
+              )}
 
               <div className="flex items-center gap-1.5 flex-shrink-0">
                 <motion.button
@@ -193,7 +204,9 @@ export default function PropertyCard({
               <span className="min-w-0 truncate font-semibold" style={{ color: 'var(--text-mid)' }}>{p.location?.area}, {p.location?.city}</span>
             </div>
             {/* One search phrase per card — what this listing is, in the words people search for. */}
-            <p className="text-xs truncate mb-4" style={{ color: 'var(--text-muted)' }}>{propertyKeyword(p)}</p>
+            <p className={`text-xs truncate ${p.opportunity?.best || p.opportunity?.belowMarketPct || p.opportunity?.labels?.some(l => l === 'motivated-seller' || l === 'price-reduced') ? 'mb-2' : 'mb-4'}`} style={{ color: 'var(--text-muted)' }}>{propertyKeyword(p)}</p>
+            <OpportunityBadges opportunity={p.opportunity} kind="property" className={hasPerks ? 'mb-2' : 'mb-4'} />
+            <OfferGifts item={p} className="mb-4" />
 
             <div className="flex items-center gap-2 flex-wrap mb-4">
               {p.type && <SpecPill icon={Home} bold>{formatType(p.type)}</SpecPill>}
@@ -226,7 +239,7 @@ export default function PropertyCard({
   return (
     <>
     <Link href={`/buyer/properties/${p.slug || p._id}`}>
-      <div className="prop-card group h-full">
+      <div className={`prop-card group h-full${offer ? ' offer-card' : ''}`}>
 
         {/* ── Image ──────────────────────────────────── */}
         <div
@@ -235,13 +248,14 @@ export default function PropertyCard({
             compact ? 'h-44' : 'h-56'
           )}
         >
-          <ImageSlider images={p.images} alt={p.title} sizes="(max-width:768px)100vw,(max-width:1200px)50vw,33vw" />
+          <ImageSlider images={cardImages} alt={p.title} sizes="(max-width:768px)100vw,(max-width:1200px)50vw,33vw" />
 
           {/* Gradient overlay */}
           <div
             className="absolute inset-0 pointer-events-none"
             style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 55%)' }}
           />
+          <OfferRibbon item={p} />
 
           {/* Hover teal shimmer */}
           <div
@@ -310,11 +324,13 @@ export default function PropertyCard({
 
           {/* Price row */}
           <div className="flex items-baseline justify-between mb-1.5">
+            {hasOfferPrice ? <OfferPriceTag item={p} normalPrice={p.price} /> : (
             <span
               className="text-xl font-bold grad-text"
             >
               {formatPrice(p.price)}
             </span>
+            )}
 
             {p.listingType === 'rent' && (
               <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{rentSuffix(p)}</span>
@@ -342,7 +358,9 @@ export default function PropertyCard({
               {p.location?.area}, {p.location?.city}
             </span>
           </div>
-          <p className="text-[0.7rem] truncate mb-4" style={{ color: 'var(--text-muted)' }}>{propertyKeyword(p)}</p>
+          <p className={`text-[0.7rem] truncate ${p.opportunity?.best || p.opportunity?.belowMarketPct || p.opportunity?.labels?.some(l => l === 'motivated-seller' || l === 'price-reduced') ? 'mb-2' : 'mb-4'}`} style={{ color: 'var(--text-muted)' }}>{propertyKeyword(p)}</p>
+          <OpportunityBadges opportunity={p.opportunity} kind="property" className={hasPerks ? 'mb-2' : 'mb-4'} />
+          <OfferGifts item={p} className="mb-4" />
 
           {/* Specs */}
           <div

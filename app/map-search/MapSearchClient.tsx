@@ -5,7 +5,8 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { ChevronDown, ChevronUp, LayoutList, List, Map as MapIcon, Navigation, PanelLeftClose, PanelLeftOpen, Search, Home, SlidersHorizontal, X } from 'lucide-react'
 import Navbar from '@/components/layouts/Navbar'
-import { Pill, FilterDropdown, DropdownOption, TYPES, AREAS, BEDS, PRICES } from '@/components/buyer/PropertyFilterBar'
+import { Pill, FilterDropdown, DropdownOption, AREAS, BEDS, PRICES } from '@/components/buyer/PropertyFilterBar'
+import { PropertyTypeDropdown, PropertyTypeInline } from '@/components/shared/PropertyTypePicker'
 import MapListPanel from '@/components/map/MapListPanel'
 import PinPreviewCard, { type NearKind, type NearPlace } from '@/components/map/PinPreviewCard'
 import { MapToolbar, RadiusControl, LayersControl, HeatLegend } from '@/components/map/MapTools'
@@ -459,11 +460,7 @@ function MapSearchClientInner() {
               </div>
               <div>
                 {sheetLabel('Property type')}
-                <div className="flex flex-wrap gap-1.5">
-                  {TYPES.map(t => (
-                    <Pill key={t.v || 'all'} active={(filters.type || '') === t.v} onClick={() => setFilter('type', t.v)} className="px-3 py-1.5">{t.l}</Pill>
-                  ))}
-                </div>
+                <PropertyTypeInline value={filters.type || ''} onChange={v => setFilter('type', v)} />
               </div>
               <div>
                 {sheetLabel('Area')}
@@ -606,17 +603,7 @@ function MapSearchClientInner() {
           </div>
 
           {/* Property type */}
-          <FilterDropdown label={TYPES.find(t => t.v === filters.type)?.l || 'Type'} icon={Home} active={!!filters.type} widthClass="w-52">
-            {close => (
-              <div className="flex flex-col gap-1 max-h-72 overflow-y-auto">
-                {TYPES.map(t => (
-                  <DropdownOption key={t.v} active={filters.type === t.v} onClick={() => { setFilter('type', t.v); close() }}>
-                    {t.l}
-                  </DropdownOption>
-                ))}
-              </div>
-            )}
-          </FilterDropdown>
+          <PropertyTypeDropdown value={filters.type || ''} onChange={v => setFilter('type', v)} placeholder="Type" />
 
           {/* Area */}
           <FilterDropdown label={filters.area || 'Area'} active={!!filters.area} widthClass="w-56">

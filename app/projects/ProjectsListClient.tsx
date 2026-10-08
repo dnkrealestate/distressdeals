@@ -19,6 +19,7 @@ import { UAE_EMIRATES } from '@/lib/constants'
 import type { Project } from '@/types'
 import { cn } from '@/lib/utils'
 import { FilterDropdown, DropdownOption, Pill } from '@/components/buyer/PropertyFilterBar'
+import { PropertyTypeDropdown } from '@/components/shared/PropertyTypePicker'
 import { Map as MapIcon, Layers } from 'lucide-react'
 
 const STATUSES: { value: Project['status'] | ''; label: string }[] = [
@@ -52,8 +53,11 @@ const PRICE_CHOICES = [
 ]
 const TYPE_CHOICES = [
   { v: 'apartment', l: 'Apartments' }, { v: 'villa', l: 'Villas' }, { v: 'townhouse', l: 'Townhouses' },
-  { v: 'penthouse', l: 'Penthouses' }, { v: 'studio', l: 'Studios' },
+  { v: 'penthouse', l: 'Penthouses' }, { v: 'studio', l: 'Studios' }, { v: 'commercial', l: 'Commercial' },
 ]
+// The two tabs of the type filter.
+const PROJECT_RESIDENTIAL = TYPE_CHOICES.filter(t => t.v !== 'commercial')
+const PROJECT_COMMERCIAL = [{ v: 'commercial', l: 'All commercial' }, { v: 'office', l: 'Offices' }, { v: 'retail', l: 'Shops' }, { v: 'warehouse', l: 'Warehouses' }, { v: 'commercial_villa', l: 'Commercial Villas' }]
 function handoverParams(k: string) {
   const m = /^(y|min|max)(\d{4})$/.exec(k)
   if (!m) return {}
@@ -349,14 +353,8 @@ function ProjectsListClientInner({ bottom }: { bottom?: React.ReactNode }) {
               </div>
             )}
           </FilterDropdown>
-          <FilterDropdown label={TYPE_CHOICES.find(t => t.v === filters.type)?.l || 'Type'} icon={Home} active={!!filters.type} widthClass="w-48">
-            {close => (
-              <div className="flex flex-col gap-1">
-                <DropdownOption active={!filters.type} onClick={() => { setFilter('type', ''); close() }}>Any type</DropdownOption>
-                {TYPE_CHOICES.map(t => <DropdownOption key={t.v} active={filters.type === t.v} onClick={() => { setFilter('type', t.v); close() }}>{t.l}</DropdownOption>)}
-              </div>
-            )}
-          </FilterDropdown>
+          <PropertyTypeDropdown value={filters.type} onChange={v => setFilter('type', v)} placeholder="Type" allLabel="Any type"
+            residential={PROJECT_RESIDENTIAL} commercial={PROJECT_COMMERCIAL} widthClass="w-56" />
           {activeFilterCount > 0 && (
             <button onClick={clearAll} className="text-xs font-semibold px-2 inline-flex items-center gap-1 flex-shrink-0 whitespace-nowrap" style={{ color: 'var(--teal)' }}>
               <X size={12} /> Clear ({activeFilterCount})

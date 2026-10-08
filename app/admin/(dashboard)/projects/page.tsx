@@ -26,6 +26,12 @@ import ProjectDescriptionStep, { type ProjectSeo, type ProjectFacts } from '@/co
 import { PerformanceStats } from '@/components/admin/PerformanceStats'
 import type { Project, Developer } from '@/types'
 import toast from 'react-hot-toast'
+import { PropertyTypeInline } from '@/components/shared/PropertyTypePicker'
+import { PricingOpportunityCalc, OpportunitySummary } from '@/components/admin/MarketValueHint'
+import MarketReferencePanel from '@/components/admin/MarketReferencePanel'
+import OfferEditor from '@/components/admin/OfferEditor'
+import type { Offer } from '@/types'
+import { useAuthStore } from '@/store/authStore'
 import { useFormDraft, listDrafts, removeDraft, timeAgoShort } from '@/lib/useFormDraft'
 
 
@@ -53,7 +59,7 @@ const VIDEO_PLATFORMS = [
 type VideoPlatform = typeof VIDEO_PLATFORMS[number]['value']
 interface VideoEntry { platform: VideoPlatform; url: string; title?: string }
 
-interface FloorPlanEntry { label: string; image: string; bedrooms: string; size: string; price: string }
+interface FloorPlanEntry { label: string; image: string; bedrooms: string; size: string; price: string; referencePrice: string }
 interface LandmarkEntry { name: string; category: string; lat: string; lng: string }
 
 // "Added by Adil (AD-A1) · 25 Sep 2026 · Edited by Sara (E-A1) 26 Sep 2026" — who added the project and, when it's
@@ -136,7 +142,16 @@ const TYPE_OPTIONS = [
   { value: 'townhouse', label: 'Townhouse' },
   { value: 'penthouse', label: 'Penthouse' },
   { value: 'studio',    label: 'Studio'    },
+  { value: 'commercial', label: 'Commercial' },
+  { value: 'office',     label: 'Office'     },
+  { value: 'retail',     label: 'Retail / Shop' },
+  { value: 'warehouse',  label: 'Warehouse'  },
+  { value: 'commercial_villa', label: 'Commercial Villa' },
 ]
+// The two tabs of the type picker in the project form.
+const COMMERCIAL_VALUES = ['commercial', 'office', 'retail', 'warehouse', 'commercial_villa']
+const PROJECT_RESIDENTIAL = TYPE_OPTIONS.filter(t => !COMMERCIAL_VALUES.includes(t.value)).map(t => ({ v: t.value, l: t.label }))
+const PROJECT_COMMERCIAL = TYPE_OPTIONS.filter(t => COMMERCIAL_VALUES.includes(t.value)).map(t => ({ v: t.value, l: t.label }))
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -150,6 +165,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 // ══════════════════════════ Form ══════════════════════════
 
 function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project | null; draftKey?: string; onClose: () => void; onSaved: () => void }) {
+  const isMarketAdmin = useAuthStore(s => s.user?.role === 'admin' || s.user?.role === 'super_admin')
   const [step, setStep] = useState<number>(1)
   const [uploadTab, setUploadTab] = useState<'images' | 'floorplans' | 'masterplan' | 'videos'>('images')
 
@@ -165,6 +181,7 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
   const [submitting, setSubmitting] = useState(false)
   const [developers, setDevelopers] = useState<Developer[]>([])
   const [permitQrImage, setPermitQrImage] = useState(project?.permitQrImage || '')
+  const [offer, setOffer] = useState<Offer | null>(project?.offer && !project.offer.fromDeveloper ? project.offer : null)
   const [uploadingQr, setUploadingQr] = useState(false)
 
   const [amenities, setAmenities] = useState<Record<string, boolean>>(project?.amenities || {})
@@ -172,7 +189,7 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
   const [tagsAdded, setTagsAdded] = useState<string[]>(project?.tagsAdded || [])
   const [tagsRemoved, setTagsRemoved] = useState<string[]>(project?.tagsRemoved || [])
   const [floorPlans, setFloorPlans] = useState<FloorPlanEntry[]>(
-    (project?.floorPlans || []).map(f => ({ label: f.label, image: f.image, bedrooms: f.bedrooms || '', size: f.size || '', price: f.price ? String(f.price) : '' }))
+    (project?.floorPlans || []).map(f => ({ label: f.label, image: f.image, bedrooms: f.bedrooms || '', size: f.size || '', price: f.price ? String(f.price) : '', referencePrice: f.referencePrice ? String(f.referencePrice) : '' }))
   )
   const [uploadingFloorPlan, setUploadingFloorPlan] = useState<number | null>(null)
   const [masterPlanImage, setMasterPlanImage] = useState(project?.masterPlan?.image || '')
@@ -255,7 +272,7 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
     maxSize: 10 * 1024 * 1024, multiple: false,
   })
 
-  const addFloorPlan = () => setFloorPlans(fp => [...fp, { label: '', image: '', bedrooms: '', size: '', price: '' }])
+  const addFloorPlan = () => setFloorPlans(fp => [...fp, { label: '', image: '', bedrooms: '', size: '', price: '', referencePrice: '' }])
   const removeFloorPlan = (i: number) => setFloorPlans(fp => fp.filter((_, idx) => idx !== i))
   const updateFloorPlan = (i: number, patch: Partial<FloorPlanEntry>) => setFloorPlans(fp => fp.map((f, idx) => idx === i ? { ...f, ...patch } : f))
 
@@ -309,6 +326,10 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
       handoverQuarter: (String(project?.handoverQuarter || '').toUpperCase().match(/Q[1-4]/) || [''])[0],
       handoverYear:    project?.handoverYear || Number((String(project?.handoverQuarter || '').match(/(20\d{2})/) || [])[1]) || '',
       paymentPlan:     project?.paymentPlan || '',
+      marketValue:     project?.marketValue || '',
+      marketPriceSource:  project?.marketPriceSource || '',
+      expectedAnnualRent: project?.expectedAnnualRent || '',
+      incentivesText:  (project?.incentives || []).join('\n'),
       permitNumber:    project?.permitNumber || '',
       status:          project?.status || 'upcoming',
       isFeatured:      project?.isFeatured || false,
@@ -458,15 +479,23 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
       handoverQuarter: data.handoverQuarter || undefined,
       handoverYear: data.handoverYear ? Number(data.handoverYear) : undefined,
       paymentPlan: data.paymentPlan || undefined,
+      // Opportunity inputs — each optional; 0 / empty clears it.
+      marketValue: Number(data.marketValue) > 0 ? Number(data.marketValue) : 0,
+      marketPriceSource: String(data.marketPriceSource || '').trim(),
+      expectedAnnualRent: Number(data.expectedAnnualRent) > 0 ? Number(data.expectedAnnualRent) : 0,
+      // The yield is now worked out from the expected rent; an older typed-in yield is dropped once a rent is entered.
+      ...(Number(data.expectedAnnualRent) > 0 ? { rentalYield: 0 } : {}),
+      incentives: String(data.incentivesText || '').split('\n').map(x => x.trim()).filter(Boolean),
       permitNumber: data.permitNumber || undefined,
       permitQrImage: permitQrImage || undefined,
+      offer,                                   // null removes the offer
       status: data.status,
       isFeatured: !!data.isFeatured,
       coordinates: (data.lat !== '' && data.lng !== '') ? { lat: Number(data.lat), lng: Number(data.lng) } : undefined,
       amenities,
       floorPlans: floorPlans
         .filter(f => f.label && f.image)
-        .map(f => ({ label: f.label, image: f.image, bedrooms: f.bedrooms || undefined, size: f.size || undefined, price: f.price !== '' ? Number(f.price) : undefined })),
+        .map(f => ({ label: f.label, image: f.image, bedrooms: f.bedrooms || undefined, size: f.size || undefined, price: f.price !== '' ? Number(f.price) : undefined, referencePrice: Number(f.referencePrice) > 0 ? Number(f.referencePrice) : undefined })),
       masterPlan: masterPlanImage ? { image: masterPlanImage, description: masterPlanDescription || undefined } : undefined,
       landmarks: landmarks
         .filter(l => l.name && l.lat !== '' && l.lng !== '')
@@ -581,10 +610,8 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
                 </Field>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Field label="Type">
-                    <select className="select-field w-full" {...register('type')}>
-                      <option value="">Select type</option>
-                      {TYPE_OPTIONS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                    </select>
+                    <PropertyTypeInline value={watch('type') || ''} onChange={v => setValue('type', v, { shouldDirty: true })} allLabel=""
+                      residential={PROJECT_RESIDENTIAL} commercial={PROJECT_COMMERCIAL} />
                   </Field>
                   <Field label="Status">
                     <select className="select-field" {...register('status')}>
@@ -723,7 +750,7 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
                   <input className="input" value={project?.referenceId || 'Assigned on save'} disabled style={{ opacity: 0.7 }} />
                 </Field>
                 <div className="grid grid-cols-2 gap-4">
-                  <Field label="Price From (AED) *">
+                  <Field label="Distress Deals Price (AED) *">
                     <input className="input" type="number" {...register('priceFrom', { required: true, min: 1 })} />
                     {Number(watch('priceFrom') || 0) > 0 && (
                       <p className="text-[11px] mt-1 font-medium" style={{ color: 'var(--teal)' }}>{formatPrice(Number(watch('priceFrom')))}</p>
@@ -736,7 +763,57 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
                     )}
                   </Field>
                 </div>
-                {errors.priceFrom && <p className="text-xs" style={{ color: '#FB7185' }}>Starting price is required</p>}
+                {errors.priceFrom && <p className="text-xs" style={{ color: '#FB7185' }}>Distress Deals Price is required</p>}
+                {/* Pricing Opportunity — new projects are sold on OUR deal price against a documented comparable market price.
+                    The saving and the percentage are always calculated, never typed. Everything here is optional. */}
+                <div className="rounded-xl p-4 space-y-4" style={{ background: 'var(--bg-alt)', border: '1px solid var(--border)' }}>
+                  <div>
+                    <p className="text-xs font-bold" style={{ color: 'var(--text)' }}>Pricing Opportunity</p>
+                    <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Our deal price against the comparable market price for the same unit. Enter only real, documented figures — when a field is empty nothing is assumed and nothing is claimed.</p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Field label="Reference / Comparable Market Price (AED)">
+                      <input className="input" type="number" placeholder="Verified by you — leave empty to use the automatic reference" {...register('marketValue')} />
+                      {Number(watch('marketValue') || 0) > 0 && <p className="text-[11px] mt-1 font-medium" style={{ color: 'var(--teal)' }}>{formatPrice(Number(watch('marketValue')))}</p>}
+                    </Field>
+                    <Field label="Our Deal Price (AED)">
+                      <input className="input" value={Number(watch('priceFrom') || 0) > 0 ? formatPrice(Number(watch('priceFrom'))) : 'Enter it above'} disabled style={{ opacity: 0.7 }} />
+                      <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>The price the buyer pays through us — the field above.</p>
+                    </Field>
+                  </div>
+                  <PricingOpportunityCalc dealPrice={Number(watch('priceFrom')) || 0} reference={Number(watch('marketValue')) || 0} source={String(watch('marketPriceSource') || '')} />
+                  <Field label="Market Price Source / Evidence (admin only — never shown on the website)">
+                    <input className="input" maxLength={300} placeholder="e.g. Developer price list Oct 2026 · comparable units in the same community" {...register('marketPriceSource')} />
+                  </Field>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Field label="Expected Annual Rent (AED) — optional">
+                      <input className="input" type="number" placeholder="Only a reliable figure — leave empty if unknown" {...register('expectedAnnualRent')} />
+                    </Field>
+                    <Field label="Rental Yield">
+                      <input className="input" disabled style={{ opacity: 0.7 }} value={(() => {
+                        const rent = Number(watch('expectedAnnualRent')) || 0, price = Number(watch('priceFrom')) || 0
+                        if (rent > 0 && price > 0) return `${((rent / price) * 100).toFixed(1)}% · automatic`
+                        return Number(project?.rentalYield) > 0 ? `${project?.rentalYield}% (entered earlier)` : 'Not shown — no rent entered'
+                      })()} />
+                      <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>Annual rent ÷ deal price. A small part of the score; no rent means no yield, not a penalty.</p>
+                    </Field>
+                  </div>
+                  <Field label="Developer Incentives (one per line)">
+                    <textarea className="input w-full" rows={3} placeholder={'e.g.\n4% DLD fee waived\n2 years free service charges'} {...register('incentivesText')} />
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {['Launch discount', 'Early-buyer discount', 'DLD fee waived', 'Free service charges', 'Free parking', 'Guaranteed rental period'].map(x => (
+                        <button key={x} type="button" className="px-2.5 py-1 rounded-full text-[11px] font-medium" style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-mid)' }}
+                          onClick={() => { const cur = String(getValues('incentivesText') || ''); if (!cur.toLowerCase().includes(x.toLowerCase())) setValue('incentivesText', (cur.trim() ? cur.trim() + '\n' : '') + x, { shouldDirty: true }) }}>
+                          + {x}
+                        </button>
+                      ))}
+                    </div>
+                  </Field>
+                  <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Different prices per unit type? Each floor plan below has its own Distress Deals Price and Reference price.</p>
+                  {project?.opportunity && <OpportunitySummary opportunity={project.opportunity} project />}
+                  {project?._id && <MarketReferencePanel kind="project" id={project._id} isAdmin={isMarketAdmin} />}
+                </div>
+                <OfferEditor value={offer} onChange={setOffer} normalPrice={Number(watch('priceFrom')) || 0} priceLabel="Distress Deals Price" />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Field label="Bedrooms">
                     <input className="input" placeholder="e.g. Studio - 3BR" {...register('bedrooms')} />
@@ -958,9 +1035,21 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
                             value={fp.size} onChange={e => updateFloorPlan(i, { size: e.target.value })}
                           />
                           <input
-                            className="input text-xs col-span-2" type="number" placeholder="Price (AED, optional)"
+                            className="input text-xs" type="number" placeholder="Distress Deals Price (AED)"
                             value={fp.price} onChange={e => updateFloorPlan(i, { price: e.target.value })}
                           />
+                          <input
+                            className="input text-xs" type="number" placeholder="Reference price (AED)" title="Documented market / reference price for this unit — leave empty if unknown"
+                            value={fp.referencePrice} onChange={e => updateFloorPlan(i, { referencePrice: e.target.value })}
+                          />
+                          {(() => {
+                            const ref = Number(fp.referencePrice) || 0, price = Number(fp.price) || 0
+                            if (!(ref > 0 && price > 0)) return null
+                            const pct = ((ref - price) / ref) * 100
+                            return pct >= 1 && pct <= 60
+                              ? <p className="text-[11px] col-span-2 font-medium" style={{ color: '#047857' }}>{pct.toFixed(1)}% below market · potential advantage {formatPrice(Math.round(ref - price))}{pct > 30 ? ' — unusually large, please double-check' : ''}</p>
+                              : <p className="text-[11px] col-span-2" style={{ color: '#B45309' }}>{pct < 1 ? 'Not below the reference price — no claim is shown for this unit.' : 'Too large a difference to be shown — please check both prices.'}</p>
+                          })()}
                         </div>
                         <button type="button" onClick={() => removeFloorPlan(i)} className="btn-ghost btn-sm p-1.5 flex-shrink-0" style={{ color: '#FB7185' }}>
                           <Trash2 size={13} />

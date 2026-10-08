@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, ChartColumnIncreasing, ChevronDown, TrendingUp, Wallet, TrendingDown, Home, BedDouble, Loader2 } from 'lucide-react'
+import { PropertyTypeDropdown } from '@/components/shared/PropertyTypePicker'
 import { areaPricesAPI } from '@/lib/api'
 import { loadGoogleMaps, baseMapOptions, useMapTheme, DUBAI_CENTER, GOOGLE_MAPS_API_KEY } from '@/lib/googleMaps'
 
@@ -20,7 +21,9 @@ type Purpose = 'buy' | 'rent'
 const SCALE = ['#CFE8F7', '#9DD0EE', '#62B0DD', '#2F8AC4', '#145E94']   // light → dark = cheaper → pricier
 const NO_DATA = '#CBD5E1'
 const EMIRATES = ['All UAE', 'Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Umm Al Quwain', 'Fujairah']
-const TYPES = [{ v: '', l: 'All types' }, { v: 'apartment', l: 'Apartment' }, { v: 'villa', l: 'Villa' }, { v: 'townhouse', l: 'Townhouse' }]
+// The two tabs of the type filter.
+const PRICE_RESIDENTIAL = [{ v: 'apartment', l: 'Apartment' }, { v: 'villa', l: 'Villa' }, { v: 'townhouse', l: 'Townhouse' }]
+const PRICE_COMMERCIAL = [{ v: 'commercial', l: 'All commercial' }, { v: 'office', l: 'Office' }, { v: 'retail', l: 'Retail' }, { v: 'warehouse', l: 'Warehouse' }]
 const BEDS = [{ v: '', l: 'Any beds' }, { v: 'studio', l: 'Studio' }, { v: '1', l: '1 Bed' }, { v: '2', l: '2 Beds' }, { v: '3', l: '3 Beds' }, { v: '4', l: '4 Beds' }, { v: '5', l: '5+ Beds' }]
 
 const short = (n: number) => (n >= 1_000_000 ? `${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 2).replace(/\.?0+$/, '')}M` : n >= 1_000 ? `${Math.round(n / 1_000)}K` : String(n))
@@ -233,7 +236,7 @@ export default function AreaPriceMap({ defaultPurpose = 'buy', title = 'Compare 
                 </button>
               ))}
             </div>
-            <Select value={type} onChange={setType} options={TYPES} icon={Home} />
+            <PropertyTypeDropdown value={type} onChange={setType} placeholder="All types" residential={PRICE_RESIDENTIAL} commercial={PRICE_COMMERCIAL} widthClass="w-52" />
             <Select value={beds} onChange={setBeds} options={BEDS} icon={BedDouble} />
           </div>
 

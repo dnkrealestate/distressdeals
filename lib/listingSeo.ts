@@ -4,7 +4,8 @@ import type { Project, Property } from '@/types'
 // Search phrases for projects and listings, built only from what the record says (type, bedrooms, area, developer).
 // Used for the keywords meta tag on detail pages and for the one keyword line on each card.
 
-const words = (s?: string) => (s || '').replace(/_/g, ' ').trim().toLowerCase()
+// "commercial" reads as a noun only with "property" after it ("commercial property for sale", not "commercials").
+const words = (s?: string) => { const w = (s || '').replace(/_/g, ' ').trim().toLowerCase(); return w === 'commercial' ? 'commercial property' : w }
 const plural = (s: string) => (!s ? 'properties' : /(s|x|ch|sh)$/.test(s) ? `${s}es` : /[^aeiou]y$/.test(s) ? `${s.slice(0, -1)}ies` : `${s}s`)
 const unique = (list: (string | undefined | false)[]) => {
   const seen = new Set<string>()

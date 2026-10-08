@@ -44,6 +44,7 @@ const RESIDENTIAL_TYPES = [
   { value: 'other', label: 'Other', icon: MoreHorizontal },
 ]
 const COMMERCIAL_TYPES = [
+  { value: 'commercial', label: 'Commercial', icon: Building2 },
   { value: 'retail', label: 'Shop', icon: Store },
   { value: 'office', label: 'Office', icon: Briefcase },
   { value: 'warehouse', label: 'Warehouse', icon: Warehouse },

@@ -1,13 +1,17 @@
 'use client'
-import { useState, useEffect, useCallback, useRef, useMemo, Suspense } from 'react'
+import {
+ useState, useEffect, useCallback, useRef, useMemo, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import RequestLeads, { REQUEST_SECTIONS, type RequestSource } from '@/components/admin/RequestLeads'
+import MortgageLeads from '@/components/admin/MortgageLeads'
+import { contactAPI, mortgageAPI } from '@/lib/api'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   TrendingUp, Shuffle, ChevronLeft, ChevronRight, LayoutList, KanbanSquare,
   X, Send, Clock, User as UserIcon, Home, Wallet, Loader2,
   Phone, Mail, MessageCircle, MessageSquare, BedDouble, Bath, Maximize, ExternalLink, ShieldCheck,
-  Trash2, AlertTriangle, Check, ListTodo, Plus, CalendarClock, Sparkles, Building2,
+  Trash2, AlertTriangle, Check, ListTodo, Plus, CalendarClock, Sparkles, Building2, Landmark,
 } from 'lucide-react'
 import { leadAPI, agentAPI, chatAPI, taskAPI } from '@/lib/api'
 import { formatDate, formatDateTime, formatPrice, cn } from '@/lib/utils'
@@ -331,9 +335,7 @@ function LeadDetailDrawer({
                 <div>
                   <div className="flex items-center gap-2">
                     <p className="text-base font-semibold" style={{ color: 'var(--text)' }}>{lead.buyer?.name || lead.name || 'Guest'}<IdTag id={lead.buyer?.displayId} /></p>
-                    {lead.leadType === 'project' && (
-                      <span className="badge text-[10px]" style={{ background: 'rgba(168,85,247,0.15)', color: '#A855F7', border: '1px solid rgba(168,85,247,0.30)' }}>Project Lead</span>
-                    )}
+                    <LeadTypeBadge lead={lead} large />
                   </div>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Enquiry submitted {formatDateTime(lead.createdAt)}</p>
                 </div>
@@ -497,6 +499,7 @@ function LeadDetailDrawer({
                 )}
               </div>
 
+              {lead.offer && <LeadOfferBox offer={lead.offer} />}
               {lead.requirements && (
                 <div>
                   <p className="text-xs font-semibold mb-1.5" style={{ color: 'var(--text)' }}>Requirements</p>
@@ -631,7 +634,7 @@ function LeadCard({ lead, isAdmin, onOpen, onDragStart, onRequestReason, onChang
     >
       <div className="flex items-center gap-1.5 mb-0.5">
         <p className="text-xs font-semibold line-clamp-1" style={{ color: 'var(--text)' }}>{lead.buyer?.name || lead.name || 'Guest'}<IdTag id={lead.buyer?.displayId} /></p>
-        {lead.leadType === 'project' && <span className="badge text-[9px] flex-shrink-0" style={{ background: 'rgba(168,85,247,0.15)', color: '#A855F7', border: '1px solid rgba(168,85,247,0.30)', padding: '1px 5px' }}>Project</span>}
+        <LeadTypeBadge lead={lead} />
       </div>
       <p className="text-xs line-clamp-1" style={{ color: 'var(--text-muted)' }}>{(lead.property as any)?.title || (lead.project as any)?.title || '—'}</p>
       <div className="flex items-center justify-between mt-2.5">
@@ -870,7 +873,7 @@ function AdminLeadsView() {
                         <td className="cursor-pointer" onClick={() => setDetailId(lead._id)}>
                           <div className="flex items-center gap-1.5">
                             <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>{lead.buyer?.name || lead.name || 'Guest'}<IdTag id={lead.buyer?.displayId} /></p>
-                            {lead.leadType === 'project' && <span className="badge text-[9px] flex-shrink-0" style={{ background: 'rgba(168,85,247,0.15)', color: '#A855F7', border: '1px solid rgba(168,85,247,0.30)', padding: '1px 5px' }}>Project</span>}
+                            <LeadTypeBadge lead={lead} />
                           </div>
                           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{lead.email || lead.buyer?.email}</p>
                         </td>
@@ -952,10 +955,106 @@ function AdminLeadsView() {
   )
 }
 
+// The Leads section — every lead form on the website ends up here, each kind on its own tab:
+//   pipeline            property enquiries and new-project "I'm interested" (the kanban / list)
+//   mortgage            "Get Pre-Approved" from the mortgage calculator
+//   valuation_request   "Request Your Free Valuation"
+//   fast_sale_request   "Sell your property fast"
+//   contact_form        the Contact page
+// /admin/leads?section=valuation_request opens a tab directly (the alert emails link to it).
+// Which kind of lead a pipeline card is — shown on every card, row and the detail panel.
+function LeadTypeBadge({ lead, large }: { lead: Lead; large?: boolean }) {
+  const project = lead.leadType === 'project'
+  const c = project ? { fg: '#A855F7', bg: 'rgba(168,85,247,0.15)', bd: 'rgba(168,85,247,0.30)' } : { fg: '#2563EB', bg: 'rgba(37,99,235,0.12)', bd: 'rgba(37,99,235,0.28)' }
+  return (
+    <>
+    <span className={`badge flex-shrink-0 ${large ? 'text-[10px]' : 'text-[9px]'}`} style={{ background: c.bg, color: c.fg, border: `1px solid ${c.bd}`, ...(large ? {} : { padding: '1px 5px' }) }}
+      title={project ? 'From the "I\'m Interested" form on a new project page' : 'From the enquiry form on a property listing'}>
+      {project ? (large ? 'Project Lead' : 'Project') : (large ? 'Property Lead' : 'Property')}
+    </span>
+    {/* The enquiry came in while a limited-time offer was running on that listing / project. */}
+    {lead.offer && (
+      <span className={`badge flex-shrink-0 ${large ? 'text-[10px]' : 'text-[9px]'}`} style={{ background: 'rgba(245,158,11,0.16)', color: '#B45309', border: '1px solid rgba(245,158,11,0.45)', ...(large ? {} : { padding: '1px 5px' }) }}
+        title={`Enquired on the offer: ${lead.offer.title || 'Limited-Time Offer'}`}>
+        {large ? `Offer Lead · ${lead.offer.title || 'Limited-Time Offer'}` : 'Offer'}
+      </span>
+    )}
+    </>
+  )
+}
+
+// What was on offer when the enquiry came in — shown in the lead's details.
+function LeadOfferBox({ offer: o }: { offer: NonNullable<Lead['offer']> }) {
+  const rows: [string, string | undefined][] = [
+    ['Offer type', o.fromDeveloper ? 'Developer offer on all its projects' : undefined],
+    ['Discount', o.discountPercent ? `${o.discountPercent}% off` : undefined],
+    ['Offer price', o.price ? `${formatPrice(o.price)} (normal ${formatPrice(o.normalPrice || 0)})` : undefined],
+    ['Offer ends', o.endsAt ? new Date(o.endsAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : undefined],
+    ['Offer payment plan', o.paymentPlan],
+    ['DLD fee offer', o.dldWaiver],
+    ['Included', o.gifts?.length ? o.gifts.join(' · ') : undefined],
+    ['Conditions', o.note],
+  ]
+  return (
+    <div className="rounded-xl p-3" style={{ background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.40)' }}>
+      <p className="text-xs font-bold mb-1.5" style={{ color: '#B45309' }}>Offer lead — {o.title || 'Limited-Time Offer'}</p>
+      {rows.filter(([, v]) => v).map(([k, v]) => (
+        <p key={k} className="text-xs leading-relaxed" style={{ color: 'var(--text-mid)' }}><span style={{ color: 'var(--text-muted)' }}>{k}:</span> <b style={{ color: 'var(--text)' }}>{v}</b></p>
+      ))}
+      <p className="text-[10px] mt-1.5" style={{ color: 'var(--text-muted)' }}>As it stood when the enquiry was sent.</p>
+    </div>
+  )
+}
+
+type LeadSection = 'pipeline' | 'mortgage' | RequestSource
+function LeadsShell() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const fromUrl = searchParams.get('section') as LeadSection | null
+  const [section, setSection] = useState<LeadSection>(fromUrl && (fromUrl === 'pipeline' || fromUrl === 'mortgage' || fromUrl in REQUEST_SECTIONS) ? fromUrl : 'pipeline')
+  const [fresh, setFresh] = useState<Record<string, number>>({})
+  const loadCounts = useCallback(() => {
+    contactAPI.adminList({ limit: 1 }).then(r => setFresh(f => ({ ...f, ...(r.data.data?.newBySource || {}), ...(Object.keys(REQUEST_SECTIONS).reduce((o, k) => ({ ...o, [k]: r.data.data?.newBySource?.[k] || 0 }), {})) }))).catch(() => {})
+    mortgageAPI.getAll({ status: 'new', limit: 1 }).then(r => setFresh(f => ({ ...f, mortgage: r.data.data?.total || 0 }))).catch(() => {})
+  }, [])
+  useEffect(() => { loadCounts() }, [loadCounts])
+  // A lead opened from a link (?lead=…) always belongs to the pipeline.
+  useEffect(() => { if (searchParams.get('lead')) setSection('pipeline') }, [searchParams])
+
+  const open = (s: LeadSection) => {
+    setSection(s)
+    router.replace(s === 'pipeline' ? '/admin/leads' : `/admin/leads?section=${s}`, { scroll: false })
+  }
+  const tabs: { key: LeadSection; label: string; icon: any; count?: number }[] = [
+    { key: 'pipeline', label: 'Property & project leads', icon: TrendingUp },
+    { key: 'mortgage', label: 'Mortgage leads', icon: Landmark, count: fresh.mortgage || 0 },
+    ...(Object.keys(REQUEST_SECTIONS) as RequestSource[]).map(k => ({ key: k as LeadSection, label: REQUEST_SECTIONS[k].tab, icon: REQUEST_SECTIONS[k].icon, count: fresh[k] || 0 })),
+  ]
+  return (
+    <div>
+      <div className="flex items-center gap-2 px-7 pt-4 overflow-x-auto scrollbar-hide">
+        {tabs.map(t => {
+          const on = section === t.key
+          return (
+            <button key={t.key} onClick={() => open(t.key)} className="btn-ghost btn-sm gap-1.5 flex-shrink-0 whitespace-nowrap"
+              style={on ? { color: 'var(--teal)', borderColor: 'rgba(203,1,1,0.40)', background: 'rgba(203,1,1,0.06)' } : undefined}>
+              <t.icon size={13} /> {t.label}
+              {!!t.count && <span className="ml-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold flex items-center justify-center text-white" style={{ background: 'var(--teal)' }} title="New, not yet handled">{t.count}</span>}
+            </button>
+          )
+        })}
+      </div>
+      {section === 'pipeline' ? <AdminLeadsView />
+        : section === 'mortgage' ? <MortgageLeads onChanged={loadCounts} />
+        : <RequestLeads source={section} onChanged={loadCounts} />}
+    </div>
+  )
+}
+
 export default function AdminLeadsPage() {
   return (
     <Suspense fallback={null}>
-      <AdminLeadsView />
+      <LeadsShell />
     </Suspense>
   )
 }

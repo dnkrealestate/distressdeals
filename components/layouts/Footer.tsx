@@ -15,7 +15,7 @@ const FOOTER_LINKS = {
     { label: 'Penthouses',           href: '/buyer/properties?type=penthouse'   },
     { label: 'Off-Plan Projects',    href: '/projects'                          },
     { label: 'Rent in Dubai',        href: '/for-rent'                          },
-    { label: 'Commercial',           href: '/buyer/properties?type=office'      },
+    { label: 'Commercial Property',  href: '/buyer/properties?type=commercial'  },
   ],
   'Distress Sales': [
     { label: 'Distress Sale Dubai',        href: '/distress-sale-dubai'          },

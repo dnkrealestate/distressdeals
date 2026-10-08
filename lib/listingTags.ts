@@ -12,7 +12,7 @@ export const TAG_LABELS: Record<string, string> = {
 
 const TYPE_PLURAL: Record<string, string> = {
   apartment: 'Apartments', villa: 'Villas', townhouse: 'Townhouses', penthouse: 'Penthouses', studio: 'Studios', duplex: 'Duplexes',
-  office: 'Offices', retail: 'Shops', shop: 'Shops', warehouse: 'Warehouses', land: 'Plots', plot: 'Plots', hotel_apartment: 'Hotel Apartments',
+  commercial: 'Commercial Properties', office: 'Offices', retail: 'Shops', shop: 'Shops', warehouse: 'Warehouses', land: 'Plots', plot: 'Plots', hotel_apartment: 'Hotel Apartments',
   commercial_villa: 'Commercial Villas', building: 'Buildings', full_floor: 'Full Floors',
 }
 export const typePlural = (t: string) => TYPE_PLURAL[t] || `${t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}s`

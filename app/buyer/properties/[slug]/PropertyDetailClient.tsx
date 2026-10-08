@@ -1,4 +1,6 @@
 'use client'
+import { OfferBanner, PriceInForce } from '@/components/buyer/OfferParts'
+import { offerPrice } from '@/lib/offer'
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import dynamic from 'next/dynamic'
@@ -363,7 +365,7 @@ export default function PropertyDetailClient({ property }: { property: Property 
             <div className="card p-5 flex flex-wrap items-center gap-6">
               <div>
                 <p className="text-xs mb-1 uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Price</p>
-                <p className="text-3xl font-bold grad-text">{formatPrice(property.price)}{rentSuffix(property)}</p>
+                <PriceInForce item={property} normalPrice={property.price} suffix={rentSuffix(property)} />
                 {property.pricePerSqft && (
                   <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>AED {Math.round(property.pricePerSqft).toLocaleString()}/sqft</p>
                 )}
@@ -386,6 +388,9 @@ export default function PropertyDetailClient({ property }: { property: Property 
                 </div>
               ))}
             </div>
+
+            {/* Limited-time offer — straight after the price, at the top of the page. Renders nothing without a live offer. */}
+            <OfferBanner item={property} normalPrice={property.price} />
 
             {/* Tab navigation + sections — sticks below the navbar once it
                 reaches it, scroll-spies which section is active, and un-sticks
@@ -669,7 +674,7 @@ export default function PropertyDetailClient({ property }: { property: Property 
             {/* Lead CTA */}
             <div className="card p-6 top-20" style={{ borderColor: 'rgba(203,1,1,0.25)', background: 'linear-gradient(180deg, rgba(203,1,1,0.06), var(--surface) 45%)' }}>
               <div className="text-center mb-6">
-                <p className="text-3xl font-bold grad-text">{formatPrice(property.price)}</p>
+                <PriceInForce item={property} normalPrice={property.price} center />
                 {property.listingType === 'rent' && <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{rentPeriodLabel(property)}</p>}
                 {property.listingType === 'rent' && <div className="mt-2"><RentalBadge property={property} /></div>}
               </div>
@@ -895,7 +900,7 @@ export default function PropertyDetailClient({ property }: { property: Property 
             <div className="wrap flex items-center gap-3 py-3">
               <div className="hidden sm:block flex-1 min-w-0">
                 <p className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>{property.title}</p>
-                <p className="text-sm font-bold grad-text">{formatPrice(property.price)}{rentSuffix(property)}</p>
+                <p className="text-sm font-bold grad-text">{formatPrice(offerPrice(property, property.price) || property.price)}{rentSuffix(property)}</p>
               </div>
               <a href={telHref} className="btn-outline p-3 flex-shrink-0" aria-label={`Call ${COMPANY_PHONE_DISPLAY}`} title={`Call ${COMPANY_PHONE_DISPLAY}`}>
                 <Phone size={17} style={{ color: TEAL }} />

@@ -89,6 +89,8 @@ export const propertyAPI = {
   getAll:       (params?: any) => api.get('/properties', { params }),
   // Lightweight pins for the map search tool (filters + drawn polygon / radius).
   getMapPins:   (params?: any) => api.get('/properties/map', { params }),
+  // Which listings and projects make up page N of the Buy list, best opportunity first (see the backend controller).
+  getOpportunityPlan: (params?: any) => api.get('/properties/opportunity-plan', { params }),
   getOne:       (slug: string) => api.get(`/properties/${slug}`),
   create:       (data: FormData) => api.post('/properties', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   update:       (id: string, data: any) => api.put(`/properties/${id}`, data),
@@ -414,6 +416,23 @@ export const mortgageAPI = {
 // "Compare prices by area" map — lowest / average / highest per area.
 export const areaPricesAPI = {
   get: (params: { purpose: 'buy' | 'rent'; type?: string; beds?: string }) => api.get('/area-prices', { params }),
+}
+
+// Market reference prices (backend services/comparablePriceService). The public call returns figures only; the rest is
+// staff / admin.
+export const marketReferenceAPI = {
+  get:          (kind: 'property' | 'project', id: string) => api.get(`/market-reference/${kind}/${id}`),
+  manage:       (kind: 'property' | 'project', id: string) => api.get(`/market-reference/manage/${kind}/${id}`),
+  comparables:  (kind: 'property' | 'project', id: string) => api.get(`/market-reference/comparables/${id}`, { params: { kind } }),
+  recalculate:  (kind: 'property' | 'project', id: string) => api.post(`/market-reference/recalculate/${id}`, { kind }),
+  setActive:    (kind: 'property' | 'project', id: string, mode: 'admin' | 'automatic' | null) => api.patch(`/market-reference/active/${id}`, { kind, mode }),
+  searchDldProjects: (q: string) => api.get('/market-reference/dld-projects', { params: { q } }),
+  setDldLink:   (id: string, dldProjectId: string | null) => api.patch(`/market-reference/dld-link/${id}`, { dldProjectId }),
+  test:         () => api.post('/admin/market-data/test', {}, { timeout: 5 * 60_000 }),
+  status:       () => api.get('/admin/market-data/status'),
+  sync:         (dryRun = false) => api.post('/admin/market-data/sync', { dryRun }, { timeout: 30 * 60_000 }),
+  importFile:   (file: File, dryRun: boolean) => { const fd = new FormData(); fd.append('dryRun', String(dryRun)); fd.append('file', file); return api.post('/admin/market-data/import', fd, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 30 * 60_000 }) },
+  recalculateAll: () => api.post('/admin/market-reference/recalculate', {}, { timeout: 10 * 60_000 }),
 }
 
 export const quickLinksAPI = {

@@ -15,6 +15,10 @@ import { useAuthStore } from '@/store/authStore'
 import { useFavoritesStore } from '@/store/favoritesStore'
 import { useProjectCompareStore } from '@/store/projectCompareStore'
 import { projectKeyword } from '@/lib/listingSeo'
+import { OpportunityBadges, DealReference, dealClaim } from '@/components/buyer/OpportunityBadges'
+import { ConstructionProgressLine } from '@/components/buyer/ConstructionProgress'
+import { OfferRibbon, OfferGifts, OfferPriceTag } from '@/components/buyer/OfferParts'
+import { liveOffer, offerPrice, effectivePrice } from '@/lib/offer'
 import type { Project } from '@/types'
 
 // Payment plan + handover — plain icon + value + label, like the detail copy above it (no boxed stat bar).
@@ -64,6 +68,9 @@ function DetailsRow({ project }: { project: Project }) {
         <DetailItem icon={MapPin}>{project.area}{project.community ? `, ${project.community}` : ''}</DetailItem>
         {/* One search phrase per card — what this project is, in the words people search for. */}
         <p className="text-[0.7rem] sm:text-xs truncate mt-1" style={{ color: 'var(--text-muted)' }}>{projectKeyword(project)}</p>
+        <OpportunityBadges opportunity={project.opportunity} kind="project" className="mt-2" />
+        <OfferGifts item={project} className="mt-2" />
+        <ConstructionProgressLine project={project} className="mt-2" />
       </div>
       {/* Row 2 — type / bedrooms / bathrooms, highlighted as tinted chips */}
       <div className="flex flex-wrap gap-2">
@@ -129,11 +136,17 @@ function CardActions({ project, onImage }: { project: Project; onImage?: boolean
   )
 }
 
+// "Our Deal Price" with the reference price struck through — only when there is a documented reference behind it.
+// Otherwise the normal starting price, and nothing is claimed.
 function StartingPrice({ project, size }: { project: Project; size: string }) {
+  // A live offer with its own price: the offer price, with the normal starting price struck through.
+  if (offerPrice(project, project.priceFrom)) return <OfferPriceTag item={project} normalPrice={project.priceFrom} size={size} normalLabel={dealClaim(project) && !dealClaim(project)!.unit ? 'Our Deal Price' : 'Starting Price'} />
+  const claim = dealClaim(project)
   return (
     <div>
-      <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Starting Price</p>
+      <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{claim && !claim.unit ? 'Our Deal Price' : 'Starting Price'}</p>
       <p className={`${size} font-bold grad-text leading-tight`}>{formatPrice(project.priceFrom)}</p>
+      <DealReference project={project} />
     </div>
   )
 }
@@ -189,7 +202,9 @@ export default function ProjectCard({
 }) {
   const router = useRouter()
   const [interestOpen, setInterestOpen] = useState(false)
-  const images = project.images?.length ? project.images : (project.coverImage ? [{ url: project.coverImage }] : [])
+  // While an offer is live its own picture is the card image (it is not part of the gallery on the detail page).
+  const offer = liveOffer(project)
+  const images = offer?.thumbnail ? [{ url: offer.thumbnail }] : project.images?.length ? project.images : (project.coverImage ? [{ url: project.coverImage }] : [])
 
   const openInterest = (e: React.MouseEvent) => {
     e.preventDefault(); e.stopPropagation()
@@ -227,7 +242,7 @@ export default function ProjectCard({
     return (
       <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay }}>
         <Link href={`/projects/${project.slug}`}>
-          <div className="prop-card group flex flex-col sm:flex-row">
+          <div className={`prop-card group flex flex-col sm:flex-row${offer ? ' offer-card' : ''}`}>
 
             {/* Fixed width, full height — stretches to match whatever
                 height the body content ends up needing (flex default
@@ -236,7 +251,8 @@ export default function ProjectCard({
             <div className="relative overflow-hidden flex-shrink-0 h-56 sm:h-auto sm:w-[340px] sm:self-stretch">
               <ImageSlider images={images} alt={project.title} sizes="(max-width:768px)100vw,340px" />
               <Badges project={project} markAsProject={markAsProject} />
-              <DeveloperBadge project={project} />
+              {!offer && <DeveloperBadge project={project} />}
+              <OfferRibbon item={project} />
             </div>
 
             <div className="flex flex-col flex-1 p-5 min-w-0">
@@ -273,14 +289,15 @@ export default function ProjectCard({
   return (
     <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay }}>
       <Link href={`/projects/${project.slug}`}>
-        <div className="prop-card group h-full overflow-hidden">
+        <div className={`prop-card group h-full overflow-hidden${offer ? ' offer-card' : ''}`}>
           {/* Fixed-size image — never stretches or reflows with content. */}
           <div className="h-52 relative flex items-center justify-center flex-shrink-0 overflow-hidden" style={{ background: 'var(--bg-alt)' }}>
             <ImageSlider images={images} alt={project.title} sizes="(max-width:768px)100vw,400px" />
 
             <Badges project={project} markAsProject={markAsProject} />
             <CardActions project={project} onImage />
-            <DeveloperBadge project={project} />
+            {!offer && <DeveloperBadge project={project} />}
+            <OfferRibbon item={project} />
           </div>
 
           <div className="flex flex-col flex-1 p-5">

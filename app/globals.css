@@ -542,3 +542,15 @@ body {
 
 /* Area price map: the filter strip has a divider only on phones (on larger screens it floats over the map). */
 @media (min-width: 768px) { [data-filters] { border-bottom: none !important; } }
+
+/* A listing / project card while a limited-time offer is live: a warm gradient frame and a soft glow. */
+.offer-card {
+  position: relative;
+  border-color: transparent !important;
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(130deg, #CB0101, #FD7147 45%, #F59E0B) border-box !important;
+  border: 1.5px solid transparent !important;
+  box-shadow: 0 10px 30px -12px rgba(203, 1, 1, 0.35), 0 0 0 1px rgba(245, 158, 11, 0.08);
+}
+.offer-card:hover { box-shadow: 0 16px 38px -12px rgba(203, 1, 1, 0.45), 0 0 0 1px rgba(245, 158, 11, 0.16); }

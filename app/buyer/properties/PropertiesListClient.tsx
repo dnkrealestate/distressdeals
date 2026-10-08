@@ -22,7 +22,7 @@ import ProjectCard from '@/components/buyer/ProjectCard'
 import ProjectCompareBar from '@/components/buyer/ProjectCompareBar'
 import Pagination from '@/components/shared/Pagination'
 import SearchBar from '@/components/buyer/SearchBar'
-import { PropertyFilterBar, Pill, FilterDropdown, DropdownOption, TYPES } from '@/components/buyer/PropertyFilterBar'
+import { PropertyFilterBar, Pill, FilterDropdown, DropdownOption, TYPES, countForType } from '@/components/buyer/PropertyFilterBar'
 import { propertyAPI, savedSearchAPI, projectAPI } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import type { Property, PropertyFilters, Project } from '@/types'
@@ -43,6 +43,7 @@ const PropertiesMapView = dynamic(() => import('@/components/buyer/PropertiesGoo
 // building blocks now live in PropertyFilterBar.tsx, shared with the
 // map-search page.
 const SORT_OPTIONS = [
+  { v: 'opportunity', l: 'Best Opportunities' },
   { v: 'recommended', l: 'Recommended'     },
   { v: 'newest',    l: 'Newest First'      },
   { v: 'price_asc', l: 'Price: Low → High' },
@@ -189,7 +190,7 @@ function EmptyState({ onClear }: { onClear: () => void }) {
 // 40 listings a page; up to 10 new projects mixed in.
 const PER_PAGE = 40
 const PROJECTS_PER_PAGE = 10
-const PROJECT_TYPES = ['apartment', 'villa', 'townhouse', 'penthouse', 'studio']
+const PROJECT_TYPES = ['apartment', 'villa', 'townhouse', 'penthouse', 'studio', 'commercial', 'office', 'retail', 'warehouse', 'commercial_villa']
 
 function projectsApply(f: PropertyFilters, forced?: 'sale' | 'rent'): boolean {
   if (forced === 'rent' || f.listingType === 'rent') return false
@@ -222,11 +223,21 @@ const COMPLETION_TABS = [
 
 type ListItem = { kind: 'property'; item: Property; key: string } | { kind: 'project'; item: Project; key: string }
 
-// Price/newest sorts keep their order across both kinds; otherwise one project after every three listings.
-function mixListings(properties: Property[], projects: Project[], sortBy: string): ListItem[] {
+// "Best Opportunities": the server ranks both kinds in one list by Opportunity Score and says how this page's cards
+// are laid out (`order`: p = listing, j = project). Price/newest sorts keep their order across both kinds; any other
+// sort puts one project after every three listings.
+function mixListings(properties: Property[], projects: Project[], sortBy: string, order?: string): ListItem[] {
   const props: ListItem[] = properties.map((p, i) => ({ kind: 'property', item: p, key: p?._id || `p${i}` }))
   const projs: ListItem[] = projects.map(p => ({ kind: 'project', item: p, key: `proj-${p._id}` }))
   if (!projs.length) return props
+  if (sortBy === 'opportunity' && order) {
+    const out: ListItem[] = []; let i = 0, j = 0
+    for (const k of order) { const next = k === 'p' ? props[i++] : projs[j++]; if (next) out.push(next) }
+    // Anything the plan did not account for (a listing added between the two requests) still shows, at the end.
+    while (i < props.length) out.push(props[i++])
+    while (j < projs.length) out.push(projs[j++])
+    return out
+  }
   const price = (x: ListItem) => x.kind === 'property' ? x.item.price : x.item.priceFrom
   const created = (x: ListItem) => new Date(x.item.createdAt).getTime()
   if (sortBy === 'price_asc' || sortBy === 'price_desc' || sortBy === 'newest') {
@@ -279,6 +290,7 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
   const [totalPages, setTotalPages] = useState(initialTotalPages ?? 1)
   const [projects, setProjects] = useState<Project[]>([])
   const [projectTotal, setProjectTotal] = useState(0)
+  const [pageOrder, setPageOrder] = useState('')   // "ppjpj…" for the Best Opportunities order (see mixListings)
   const [loading,    setLoading]    = useState(!initialProperties?.length)
   const [view,       setView]       = useState<'grid'|'list'|'map'>('list')
 
@@ -312,7 +324,8 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
     availableWithin: Number(searchParams.get('availableWithin')) || 0,
     completion:  searchParams.get('completion')  || '',
     tag:         searchParams.get('tag')         || '',
-    sortBy:      searchParams.get('sortBy')      || 'recommended',
+    offer:       searchParams.get('offer') === 'true' ? 'true' : '',
+    sortBy:      searchParams.get('sortBy')      || 'opportunity',
     page:        Number(searchParams.get('page')) || 1,
     limit:       PER_PAGE,
   })
@@ -334,6 +347,7 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
     if (filters.priceMax) pParams.priceMax = filters.priceMax
     if (filters.completion) pParams.status = PROJECT_STATUS_FOR[filters.completion]
     if (filters.tag) pParams.tag = filters.tag
+    if (filters.offer) pParams.offer = 'true'
 
     const getProps = (offset: number, limit: number) => propertyAPI.getAll({ ...clean, offset, limit })
       .then(r => r.data.success ? r.data.data : null)
@@ -341,6 +355,25 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
       ? projectAPI.getAll({ ...pParams, offset, limit }).then(r => r.data.success ? r.data.data : null).catch(() => null)
       : Promise.resolve({ data: [], total: 0 })
     try {
+      // Best Opportunities: ask the server which slice of each kind page N holds when both are ranked together by
+      // Opportunity Score, fetch exactly those, and lay them out in the order it gives.
+      if ((filters.sortBy || 'opportunity') === 'opportunity') {
+        const { sortBy: _s, ...planFilters } = clean
+        const planRes = await propertyAPI.getOpportunityPlan({ ...planFilters, page, perPage: PER_PAGE, ...(withProjects ? { projects: JSON.stringify(pParams) } : {}) })
+        const plan = planRes.data.data
+        const [pr, pj] = await Promise.all([
+          plan.properties.limit ? getProps(plan.properties.offset, plan.properties.limit) : Promise.resolve({ data: [] as Property[] }),
+          plan.projects.limit ? projectAPI.getAll({ ...pParams, sortBy: 'opportunity', offset: plan.projects.offset, limit: plan.projects.limit }).then(r => r.data.success ? r.data.data : null).catch(() => null) : Promise.resolve({ data: [] as Project[] }),
+        ])
+        setProperties(pr?.data || [])
+        setProjects(pj?.data || [])
+        setPageOrder(plan.order || '')
+        setTotal(plan.properties.total)
+        setProjectTotal(plan.projects.total)
+        setTotalPages(plan.totalPages)
+        return
+      }
+      setPageOrder('')
       // First guess: nobody ran out on earlier pages — fetch enough from the usual offsets to fill this page.
       const guess = slicePlan(page, Infinity, Infinity)
       let [pr, pj] = await Promise.all([getProps(guess.po, PER_PAGE), getProjs(guess.jo, PER_PAGE)])
@@ -366,7 +399,7 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
 
   useEffect(() => { fetchList() }, [fetchList])
 
-  const listItems = mixListings(properties, projects, filters.sortBy || 'recommended')
+  const listItems = mixListings(properties, projects, filters.sortBy || 'opportunity', pageOrder)
   const pageCount = totalPages
 
   // PropertyFinder-style "Apartments 1,234 · Villas 567 …" counts row —
@@ -392,6 +425,7 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
         if (filters.priceMax) pParams.priceMax = filters.priceMax
         if (filters.completion) pParams.status = PROJECT_STATUS_FOR[filters.completion]
         if (filters.tag) pParams.tag = filters.tag
+        if (filters.offer) pParams.offer = 'true'
       }
       const [res, pRes] = await Promise.all([
         propertyAPI.getTypeStats(clean),
@@ -413,7 +447,7 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
     filters.listingType, filters.q, filters.area, filters.community, filters.bedrooms,
     filters.priceMin, filters.priceMax, (filters as any).furnishing, (filters as any).completion,
     filters.rentalStatus, filters.availableWithin,
-    filters.category, filters.bathrooms, filters.sizeMin, filters.sizeMax, filters.tag,
+    filters.category, filters.bathrooms, filters.sizeMin, filters.sizeMax, filters.tag, filters.offer,
   ])
 
   useEffect(() => { fetchTypeStats() }, [fetchTypeStats])
@@ -462,6 +496,7 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
       availableWithin: Number(searchParams.get('availableWithin')) || 0,
       completion:  searchParams.get('completion')  || '',
       tag:         searchParams.get('tag')         || '',
+      offer:       searchParams.get('offer') === 'true' ? 'true' : '',
       page: 1,
     }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -495,8 +530,8 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
   const clearFilters = () => {
     setFilters(f => ({
       ...f, type: '', q: '', area: '', bedrooms: '', category: '', bathrooms: '',
-      sizeMin: 0, sizeMax: 0, priceMin: 0, priceMax: 0, sortBy: 'recommended', page: 1,
-      furnishing: '', completion: '', rentalStatus: '', availableWithin: 0, tag: '',
+      sizeMin: 0, sizeMax: 0, priceMin: 0, priceMax: 0, sortBy: 'opportunity', page: 1,
+      furnishing: '', completion: '', rentalStatus: '', availableWithin: 0, tag: '', offer: '',
     }))
   }
 
@@ -512,7 +547,7 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
   // many ACTUALLY fit in the space left after the Sort/View controls, and
   // only that many render for real; whatever's left goes behind a "+N More"
   // popover (out of the flex flow, so opening it can never wrap the row).
-  const visibleTypeDefs = TYPES.filter(t => t.v && typeStats.some(s => s.type === t.v && s.count > 0))
+  const visibleTypeDefs = TYPES.filter(t => t.v && countForType(typeStats, t.v) > 0)
 
   const typeRowRef  = useRef<HTMLDivElement>(null)
   const sortViewRef = useRef<HTMLDivElement>(null)
@@ -592,6 +627,12 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
             <button onClick={() => setFilter('tag' as any, '')} aria-label="Clear this search" className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[rgba(203,1,1,0.12)]"><X size={12} /></button>
           </p>
         )}
+        {filters.offer && (
+          <p className="inline-flex items-center gap-2 text-sm font-semibold rounded-full pl-3.5 pr-1.5 py-1 mb-2 mr-2" style={{ background: 'rgba(203,1,1,0.08)', color: 'var(--teal)', border: '1px solid rgba(203,1,1,0.25)' }}>
+            Limited-time offers only
+            <button onClick={() => setFilter('offer' as any, '')} aria-label="Show all listings" className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[rgba(203,1,1,0.12)]"><X size={12} /></button>
+          </p>
+        )}
         <p className="muted">
           {loading ? 'Loading…' : `${total.toLocaleString()} ${total === 1 ? 'property' : 'properties'}${projectTotal ? ` · ${projectTotal} new ${projectTotal === 1 ? 'project' : 'projects'}` : ''} found`}
         </p>
@@ -657,7 +698,7 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
               </Pill>
               {visibleTypeDefs.map(t => {
                 const Icon  = t.icon
-                const count = typeStats.find(s => s.type === t.v)?.count || 0
+                const count = countForType(typeStats, t.v)
                 return (
                   <Pill key={t.v} active={false} onClick={() => {}} className="px-3.5 py-2 flex-shrink-0 whitespace-nowrap">
                     <span className="inline-flex items-center gap-1.5">
@@ -687,7 +728,7 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
                 </Pill>
                 {shownTypeDefs.map(t => {
                   const Icon  = t.icon
-                  const count = typeStats.find(s => s.type === t.v)?.count || 0
+                  const count = countForType(typeStats, t.v)
                   return (
                     <Pill
                       key={t.v}
@@ -711,7 +752,7 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
                     {close => (
                       <div className="flex flex-col gap-1 max-h-72 overflow-y-auto">
                         {moreTypeDefs.map(t => {
-                          const count = typeStats.find(s => s.type === t.v)?.count || 0
+                          const count = countForType(typeStats, t.v)
                           return (
                             <DropdownOption
                               key={t.v}

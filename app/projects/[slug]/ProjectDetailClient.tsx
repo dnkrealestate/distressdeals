@@ -21,6 +21,10 @@ import DistanceCalculator from '@/components/shared/DistanceCalculator'
 import MoreOptions from '@/components/shared/MoreOptions'
 import RealEstateLinks from '@/components/shared/RealEstateLinks'
 import type { Project } from '@/types'
+import ConstructionProgress from '@/components/buyer/ConstructionProgress'
+import { OfferBanner, PriceInForce } from '@/components/buyer/OfferParts'
+import { offerPrice } from '@/lib/offer'
+import { OpportunityBadges, DealReference, MarketDisclaimer, dealClaim } from '@/components/buyer/OpportunityBadges'
 import RecentlyViewedCard from '@/components/buyer/RecentlyViewedCard'
 import AdSlot from '@/components/shared/AdSlot'
 import { ProjectSaveCompare } from '@/components/shared/SaveCompareButtons'
@@ -89,6 +93,18 @@ function FloorPlanTabs({ floorPlans }: { floorPlans: NonNullable<Project['floorP
           {fp.bedrooms && <span className="flex items-center gap-1.5 text-sm" style={{ color: 'var(--text-mid)' }}><BedDouble size={13} style={{ color: 'var(--teal)' }} />{fp.bedrooms}</span>}
           {fp.size && <span className="flex items-center gap-1.5 text-sm" style={{ color: 'var(--text-mid)' }}><Maximize2 size={13} style={{ color: 'var(--teal)' }} />{fp.size}</span>}
           {fp.price && <span className="flex items-center gap-1.5 text-sm font-bold" style={{ color: 'var(--teal)' }}><Tag size={13} />{formatPrice(fp.price)}</span>}
+          {/* This unit's own documented reference price — shown only when our price is really below it. */}
+          {(() => {
+            const ref = Number(fp.referencePrice) || 0, price = Number(fp.price) || 0
+            const pct = ref > 0 && price > 0 ? ((ref - price) / ref) * 100 : 0
+            if (pct < 1 || pct > 60) return null
+            return (
+              <span className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+                <s>{formatPrice(ref)}</s>
+                <span className="px-2 py-0.5 rounded-full font-bold" style={{ color: '#047857', background: 'rgba(16,185,129,0.12)' }}>{Math.round(pct * 10) / 10}% Below Market · save {formatPrice(Math.round(ref - price))}</span>
+              </span>
+            )
+          })()}
         </div>
       </div>
     </div>
@@ -237,6 +253,12 @@ function Fact({ icon: Icon, label, value }: { icon: any; label: string; value: s
 }
 
 export default function ProjectDetailClient({ project }: { project: Project }) {
+  // "Our Deal Price" only when a documented reference price stands behind it; otherwise the normal starting price.
+  const projectClaim = dealClaim(project)
+  // While a priced offer is live, the offer price is the price shown, with the normal price struck through.
+  const onOffer = !!offerPrice(project, project.priceFrom)
+  // The Distress Deals price keeps its label and figure — while a priced offer runs it is only crossed out.
+  const dealLabel = projectClaim && !projectClaim.unit ? 'Our Deal Price' : onOffer ? 'Distress Deals Price' : 'Starting Price'
   const [interestOpen, setInterestOpen] = useState(false)
 
   // "About This Project" starts collapsed with a Read More — only when the text is actually taller than that.
@@ -399,9 +421,12 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                 detail page's own price+stats card. */}
             <div className="card p-5 flex flex-wrap items-center gap-6 mb-5">
               <div>
-                <p className="text-xs mb-1 uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Starting Price</p>
-                <p className="text-3xl font-bold grad-text">{formatPrice(project.priceFrom)}</p>
+                <p className="text-xs mb-1 uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{dealLabel}</p>
+                <PriceInForce item={project} normalPrice={project.priceFrom} />
+                {!onOffer && <DealReference project={project} className="mt-0.5" />}
                 {project.priceTo && <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>up to {formatPrice(project.priceTo)}</p>}
+                <OpportunityBadges opportunity={project.opportunity} kind="project" className="mt-2" />
+                <MarketDisclaimer opportunity={project.opportunity} className="mt-1.5 max-w-xs" />
               </div>
               <div className="h-12 w-px hidden sm:block" style={{ background: 'var(--border)' }} />
               {[
@@ -424,6 +449,9 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                 )
               })}
             </div>
+
+            {/* Limited-time offer — straight after the price, at the top of the page. Renders nothing without a live offer. */}
+            <OfferBanner item={project} normalPrice={project.priceFrom} className="mb-5" />
 
             <div className="space-y-5">
               {/* Overview */}
@@ -475,6 +503,9 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                   ))}
                 </div>
               </div>
+
+              {/* Official construction progress from the DLD register — renders nothing when the project is not linked */}
+              <ConstructionProgress project={project} />
 
               {/* Amenities & Features — one row, "+N More" opens the rest in a modal */}
               {project.amenities && Object.values(project.amenities).some(Boolean) && (
@@ -572,8 +603,11 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
             <div>
               <div className="card p-6" style={{ borderColor: 'rgba(203,1,1,0.25)', background: 'linear-gradient(180deg, rgba(203,1,1,0.06), var(--surface) 45%)' }}>
                 <div className="text-center mb-6">
-                  <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Starting Price</p>
-                  <p className="text-3xl font-bold grad-text">{formatPrice(project.priceFrom)}</p>
+                  <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>{dealLabel}</p>
+                  <PriceInForce item={project} normalPrice={project.priceFrom} center />
+                  {!onOffer && <DealReference project={project} className="mt-0.5" />}
+                  <OpportunityBadges opportunity={project.opportunity} kind="project" className="mt-2 justify-center" />
+                  <MarketDisclaimer opportunity={project.opportunity} className="mt-1.5" />
                 </div>
                 <button onClick={() => setInterestOpen(true)} className="btn-primary w-full py-4 text-base mb-3">
                   <MessageCircleHeart size={16} /> I'm Interested
@@ -622,7 +656,7 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
             <div className="wrap flex items-center gap-3 py-3">
               <div className="hidden sm:block flex-1 min-w-0">
                 <p className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>{project.title}</p>
-                <p className="text-sm font-bold grad-text">{formatPrice(project.priceFrom)}</p>
+                <p className="text-sm font-bold grad-text">{formatPrice(offerPrice(project, project.priceFrom) || project.priceFrom)}</p>
               </div>
               <a href={telHref} className="btn-outline p-3 flex-shrink-0" aria-label={`Call ${COMPANY_PHONE_DISPLAY}`} title={`Call ${COMPANY_PHONE_DISPLAY}`}>
                 <Phone size={17} style={{ color: 'var(--teal)' }} />

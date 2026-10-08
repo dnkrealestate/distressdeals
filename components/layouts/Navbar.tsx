@@ -56,6 +56,7 @@ const NAV: NavItem[] = [
           { label: 'Villas',      href: '/for-sale?type=villa' },
           { label: 'Townhouses',  href: '/for-sale?type=townhouse' },
           { label: 'Penthouses',  href: '/for-sale?type=penthouse' },
+          { label: 'Commercial',  href: '/for-sale?type=commercial' },
         ] },
         { heading: 'Distress Deals', links: [
           { label: 'Distress Sale Dubai',     href: '/distress-sale-dubai' },
@@ -86,6 +87,7 @@ const NAV: NavItem[] = [
           { label: 'Studios',     href: '/for-rent?type=studio' },
           { label: 'Villas',      href: '/for-rent?type=villa' },
           { label: 'Townhouses',  href: '/for-rent?type=townhouse' },
+          { label: 'Commercial',  href: '/for-rent?type=commercial' },
         ] },
         { heading: 'Explore Dubai', links: [
           { label: 'Area Insights', href: '/areas' },

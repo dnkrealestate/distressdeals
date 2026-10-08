@@ -27,6 +27,7 @@ import { propertyAPI, homepageAPI, projectAPI } from '@/lib/api'
 import { HOME_ICON_MAP, DEFAULT_HOME_ICON } from '@/lib/homeIcons'
 import type { Property, Project, HomepageContent, CommunityContentWithStats, Developer } from '@/types'
 import HomeKeywordSections, { type HomeArea } from '@/components/HomeKeywordSections'
+import HomeOffers from '@/components/HomeOffers'
 import PopularSearches from '@/components/PopularSearches'
 // The price map and the mortgage calculator sit far down the page and are fully interactive — their code is loaded
 // once the page is up, so it does not hold back the first screen. The placeholders keep the layout from jumping.
@@ -546,6 +547,9 @@ export default function HomeClient({ content, popularSearches, guides }: {
           </div>
         </div>
       </section> */}
+
+      {/* ─── LIMITED-TIME OFFERS (only when some are running) ─ */}
+      <HomeOffers />
 
       {/* ─── BROWSE AREAS ──────────────────────────────────── */}
       {areaStats === null || areaStats.length > 0 ? (

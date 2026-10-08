@@ -8,6 +8,7 @@ import {
   ChevronDown, X, Check, Sparkles, Loader2, Map as MapIcon,
 } from 'lucide-react'
 import DirhamIcon from '@/components/shared/DirhamIcon'
+import { PropertyTypeDropdown, PropertyTypeInline } from '@/components/shared/PropertyTypePicker'
 import { propertyAPI } from '@/lib/api'
 import {
   CATEGORIES, RESIDENTIAL_TYPES, COMMERCIAL_TYPES, BATHS, SIZES,
@@ -29,6 +30,7 @@ const PROPERTY_TYPES = [
   { value: 'townhouse', label: 'Townhouse' },
   { value: 'penthouse', label: 'Penthouse' },
   { value: 'studio',    label: 'Studio'    },
+  { value: 'commercial', label: 'Commercial' },
   { value: 'office',    label: 'Office'    },
   { value: 'retail',    label: 'Retail'    },
   { value: 'plot',      label: 'Plot'      },
@@ -419,21 +421,9 @@ function MobileFilterModal({
                 <p className="text-[10px] font-semibold uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-muted)' }}>
                   Property Type
                 </p>
-                <div className="relative w-full">
-                  <Home size={13} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--teal)', pointerEvents: 'none' }} />
-                  <select
-                    value={propType}
-                    onChange={e => setPropType(e.target.value)}
-                    className="select-field h-11 pl-8 pr-8 text-xs w-full rounded-xl"
-                    style={{ color: propType ? 'var(--text)' : 'var(--text-muted)' }}
-                  >
-                    <option value="">Any type</option>
-                    {(modalTypeOptions ? modalTypeOptions.map(t => ({ value: t.v, label: t.l })) : PROPERTY_TYPES).map(pt => (
-                      <option key={pt.value} value={pt.value}>{pt.label}</option>
-                    ))}
-                  </select>
-                  <ChevronDown size={11} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
-                </div>
+                <PropertyTypeInline value={propType} onChange={setPropType} allLabel="Any type"
+                  group={compact ? (category || undefined) : undefined}
+                  onGroupChange={g => { if (compact) { setCategory?.(g); setPropType('') } }} />
               </div>
 
               {/* Beds & Baths (residential) — swapped for Area (sqft) when
@@ -796,26 +786,8 @@ export default function SearchBar({
           <AreaDropdown value={area} onChange={setArea} />
 
           {/* Property type */}
-          <div className="relative flex-shrink-0 w-40">
-            <Home
-              size={13}
-              style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--teal)', pointerEvents: 'none' }}
-            />
-            <select
-              value={propType}
-              onChange={e => setPropType(e.target.value)}
-              className="select-field h-11 pl-8 pr-8 text-xs w-full rounded-xl"
-              style={{ color: propType ? 'var(--text)' : 'var(--text-muted)' }}
-            >
-              <option value="">Property type</option>
-              {PROPERTY_TYPES.map(pt => (
-                <option key={pt.value} value={pt.value}>{pt.label}</option>
-              ))}
-            </select>
-            <ChevronDown
-              size={11}
-              style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }}
-            />
+          <div className="flex-shrink-0">
+            <PropertyTypeDropdown value={propType} onChange={setPropType} placeholder="Property type" allLabel="Any type" />
           </div>
 
           {/* Divider */}
@@ -905,41 +877,8 @@ export default function SearchBar({
 
             {/* Property type — opens a panel with Residential/Commercial
                 tabs at the top; switching tabs swaps the type list below. */}
-            <FilterDropdown
-              label={compactTypeOptions.find(t => t.v === propType)?.l || 'Property Type'}
-              icon={Home}
-              active={!!propType}
-              widthClass="w-56"
-              fullWidth
-            >
-              {close => (
-                <div>
-                  <div className="flex gap-1.5 mb-3">
-                    {CATEGORIES.filter(c => c.v).map(c => (
-                      <button
-                        key={c.v}
-                        onClick={() => { setCategory(c.v as any); setPropType('') }}
-                        className="flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150"
-                        style={{
-                          background: category === c.v ? 'var(--grad)' : 'var(--bg-alt)',
-                          color:      category === c.v ? '#fff' : 'var(--text-muted)',
-                          border: 'none', cursor: 'pointer',
-                        }}
-                      >
-                        {c.l}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex flex-col gap-1 max-h-56 overflow-y-auto">
-                    {compactTypeOptions.map(t => (
-                      <DropdownOption key={t.v} active={propType === t.v} onClick={() => { setPropType(t.v); close() }}>
-                        {t.l}
-                      </DropdownOption>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </FilterDropdown>
+            <PropertyTypeDropdown value={propType} onChange={setPropType} fullWidth allLabel="Any type"
+              group={category || undefined} onGroupChange={g => { setCategory(g); setPropType('') }} />
 
             {/* Beds & Baths — shown whenever the category is Residential
                 (or not yet chosen); swapped for Area (sqft) only when
