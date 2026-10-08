@@ -35,9 +35,8 @@ export default function HomeOffers() {
       <div className="wrap">
         <div className="flex items-end justify-between mb-8 flex-wrap gap-4">
           <div>
-            <p className="eyebrow mb-3 flex items-center gap-1.5"><Sparkles size={13} /> Limited-Time Offers</p>
-            <h2 className="heading-lg">Special Offers on Dubai Properties &amp; New Projects</h2>
-            <p className="text-sm mt-2 max-w-2xl" style={{ color: 'var(--text-muted)' }}>Offer prices and developer gifts available for a limited period — while they last.</p>
+            <h2 className="heading-lg flex items-center gap-2"><Sparkles size={22} style={{ color: 'var(--teal)' }} /> Best UAE Property Offers</h2>
+            <p className="text-sm mt-2 max-w-2xl" style={{ color: 'var(--text-muted)' }}>Exclusive deals, new launches &amp; investment opportunities across the UAE.</p>
           </div>
           <Link href="/for-sale?offer=true" className="btn-outline btn-sm gap-1.5">View all offers <ArrowRight size={13} /></Link>
         </div>

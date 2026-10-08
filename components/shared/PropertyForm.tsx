@@ -610,7 +610,7 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
   const autoTitle = `${Number(watch('bedrooms')) ? `${watch('bedrooms')} Bedroom ` : ''}${typeLabel} for ${listingType === 'rent' ? 'Rent' : 'Sale'}${areaValue ? ` in ${areaValue}` : ''}, Dubai`
 
   return (
-    <form
+    <form noValidate
       onSubmit={handleSubmit(onSubmit, onInvalid)}
       onKeyDown={e => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') e.preventDefault() }}
       className="max-w-3xl"

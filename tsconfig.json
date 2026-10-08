@@ -38,7 +38,8 @@
     "next.config.mjs",
     "components/buyer/PropertyCard.tsx",
     "app/layout.tsx",
-    ".next-perf/types/**/*.ts"
+    ".next-perf/types/**/*.ts",
+    ".next-test/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

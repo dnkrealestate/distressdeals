@@ -190,7 +190,7 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
   const [tagsAdded, setTagsAdded] = useState<string[]>(project?.tagsAdded || [])
   const [tagsRemoved, setTagsRemoved] = useState<string[]>(project?.tagsRemoved || [])
   const [floorPlans, setFloorPlans] = useState<FloorPlanEntry[]>(
-    (project?.floorPlans || []).map(f => ({ label: f.label, image: f.image, bedrooms: f.bedrooms || '', size: f.size || '', price: f.price ? String(f.price) : '', referencePrice: f.referencePrice ? String(f.referencePrice) : '' }))
+    (project?.floorPlans || []).map(f => ({ label: f.label, image: f.image || "", bedrooms: f.bedrooms || '', size: f.size || '', price: f.price ? String(f.price) : '', referencePrice: f.referencePrice ? String(f.referencePrice) : '' }))
   )
   const [uploadingFloorPlan, setUploadingFloorPlan] = useState<number | null>(null)
   const [masterPlanImage, setMasterPlanImage] = useState(project?.masterPlan?.image || '')
@@ -494,9 +494,10 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
       isFeatured: !!data.isFeatured,
       coordinates: (data.lat !== '' && data.lng !== '') ? { lat: Number(data.lat), lng: Number(data.lng) } : undefined,
       amenities,
+      // A floor plan is kept when it has a name (or at least bedrooms / a price, which then name it) — the picture is optional.
       floorPlans: floorPlans
-        .filter(f => f.label && f.image)
-        .map(f => ({ label: f.label, image: f.image, bedrooms: f.bedrooms || undefined, size: f.size || undefined, price: f.price !== '' ? Number(f.price) : undefined, referencePrice: Number(f.referencePrice) > 0 ? Number(f.referencePrice) : undefined })),
+        .filter(f => f.label.trim() || f.bedrooms.trim() || f.price !== '')
+        .map(f => ({ label: f.label.trim() || f.bedrooms.trim() || 'Floor plan', image: f.image || undefined, bedrooms: f.bedrooms || undefined, size: f.size || undefined, price: f.price !== '' ? Number(f.price) : undefined, referencePrice: Number(f.referencePrice) > 0 ? Number(f.referencePrice) : undefined })),
       masterPlan: masterPlanImage ? { image: masterPlanImage, description: masterPlanDescription || undefined } : undefined,
       landmarks: landmarks
         .filter(l => l.name && l.lat !== '' && l.lng !== '')
@@ -568,6 +569,7 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
 
         <form
           {...draft.touchProps}
+          noValidate
           onSubmit={handleSubmit(onSubmit, onInvalid)}
           onKeyDown={e => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') e.preventDefault() }}
           className="flex-1 min-h-0 overflow-y-auto p-6"
@@ -770,7 +772,7 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
                         {mv > 0 && <p className="text-[11px] mt-1 font-medium" style={{ color: 'var(--teal)' }}>{formatPrice(mv)}</p>}
                       </Field>
                       <Field label="Discount (%) — optional">
-                        <input className="input" type="number" min={0} max={90} step="0.5" placeholder={mv > 0 ? 'e.g. 20' : 'Enter the market price first'} disabled={!(mv > 0)}
+                        <input className="input" type="number" min={0} max={90} step="any" placeholder={mv > 0 ? 'e.g. 20' : 'Enter the market price first'} disabled={!(mv > 0)}
                           value={shown} onChange={e => applyPct(e.target.value)} />
                         <div className="flex flex-wrap gap-1.5 mt-1.5">
                           {[5, 10, 15, 20, 25, 30].map(n => (

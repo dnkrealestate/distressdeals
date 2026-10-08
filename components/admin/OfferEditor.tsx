@@ -85,7 +85,7 @@ export default function OfferEditor({ value, onChange, normalPrice, priceLabel =
         </div>
         <div>
           <label className={label} style={{ color: 'var(--text-mid)' }}>Discount (%) — the offer price is calculated automatically</label>
-          <input className="input" type="number" min={0} max={90} step="0.5" placeholder="e.g. 20" value={o.discountPercent || ''}
+          <input className="input" type="number" min={0} max={90} step="any" placeholder="e.g. 20" value={o.discountPercent || ''}
             onChange={e => { const n = Number(e.target.value); set({ discountPercent: n > 0 ? Math.min(90, n) : undefined, ...(n > 0 ? { price: undefined } : {}) }) }} />
           <div className="flex flex-wrap gap-1.5 mt-1.5">
             {[5, 10, 15, 20, 25, 30].map(n => (

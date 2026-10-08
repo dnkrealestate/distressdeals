@@ -135,7 +135,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Logo */}
         <div className="p-5" style={{ borderBottom: '1px solid var(--border)' }}>
           <Link href="/" className="flex flex-col items-start gap-1.5">
-            <Logo height={26} />
+            <Logo href={null} height={26} />
             <p className="text-[10px] flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
               <ShieldCheck size={10} /> Centralized Control
             </p>

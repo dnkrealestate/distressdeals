@@ -87,7 +87,9 @@ function FloorPlanTabs({ floorPlans }: { floorPlans: NonNullable<Project['floorP
 
       <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
         <div className="relative w-full h-72 sm:h-96" style={{ background: 'var(--bg-alt)' }}>
-          <Image src={fp.image} alt={fp.label} fill className="object-contain p-4" sizes="(max-width:768px)100vw,700px" />
+          {fp.image
+            ? <Image src={fp.image} alt={fp.label} fill className="object-contain p-4" sizes="(max-width:768px)100vw,700px" />
+            : <div className="absolute inset-0 flex items-center justify-center text-sm" style={{ color: 'var(--text-muted)' }}>Floor plan drawing coming soon</div>}
         </div>
         <div className="p-5 flex flex-wrap items-center gap-4" style={{ borderTop: '1px solid var(--border)' }}>
           <p className="font-semibold text-sm flex-shrink-0" style={{ color: 'var(--text)' }}>{fp.label}</p>
