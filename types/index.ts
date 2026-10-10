@@ -276,6 +276,13 @@ export interface Project {
   marketPriceSource?: string
   dld?: ProjectDld
   offer?: Offer | null
+  // Detail page only: the record that represents this project when it was entered once per unit type (its canonical
+  // address), and those unit types.
+  canonicalSlug?: string
+  unitTypes?: {
+    slug: string; type?: string; bedrooms?: string; bathrooms?: string; sizeRange?: string
+    priceFrom?: number; priceTo?: number; paymentPlan?: string; handover?: string; status?: string; offer?: Offer | null; current?: boolean
+  }[]
   developerLogo?: string
   // Admin list only (GET /projects/manage/all).
   createdBy?: { _id: string; name: string; displayId?: string; role?: string } | null
@@ -289,6 +296,17 @@ export interface Project {
   masterPlan?: { image: string; description?: string }
   landmarks?: { name: string; category: 'metro' | 'school' | 'mall' | 'landmark' | 'airport' | 'hospital'; lat: number; lng: number }[]
   videos?: { platform: 'youtube' | 'vimeo' | 'dailymotion' | '3d_view'; url: string; title?: string }[]
+}
+
+// GET /projects/:slug/group — a project entered once per unit type, as one.
+export interface ProjectGroupUnit {
+  _id: string; slug: string; title?: string; type?: string; bedrooms?: string; bathrooms?: string; sizeRange?: string
+  priceFrom?: number; priceTo?: number; paymentPlan?: string; handover?: string; status?: string; offer?: Offer | null
+  opportunity?: any; coverImage?: string; floorPlans?: { label: string; image?: string; bedrooms?: string; size?: string }[]
+}
+export interface ProjectGroup {
+  project: Project; canonicalSlug: string; gallery: string[]; launchPrice: number; maxPrice: number
+  paymentPlans: string[]; handovers: string[]; types: string[]; units: ProjectGroupUnit[]
 }
 
 export interface Developer {
@@ -432,6 +450,7 @@ export interface ApiResponse<T> { success: boolean; data: T; message?: string; e
 // ── UAE Explore ─────────────────────────────────────────
 export type PlaceCategory = 'attraction' | 'food' | 'mall' | 'market' | 'hotel' | 'activity'
 export interface Place {
+  indexable?: boolean      // enough content of its own for search engines (set by the backend)
   _id: string; name: string; slug: string; category: PlaceCategory; subcategory?: string
   emirate: string; area?: string; address?: string; coordinates?: { lat: number; lng: number }
   heroImage?: string; heroImageCredit?: { name: string; url: string; license?: string }; gallery?: string[]

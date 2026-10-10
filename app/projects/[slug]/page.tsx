@@ -32,8 +32,9 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     title: fitTitle(title),
     description: fitDescription(description),
     keywords: projectKeywords(project),
-    alternates: { canonical: `/projects/${project.slug}` },
-    openGraph: { title, description, type: 'website', url: `/projects/${project.slug}`, images },
+    // A project entered once per unit type is one project: every unit's page points at the first record.
+    alternates: { canonical: `/projects/${project.canonicalSlug || project.slug}` },
+    openGraph: { title, description, type: 'website', url: `/projects/${project.canonicalSlug || project.slug}`, images },
     twitter: { card: 'summary_large_image', title, description, images: images.map(i => i.url) },
   }
 }

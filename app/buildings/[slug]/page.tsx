@@ -1,4 +1,5 @@
 import { cache } from 'react'
+import { buildingIndexable } from '@/lib/indexability'
 import Image from 'next/image'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
@@ -51,7 +52,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     description: fitDescription(description),
     keywords: building.seoKeywords?.length ? [building.focusKeyword || building.name, ...building.seoKeywords] : [building.name, `${building.name} location`, `${building.name} floors`, `${building.name} apartments`, building.area ? `buildings in ${building.area}` : '', building.area ? `apartments for sale in ${building.area}` : '', building.emirate ? `towers in ${building.emirate}` : '', building.developer ? `${building.developer} buildings` : ''].filter(Boolean),
     alternates: { canonical: `/buildings/${building.slug}` },
-    robots: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 },
+    // Indexed once the guide has a written overview of its own; links are always followed.
+    robots: { index: buildingIndexable(building), follow: true, 'max-image-preview': 'large', 'max-snippet': -1 },
     openGraph: { title, description, type: 'article', url: `/buildings/${building.slug}`, siteName: 'Distress Deals UAE', locale: 'en_AE', images: shareImages(building.heroImage, alt) },
     twitter: { card: 'summary_large_image', title, description, ...(building.heroImage ? { images: [{ url: building.heroImage, alt }] } : {}) },
     other: building.coordinates?.lat != null ? { 'geo.position': `${building.coordinates.lat};${building.coordinates.lng}`, ICBM: `${building.coordinates.lat}, ${building.coordinates.lng}`, 'geo.region': 'AE' } : {},

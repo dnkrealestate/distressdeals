@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next'
+import { groupPrimaries, projectGroupKey, buildingIndexable } from '@/lib/indexability'
 import { propertyAPI, blogAPI, newsAPI, projectAPI, communityContentAPI, buildingContentAPI, placeAPI, areaContentAPI } from '@/lib/api'
 import { EXPLORE_SECTIONS, EMIRATES, sectionHref, placeHref } from '@/lib/explore'
 
@@ -7,7 +8,10 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.distressdealsu
 // Static, always-present routes — everything else below is generated from
 // live data so new listings/posts/projects show up without a manual edit.
 const STATIC_ROUTES = [
-  '', '/for-sale', '/for-rent', '/projects', '/insights', '/blog', '/news',
+  '', '/for-sale', '/for-rent', '/projects', '/insights', '/blog', '/news', '/sell',
+  // Property-type pages — each its own indexable page with its own title (see app/for-sale/page.tsx)
+  '/for-sale?type=apartment', '/for-sale?type=villa', '/for-sale?type=townhouse', '/for-sale?type=penthouse',
+  '/for-rent?type=apartment', '/for-rent?type=villa', '/for-rent?type=townhouse',
   '/about', '/areas', '/communities', '/buildings', '/explore',
   '/explore/attractions', '/explore/food', '/explore/malls', '/explore/markets', '/explore/hotels', '/explore/activities', '/mortgage', '/developers',
   '/contact',
@@ -78,13 +82,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.5,
     })
   }
-  for (const proj of projects) {
-    entries.push({
-      url: `${SITE_URL}/projects/${proj.slug}`,
-      lastModified: proj.updatedAt ? new Date(proj.updatedAt) : new Date(proj.createdAt),
-      changeFrequency: 'weekly',
-      priority: 0.7,
-    })
+  // One entry per project — not one per unit-type record of the same project (those point their canonical at it).
+  // A project with several unit types also has its "unit types & prices" page.
+  const groupSize = new Map<string, number>()
+  for (const p of projects as any[]) groupSize.set(projectGroupKey(p), (groupSize.get(projectGroupKey(p)) || 0) + 1)
+  for (const proj of groupPrimaries(projects as any[])) {
+    const lastModified = proj.updatedAt ? new Date(proj.updatedAt) : new Date(proj.createdAt)
+    entries.push({ url: `${SITE_URL}/projects/${proj.slug}`, lastModified, changeFrequency: 'weekly', priority: 0.7 })
+    if ((groupSize.get(projectGroupKey(proj)) || 0) > 1) entries.push({ url: `${SITE_URL}/projects/${proj.slug}/units`, lastModified, changeFrequency: 'weekly', priority: 0.6 })
   }
   for (const a of areas as { area: string; slug?: string }[]) {
     if (!a.area) continue
@@ -113,7 +118,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.6,
     })
   }
-  for (const b of buildings as { slug: string; updatedAt?: string; createdAt?: string }[]) {
+  // Building guides once they have a written overview of their own.
+  for (const b of (buildings as { slug: string; overview?: string; updatedAt?: string; createdAt?: string }[]).filter(buildingIndexable)) {
     entries.push({
       url: `${SITE_URL}/buildings/${b.slug}`,
       lastModified: b.updatedAt || b.createdAt ? new Date(b.updatedAt || b.createdAt!) : new Date(),
@@ -124,7 +130,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // UAE Explore: every place, plus each section's per-emirate page.
   const places = await allPages(page => placeAPI.getAll({ limit: 60, page, sort: 'name' }), 60)
-  for (const p of places as { category: string; slug: string; emirate: string; updatedAt?: string }[]) {
+  // Places with enough content of their own (photo + real description, FAQs or reviews — decided by the backend).
+  for (const p of (places as { category: string; slug: string; emirate: string; updatedAt?: string; indexable?: boolean }[]).filter(p => p.indexable !== false)) {
     entries.push({ url: `${SITE_URL}${placeHref(p)}`, ...(p.updatedAt ? { lastModified: new Date(p.updatedAt) } : {}), changeFrequency: 'monthly', priority: 0.6 })
   }
   for (const s of EXPLORE_SECTIONS) for (const e of EMIRATES) {

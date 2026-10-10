@@ -35,12 +35,12 @@ export default function HomeOffers() {
       <div className="wrap">
         <div className="flex items-end justify-between mb-8 flex-wrap gap-4">
           <div>
-            <h2 className="heading-lg flex items-center gap-2"><Sparkles size={22} style={{ color: 'var(--teal)' }} /> Best UAE Property Offers</h2>
+            <h2 className="heading-lg flex items-center gap-2">Best UAE Property <span style={{ color: 'var(--teal)' }}>Offers</span></h2>
             <p className="text-sm mt-2 max-w-2xl" style={{ color: 'var(--text-muted)' }}>Exclusive deals, new launches &amp; investment opportunities across the UAE.</p>
           </div>
           <Link href="/for-sale?offer=true" className="btn-outline btn-sm gap-1.5">View all offers <ArrowRight size={13} /></Link>
         </div>
-        <div className="flex gap-5 overflow-x-auto overflow-y-hidden pb-4 -mx-4 px-4 snap-x" style={{ scrollbarWidth: 'thin' }}>
+        <div className="flex gap-5 overflow-x-auto overflow-y-hidden pb-4 mx-2 md:mx-3 px-4 snap-x" style={{ scrollbarWidth: 'thin' }}>
           {items.map(x => (
             <div key={`${x.kind}-${x.item._id}`} className="w-[300px] sm:w-[340px] flex-shrink-0 snap-start">
               {x.kind === 'project' ? <ProjectCard project={x.item} markAsProject /> : <PropertyCard property={x.item} />}

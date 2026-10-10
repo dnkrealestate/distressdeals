@@ -271,10 +271,14 @@ export const uploadAPI = {
 // ── Projects (off-plan developments) ─────────────────
 export const projectAPI = {
   getAll:  (params?: any) => api.get('/projects', { params }),
+  // Admin form: existing project names as the name is typed (one row per project, with its developer and area).
+  nameSuggestions: (q: string) => api.get('/projects/manage/name-suggestions', { params: { q } }),
   // The automatic feature tags for the project form's current values (+ every tag there is).
   tagPreview: (data: any) => api.post('/projects/tag-preview', data),
   getOne:  (slug: string) => api.get(`/projects/${slug}`),
   getMore: (slug: string) => api.get(`/projects/${slug}/more`),
+  // Every unit type of the project in one go (the "All unit types" overview page).
+  getGroup: (slug: string) => api.get(`/projects/${slug}/group`),
   // One view per visitor — counted by the backend, not by page fetches.
   trackView: (id: string) => api.post(`/projects/${id}/view`),
   create:  (data: any) => api.post('/projects', data),

@@ -69,7 +69,7 @@ export default function FeedInsightsPage() {
   useEffect(() => { load() }, [load])
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 p-2">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-bold flex items-center gap-2" style={{ color: 'var(--text)' }}><Activity size={17} style={{ color: 'var(--teal)' }} /> Feed Insights</h1>

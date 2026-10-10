@@ -264,6 +264,7 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
   // The Distress Deals price keeps its label and figure — while a priced offer runs it is only crossed out.
   const dealLabel = projectClaim && !projectClaim.unit ? 'Our Deal Price' : onOffer ? 'Distress Deals Price' : 'Starting Price'
   const [interestOpen, setInterestOpen] = useState(false)
+  const [allUnits, setAllUnits] = useState(false)
 
   // "About This Project" starts collapsed with a Read More — only when the text is actually taller than that.
   const DESC_COLLAPSED_HEIGHT = 260
@@ -508,6 +509,69 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                 </div>
               </div>
 
+              {/* The other unit types of this project (entered as separate records) — each with its details, one tap apart */}
+              {(project.unitTypes?.length || 0) > 1 && (
+                <div className="card p-6">
+                  <h3 className="font-semibold mb-1" style={{ color: 'var(--text)' }}>Unit Types in {project.title.trim()}</h3>
+                  <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>{project.unitTypes!.length} unit types available — tap one for its full details.</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {(allUnits ? project.unitTypes! : project.unitTypes!.slice(0, 6)).map(u => {
+                      const beds = u.bedrooms ? (/[a-z]/i.test(u.bedrooms) ? u.bedrooms : `${u.bedrooms} Bed`) : ''
+                      const baths = u.bathrooms ? (/[a-z]/i.test(u.bathrooms) ? u.bathrooms : `${u.bathrooms} Bath`) : ''
+                      const kind = u.type ? u.type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Unit'
+                      const offer = offerPrice({ offer: u.offer }, u.priceFrom || 0)
+                      const facts = [
+                        beds && { icon: BedDouble, v: beds },
+                        baths && { icon: Bath, v: baths },
+                        u.sizeRange && { icon: Maximize2, v: /sq/i.test(u.sizeRange) ? u.sizeRange : `${u.sizeRange} sqft` },
+                        u.handover && { icon: CalendarClock, v: `Handover ${u.handover}` },
+                        u.paymentPlan && { icon: Wallet, v: `${u.paymentPlan} plan` },
+                      ].filter(Boolean) as { icon: any; v: string }[]
+                      return (
+                        <Link key={u.slug} href={`/projects/${u.slug}`} aria-current={u.current ? 'page' : undefined}
+                          className="block rounded-xl p-4 transition-colors hover:border-[rgba(203,1,1,0.45)]"
+                          style={{ border: `1px solid ${u.current ? 'rgba(203,1,1,0.45)' : 'var(--border)'}`, background: u.current ? 'rgba(203,1,1,0.05)' : 'var(--surface)' }}>
+                          <div className="flex items-start justify-between gap-3 mb-2.5">
+                            <div className="min-w-0">
+                              <p className="text-sm font-bold" style={{ color: 'var(--text)' }}>{[beds, kind].filter(Boolean).join(' ')}</p>
+                              {u.current && <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: 'var(--teal)' }}>You are viewing this unit</span>}
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              {offer ? (
+                                <>
+                                  <p className="text-[11px] line-through" style={{ color: 'var(--text-muted)' }}>{formatPrice(u.priceFrom!)}</p>
+                                  <p className="text-sm font-bold" style={{ color: 'var(--teal)' }}>{formatPrice(offer)}</p>
+                                </>
+                              ) : u.priceFrom ? (
+                                <>
+                                  <p className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>From</p>
+                                  <p className="text-sm font-bold" style={{ color: 'var(--teal)' }}>{formatPrice(u.priceFrom)}</p>
+                                </>
+                              ) : null}
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                            {facts.map(f => (
+                              <span key={f.v} className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-mid)' }}><f.icon size={12} style={{ color: 'var(--teal)' }} />{f.v}</span>
+                            ))}
+                          </div>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                  <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
+                    {project.unitTypes!.length > 6 ? (
+                      <button type="button" onClick={() => setAllUnits(v => !v)} className="btn-outline btn-sm">
+                        {allUnits ? 'Show fewer' : `Show all ${project.unitTypes!.length} unit types`}
+                      </button>
+                    ) : <span />}
+                    <Link href={`/projects/${project.slug}/units`} className="inline-flex items-center gap-1 text-sm font-semibold" style={{ color: 'var(--teal)' }}>
+                      All unit types, prices &amp; payment plans →
+                    </Link>
+                  </div>
+                </div>
+              )}
+
               {/* Official construction progress from the DLD register — renders nothing when the project is not linked */}
               <ConstructionProgress project={project} />
 
@@ -551,7 +615,7 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                     </h3>
                     {/* Opens the full map page with just this project on it. */}
                     {project.coordinates && (
-                      <Link href={`/map-search?only=project:${project.slug}`} className="btn-outline btn-sm gap-1.5 flex-shrink-0">
+                      <Link href={`/map-search?only=project:${project.slug}`} className="btn-sm gap-1.5 flex-shrink-0 inline-flex items-center rounded-xl font-semibold text-white hover:opacity-95 transition-opacity" style={{ background: 'linear-gradient(120deg, #0F766E, #0EA5E9)', boxShadow: '0 4px 14px rgba(14,165,233,0.35)' }}>
                         <MapIcon size={13} /> Map View
                       </Link>
                     )}

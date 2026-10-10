@@ -4,6 +4,7 @@ import MapSearchClient from './MapSearchClient'
 export const metadata: Metadata = {
   title: 'Map Search — Properties in Dubai',
   description: 'Browse properties for sale and rent across Dubai on an interactive map.',
+  alternates: { canonical: '/map-search' },
   robots: { index: false, follow: true },
 }
 

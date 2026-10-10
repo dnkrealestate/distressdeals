@@ -62,9 +62,10 @@ export async function generateMetadata({ params, searchParams }: { params: { slu
   const description = dev.metaDescription || dev.description?.slice(0, 158) || `${dev.projectCount} project${dev.projectCount === 1 ? '' : 's'} by ${dev.name}, starting from ${formatPrice(dev.minPriceFrom)}.`
   const keywords = [dev.focusKeyword, ...(dev.seoKeywords || [])].filter(Boolean) as string[]
 
+  const pg = pageFrom(searchParams)
   return {
-    title: fitTitle(title),
-    description: fitDescription(description),
+    title: fitTitle(pg > 1 ? `${title} – Page ${pg}` : title),
+    description: fitDescription(pg > 1 ? `Page ${pg}: ${description}` : description),
     ...(keywords.length ? { keywords } : {}),
     // Page 2+ of the list is its own crawlable page.
     alternates: { canonical: `/developers/${dev.slug}${pageFrom(searchParams) > 1 ? `?page=${pageFrom(searchParams)}` : ''}` },

@@ -26,7 +26,7 @@ export async function generateMetadata(): Promise<Metadata> {
 // fetch fails outright, so the homepage never renders empty.
 const FALLBACK_CONTENT: HomepageContent = {
   _id: '',
-  heroHeadlines: ['Distressed Property Deals in Dubai', "Invest in Dubai's Finest", 'Live Where Luxury Meets Life'],
+  heroHeadlines: ['Distressed Property Deals in UAE', "Invest in UAE's Finest", 'Live Where Luxury Meets Life'],
   heroSubtitle: "Discover exclusive villas, apartments & penthouses. Buy, sell, or rent — managed by Dubai's most trusted specialists.",
   heroMiniStats: [{ value: '2,400+', label: 'Active Listings' }, { value: '850+', label: 'Deals Closed' }, { value: '4.9★', label: 'Client Rating' }],
   whyCards: [

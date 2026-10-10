@@ -23,7 +23,8 @@ export const metadata: Metadata = {
   verification: { google: 'KrXeALfeYBTVJyLMYrcTeL2aTOpRbWPWuhkg_-JR79k' },
   // No `keywords` — Google has ignored this tag since 2009, and it does nothing but hand competitors your
   // targeting for free.
-  alternates: { canonical: '/' },
+  // No site-wide canonical: a page without its own would otherwise point at the homepage. The homepage and every
+  // content page set their own.
   openGraph: {
     type: 'website', locale: 'en_AE', url: '/',
     siteName: 'Distress Deals UAE',

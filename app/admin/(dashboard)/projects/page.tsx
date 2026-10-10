@@ -30,6 +30,7 @@ import { PropertyTypeInline } from '@/components/shared/PropertyTypePicker'
 import { PricingOpportunityCalc, OpportunitySummary } from '@/components/admin/MarketValueHint'
 import MarketReferencePanel from '@/components/admin/MarketReferencePanel'
 import OfferEditor from '@/components/admin/OfferEditor'
+import ProjectNameInput from '@/components/admin/ProjectNameInput'
 import type { Offer } from '@/types'
 import { useAuthStore } from '@/store/authStore'
 import { useFormDraft, listDrafts, removeDraft, timeAgoShort } from '@/lib/useFormDraft'
@@ -584,10 +585,20 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
               <h3 className="font-bold text-sm mb-5" style={{ color: 'var(--text)' }}>Project Basics</h3>
               <div className="space-y-4">
                 <div>
-                  <input
-                    className="input text-lg font-bold" style={{ padding: '12px 14px' }}
-                    placeholder="e.g. Boulevard Point" {...register('title', { required: true })}
-                  />
+                  <Controller name="title" control={control} rules={{ required: true }} render={({ field }) => (
+                    <ProjectNameInput
+                      value={field.value || ''} onChange={field.onChange} invalid={!!errors.title}
+                      inputProps={{ name: field.name, onBlur: field.onBlur, ref: field.ref }}
+                      onPick={s => {
+                        // Another unit type of an existing project: same developer and location, unless already filled in.
+                        if (s.developer && !getValues('developer')) setValue('developer', s.developer, { shouldDirty: true, shouldValidate: true })
+                        if (s.area && !getValues('area')) setValue('area', s.area, { shouldDirty: true, shouldValidate: true })
+                        if (s.community && !getValues('community')) setValue('community', s.community, { shouldDirty: true })
+                        if (s.emirate && !getValues('emirate')) setValue('emirate', s.emirate, { shouldDirty: true })
+                        if (s.type && !getValues('type')) setValue('type', s.type, { shouldDirty: true })
+                      }}
+                    />
+                  )} />
                   {errors.title && <p className="text-xs mt-1" style={{ color: '#FB7185' }}>Title is required</p>}
                 </div>
                 <Field label="Developer *">

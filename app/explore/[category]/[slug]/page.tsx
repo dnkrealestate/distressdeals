@@ -47,7 +47,8 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     title: fitTitle(title), description: fitDescription(description),
     keywords: placeKeywords(place),
     alternates: { canonical: url },
-    robots: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1, 'max-video-preview': -1 },
+    // Indexed once the place has content of its own (photo + description, FAQs or reviews); links are always followed.
+    robots: { index: place.indexable !== false, follow: true, 'max-image-preview': 'large', 'max-snippet': -1, 'max-video-preview': -1 },
     openGraph: { title, description, type: 'article', url, siteName: 'Distress Deals UAE', locale: 'en_AE', images: shareImages(place.heroImage, alt), ...(place.updatedAt ? { modifiedTime: place.updatedAt } : {}) },
     twitter: { card: 'summary_large_image', title, description, ...(place.heroImage ? { images: [{ url: place.heroImage, alt }] } : {}) },
     other: {

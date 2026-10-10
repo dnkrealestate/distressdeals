@@ -81,7 +81,7 @@ function HeroBanner({ desktop, mobile }: { desktop: string; mobile: string }) {
 }
 
 /* ─── ANIMATED HEADLINE ─────────────────────────────────────── */
-const ACCENT_WORDS = ['Dream', "Dubai's", 'Luxury', 'Distressed', 'Dubai']
+const ACCENT_WORDS = ['Dream', "Dubai's", 'Luxury', 'Distressed', 'Dubai', 'UAE', "UAE's"]
 
 function HeadlineText({ text }: { text: string }) {
   return (
@@ -346,7 +346,7 @@ export default function HomeClient({ content, popularSearches, guides }: {
               className="text-xs font-semibold tracking-widest uppercase"
               style={{ color: 'var(--teal)' }}
             >
-              Dubai's Premier Real Estate Platform
+              UAE's Premier Real Estate Platform
             </span>
           </motion.div> */}
 
