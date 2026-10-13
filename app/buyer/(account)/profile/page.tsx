@@ -1,4 +1,6 @@
 'use client'
+import PhoneInput from '@/components/shared/PhoneInput'
+import { checkPhone } from '@/lib/phone'
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { User, Mail, Phone, Shield, Bookmark, TrendingUp, Clock, CheckCircle2, Settings, Loader2 } from 'lucide-react'
@@ -51,7 +53,9 @@ export default function BuyerProfilePage() {
   const saveProfile = async () => {
     setSaving(true)
     try {
-      const res = await userAPI.updateProfile({ name: form.name, phone: form.phone })
+      const ph = checkPhone(form.phone, { required: false })
+      if (!ph.ok) { toast.error(ph.error!); return }
+      const res = await userAPI.updateProfile({ name: form.name, phone: ph.e164 })
       if (res.data.success) setUser(res.data.data)
       toast.success('Profile updated')
       setEditing(false)
@@ -170,7 +174,7 @@ export default function BuyerProfilePage() {
                 <Phone size={11} style={{ color: 'var(--teal)' }} />Phone Number
               </label>
               {editing ? (
-                <input className="input" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="+971 5X XXX XXXX" />
+                <PhoneInput value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} />
               ) : (
                 <div className="px-4 py-3 rounded-xl text-sm" style={{ background: 'var(--bg-alt)', color: form.phone ? 'var(--text-mid)' : 'var(--text-muted)' }}>
                   {form.phone || 'Not set'}

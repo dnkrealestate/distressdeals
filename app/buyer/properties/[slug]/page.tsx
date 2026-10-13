@@ -6,6 +6,7 @@ import PropertyDetailClient from './PropertyDetailClient'
 import type { Property } from '@/types'
 import { shareImages, fitTitle, fitDescription } from '@/lib/seo'
 import { propertyKeywords } from '@/lib/listingSeo'
+import { areaPageHref } from '@/lib/areaLink'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -94,7 +95,7 @@ export default async function PropertyDetailPage({ params }: { params: { slug: s
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       {/* eslint-disable-next-line react/no-danger */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
-      <PropertyDetailClient property={property} />
+      <PropertyDetailClient property={property} areaHref={await areaPageHref(property.location?.area)} />
     </>
   )
 }

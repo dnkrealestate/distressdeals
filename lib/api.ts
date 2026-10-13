@@ -322,6 +322,13 @@ export const areaContentAPI = {
   create:    (data: any) => api.post('/area-content', data),
   update:    (id: string, data: any) => api.put(`/area-content/${id}`, data),
   delete:    (id: string) => api.delete(`/area-content/${id}`),
+  // Automatic area pages — OpenStreetMap lookups can take a minute when its servers are busy.
+  missing:        () => api.get('/area-content/auto/missing'),
+  // The area a map pin is in (never the picked building's own name) — for the project form's Area field.
+  resolve:        (lat: number, lng: number, hints: string[] = [], place?: string) => api.get('/area-content/resolve', { params: { lat, lng, hints: hints.filter(Boolean).join('|'), place }, timeout: 30000 }),
+  autoCreate:     (area: string, force = false) => api.post('/area-content/auto/create', { area, force }, { timeout: 240000 }),
+  refreshNearby:  (id: string) => api.post(`/area-content/${id}/refresh-nearby`, {}, { timeout: 240000 }),
+  rewriteAbout:   (id: string) => api.post(`/area-content/${id}/rewrite-about`, {}, { timeout: 240000 }),
 }
 
 // ── Community Content (separate section from Area) ────

@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import { useDropzone } from 'react-dropzone'
 import {
-  Plus, X, Trash2, Pencil, MapPin, UploadCloud, Loader2, Star, Layers,
+  Plus, X, Trash2, Pencil, MapPin, UploadCloud, Loader2, Star, Layers, Sparkles, RefreshCw, ExternalLink, Wand2, AlertCircle,
 } from 'lucide-react'
 import { areaContentAPI, propertyAPI, uploadAPI } from '@/lib/api'
 import { formatPrice } from '@/lib/utils'
@@ -278,6 +278,25 @@ export default function AdminAreasPage() {
   const [areas, setAreas] = useState<AreaContentWithStats[]>([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState<AreaContentWithStats | null | 'new'>(null)
+  const [missing, setMissing] = useState<{ area: string; projects: number; emirate: string; check: { reason: string; at: number } | null }[]>([])
+  const [busy, setBusy] = useState<string | null>(null)
+  const loadMissing = useCallback(() => { areaContentAPI.missing().then(r => r.data.success && setMissing(r.data.data || [])).catch(() => {}) }, [])
+  useEffect(() => { loadMissing() }, [loadMissing])
+
+  // Automatic area pages: nearby places from OpenStreetMap + our Explore guides, "About" written from those facts.
+  const run = async (key: string, fn: () => Promise<any>, ok: (r: any) => string) => {
+    setBusy(key)
+    const t = toast.loading('Working — map lookups can take up to a minute…')
+    try { const r = await fn(); toast.success(ok(r.data), { id: t }); load(); loadMissing() }
+    catch (err: any) { toast.error(err?.error || 'Failed', { id: t }) }
+    finally { setBusy(null) }
+  }
+  const refreshNearby = (a: AreaContentWithStats) => run(`n-${a._id}`, () => areaContentAPI.refreshNearby(a._id), d => `Found ${d.meta?.found ?? 0} nearby places`)
+  const rewriteAbout = (a: AreaContentWithStats) => {
+    if (!confirm(`Replace the About text, sections, FAQs and highlights of "${a.area}" with a fresh version written from its facts?${a.auto?.created ? '' : ' This area has a hand-written guide — it will be overwritten.'}`)) return
+    run(`a-${a._id}`, () => areaContentAPI.rewriteAbout(a._id), d => `About written (${d.meta?.source === 'ai' ? 'AI, from facts' : 'from facts'})`)
+  }
+  const createPage = (area: string, force = false) => run(`c-${area}`, () => areaContentAPI.autoCreate(area, force), d => d.data?.created ? `Page created: /areas/${d.data.slug}` : (d.data?.reason || 'Done'))
 
   const load = useCallback(() => {
     setLoading(true)
@@ -308,6 +327,25 @@ export default function AdminAreasPage() {
       </header>
 
       <div className="p-7">
+        {missing.length > 0 && (
+          <div className="card p-4 mb-5" style={{ borderColor: 'rgba(245,158,11,0.4)' }}>
+            <p className="text-sm font-semibold flex items-center gap-2" style={{ color: 'var(--text)' }}><AlertCircle size={14} style={{ color: '#D97706' }} /> Project areas without a page ({missing.length})</p>
+            <p className="text-xs mt-1 mb-3" style={{ color: 'var(--text-muted)' }}>
+              A new area entered on a project gets its page automatically when OpenStreetMap knows it as a district. These were skipped — often a project name typed into the area field (better fixed on the project). If one is a real area, create its page anyway.
+            </p>
+            <div className="space-y-1.5 max-h-72 overflow-y-auto">
+              {missing.map(m => (
+                <div key={m.area} className="flex flex-wrap items-center gap-2 rounded-lg px-3 py-2" style={{ background: 'var(--bg-alt)' }}>
+                  <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>{m.area}</span>
+                  <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{m.emirate} · {m.projects} project{m.projects === 1 ? '' : 's'}{m.check ? ` · ${m.check.reason}` : ''}</span>
+                  <span className="flex-1" />
+                  <button disabled={!!busy} onClick={() => createPage(m.area)} className="btn-outline btn-sm gap-1 disabled:opacity-50">{busy === `c-${m.area}` ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />} Check &amp; create</button>
+                  <button disabled={!!busy} onClick={() => confirm(`Create a page for "${m.area}" without the district check?`) && createPage(m.area, true)} className="btn-ghost btn-sm disabled:opacity-50">Create anyway</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         {loading ? (
           <div className="space-y-3">{Array(4).fill(null).map((_, i) => <div key={i} className="shimmer h-16 rounded-2xl" />)}</div>
         ) : areas.length === 0 ? (
@@ -331,10 +369,15 @@ export default function AdminAreasPage() {
                     {area.emirate && <span>{area.emirate}</span>}
                     <span className="flex items-center gap-1"><Layers size={10} /> {area.count} listing{area.count === 1 ? '' : 's'}</span>
                     <span>{area.sections?.length || 0} section{area.sections?.length === 1 ? '' : 's'}</span>
+                    <span className="flex items-center gap-1"><MapPin size={10} /> {area.nearby?.length || 0} nearby</span>
+                    {area.auto?.created && <span className="px-1.5 rounded text-[10px] font-semibold" style={{ background: 'rgba(14,165,233,0.12)', color: '#0369A1' }} title={area.auto.contentEdited ? 'Created automatically, edited by the team' : 'Created automatically'}>Auto{area.auto.contentEdited ? ' · edited' : ''}</span>}
                     {area.avgPrice > 0 && <span>avg {formatPrice(Math.round(area.avgPrice))}</span>}
                   </p>
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <a href={`/areas/${area.slug}`} target="_blank" rel="noreferrer" className="btn-ghost btn-sm p-2" title="View page"><ExternalLink size={13} /></a>
+                  <button disabled={!!busy} onClick={() => refreshNearby(area)} className="btn-ghost btn-sm p-2 disabled:opacity-50" title="Refresh nearby places (hospitals, schools, metro, malls…)">{busy === `n-${area._id}` ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}</button>
+                  <button disabled={!!busy} onClick={() => rewriteAbout(area)} className="btn-ghost btn-sm p-2 disabled:opacity-50" title="Write the About text again from the facts">{busy === `a-${area._id}` ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}</button>
                   <button onClick={() => setEditing(area)} className="btn-ghost btn-sm p-2"><Pencil size={13} /></button>
                   <button onClick={() => remove(area)} className="btn-ghost btn-sm p-2" style={{ color: '#FB7185' }}><Trash2 size={13} /></button>
                 </div>

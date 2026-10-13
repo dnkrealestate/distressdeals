@@ -382,6 +382,15 @@ export interface AreaContent {
   emirate?: string; heroImageCredit?: { name: string; url: string; license?: string }
   sections?: { heading: string; body: string }[]; faqs?: { q: string; a: string }[]
   metaTitle?: string; metaDescription?: string; focusKeyword?: string; seoKeywords?: string[]
+  // Filled automatically for an area first used by a project.
+  center?: { lat: number; lng: number }
+  nearby?: AreaNearby[]; nearbyUpdatedAt?: string; nearbySource?: string
+  auto?: { created?: boolean; verifiedBy?: 'search' | 'reverse' | 'admin'; aboutSource?: 'ai' | 'template'; aboutAt?: string; contentEdited?: boolean }
+}
+export type NearbyCategory = 'hospital' | 'school' | 'metro' | 'mall' | 'tourist' | 'other'
+export interface AreaNearby {
+  category: NearbyCategory; kind?: string; name: string; lat: number; lng: number; distanceKm: number
+  source: 'osm' | 'explore'; placeSlug?: string; placeCategory?: string; osmId?: string
 }
 
 export interface AreaContentWithStats extends AreaContent {

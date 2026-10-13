@@ -1,4 +1,6 @@
 'use client'
+import PhoneInput from '@/components/shared/PhoneInput'
+import { checkPhone } from '@/lib/phone'
 import { trackFeed } from '@/lib/feed'
 
 import { useState, useEffect } from 'react'
@@ -27,12 +29,14 @@ export default function ProjectInterestModal({
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name.trim() || !email.trim() || !phone.trim()) { toast.error('Name, email, and phone are required'); return }
+    if (!name.trim() || !email.trim()) { toast.error('Name, email, and phone are required'); return }
+    const ph = checkPhone(phone)
+    if (!ph.ok) { toast.error(ph.error!); return }
     setSubmitting(true)
     try {
-      const res = await leadAPI.createProjectLead({ project: projectId, name: name.trim(), email: email.trim(), phone: phone.trim(), message: message.trim() || undefined })
+      const res = await leadAPI.createProjectLead({ project: projectId, name: name.trim(), email: email.trim(), phone: ph.e164, message: message.trim() || undefined })
       trackLead('Project enquiry submitted', {
-        name: name.trim(), phone: phone.trim(), email: email.trim(),
+        name: name.trim(), phone: ph.e164, email: email.trim(),
         extra: { project: projectTitle, ref: projectId },
       })
       setOutcome(res.data.meta || {})
@@ -98,7 +102,7 @@ export default function ProjectInterestModal({
               <form onSubmit={submit} className="p-5 space-y-3">
                 <input className="input" placeholder="Full name" value={name} onChange={e => setName(e.target.value)} required />
                 <input className="input" type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
-                <input className="input" type="tel" placeholder="Phone (e.g. +971 5X XXX XXXX)" value={phone} onChange={e => setPhone(e.target.value)} required />
+                <PhoneInput value={phone} onChange={setPhone} required />
                 <textarea className="input" rows={3} placeholder="Anything specific you'd like to know? (optional)" value={message} onChange={e => setMessage(e.target.value)} />
                 <button type="submit" disabled={submitting} className="btn-primary w-full justify-center gap-2">
                   {submitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}

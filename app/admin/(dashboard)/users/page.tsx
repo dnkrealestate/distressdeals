@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useForm } from 'react-hook-form'
+import PhoneField from '@/components/shared/PhoneField'
 import { Search, UserCog, Ban, CheckCircle2, ChevronLeft, ChevronRight, Plus, X, Pencil, Trash2 } from 'lucide-react'
 import { adminAPI } from '@/lib/api'
 import { formatDateTime, cn } from '@/lib/utils'
@@ -40,7 +41,7 @@ interface UserFormValues { name: string; email: string; password?: string; phone
 function UserFormModal({ user, onClose, onSaved }: { user: User | null; onClose: () => void; onSaved: () => void }) {
   const isEdit = !!user
   const me = useAuthStore(s => s.user)
-  const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<UserFormValues>({
+  const { register, handleSubmit, watch, control, formState: { errors, isSubmitting } } = useForm<UserFormValues>({
     defaultValues: {
       name: user?.name || '', email: user?.email || '', password: '',
       phone: user?.phone || '', role: user?.role || 'buyer',
@@ -105,7 +106,7 @@ function UserFormModal({ user, onClose, onSaved }: { user: User | null; onClose:
               <input className="input" type="password" placeholder={isEdit ? 'New password (leave blank to keep)' : 'Password'} {...register('password', { required: !isEdit, minLength: 6 })} />
               {errors.password && <p className="text-xs mt-1" style={{ color: '#FB7185' }}>Password is required (min 6 characters)</p>}
             </div>
-            <input className="input" placeholder="Phone (optional)" {...register('phone')} />
+            <PhoneField control={control} />
           </div>
 
           <div>

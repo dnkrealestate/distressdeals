@@ -1,4 +1,6 @@
 'use client'
+import PhoneInput from '@/components/shared/PhoneInput'
+import { checkPhone } from '@/lib/phone'
 
 import { useState, useMemo, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
@@ -48,7 +50,9 @@ function PreApprovalForm({ inputs, monthlyPayment, onClose }: {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name.trim() || !email.trim() || !phone.trim()) { toast.error('Please fill in all fields'); return }
+    if (!name.trim() || !email.trim()) { toast.error('Please fill in all fields'); return }
+    const ph = checkPhone(phone)
+    if (!ph.ok) { toast.error(ph.error!); return }
     setSubmitting(true)
     try {
       await mortgageAPI.create({ name, email, phone, ...inputs })
@@ -84,7 +88,7 @@ function PreApprovalForm({ inputs, monthlyPayment, onClose }: {
             </p>
             <input className="input" placeholder="Full Name" value={name} onChange={e => setName(e.target.value)} required />
             <input className="input" type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
-            <input className="input" type="tel" placeholder="Phone (e.g. +971 5X XXX XXXX)" value={phone} onChange={e => setPhone(e.target.value)} required />
+            <PhoneInput value={phone} onChange={setPhone} required />
             <button type="submit" disabled={submitting} className="btn-primary w-full justify-center mt-2">
               {submitting ? <Loader2 size={14} className="animate-spin" /> : 'Request Pre-Approval'}
             </button>

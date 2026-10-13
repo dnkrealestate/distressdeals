@@ -80,7 +80,7 @@ const LocationMap = dynamic(() => import('@/components/shared/LocationMap'), {
   loading: () => <div className="shimmer w-full h-full" />,
 })
 
-export default function PropertyDetailClient({ property }: { property: Property }) {
+export default function PropertyDetailClient({ property, areaHref }: { property: Property; areaHref?: string | null }) {
   const router = useRouter()
   useItemTracking('property', property._id)
   const [similar,  setSimilar]      = useState<Property[]>([])
@@ -239,7 +239,9 @@ export default function PropertyDetailClient({ property }: { property: Property 
           <span>/</span>
           <Link href="/buyer/properties" className="hover:opacity-80 transition-opacity">Properties</Link>
           <span>/</span>
-          <span style={{ color: 'var(--text-mid)' }}>{property.location.area}</span>
+          {areaHref
+            ? <Link href={areaHref} className="hover:opacity-80 transition-opacity" style={{ color: 'var(--text-mid)' }}>{property.location.area}</Link>
+            : <span style={{ color: 'var(--text-mid)' }}>{property.location.area}</span>}
           <span>/</span>
           <span style={{ color: 'var(--teal)' }} className="truncate max-w-xs">{property.title}</span>
         </div>
@@ -339,7 +341,7 @@ export default function PropertyDetailClient({ property }: { property: Property 
                 <div className="flex items-center gap-3 flex-wrap text-sm mt-2" style={{ color: 'var(--text-muted)' }}>
                   <span className="flex items-center gap-2">
                     <MapPin size={14} style={{ color: 'var(--teal)' }} />
-                    {property.location.area}, {property.location.city}
+                    {areaHref ? <Link href={areaHref} className="font-semibold hover:underline" style={{ color: 'var(--teal)' }}>{property.location.area}</Link> : property.location.area}, {property.location.city}
                   </span>
                   {property.referenceId && (
                     <span className="text-xs font-mono px-2 py-0.5 rounded-md" style={{ background: 'var(--bg-alt)', color: 'var(--text-muted)' }}>
@@ -357,8 +359,8 @@ export default function PropertyDetailClient({ property }: { property: Property 
                   className="btn-ghost p-2.5" style={inCmp ? { borderColor: 'rgba(203,1,1,0.40)', color: 'var(--teal)', background: 'rgba(203,1,1,0.06)' } : undefined}>
                   <GitCompare size={16} /> <span className="text-sm font-semibold ml-1.5">{inCmp ? 'In compare' : 'Compare'}</span>
                 </button>
-                <button onClick={share} className="btn-ghost p-2.5">
-                  <Share2 size={16} />
+                <button onClick={share} className="btn-ghost p-2.5" title="Share">
+                  <Share2 size={16} /> <span className="text-sm font-semibold ml-1.5">Share</span>
                 </button>
               </div>
             </div>
@@ -563,16 +565,18 @@ export default function PropertyDetailClient({ property }: { property: Property 
                         {[
                           { icon: Tag,         l: 'Ref ID',     v: property._id.slice(-6).toUpperCase() },
                           { icon: Clock,       l: 'Listed',     v: timeAgo(property.createdAt) },
-                          { icon: MapPin,      l: 'Zone name',  v: property.location.area },
+                          { icon: MapPin,      l: 'Zone name',  v: property.location.area, href: areaHref },
                           { icon: ShieldCheck, l: 'Permit No.', v: property.permitNumber },
-                        ].filter(({ v }) => v).map(({ icon: Icon, l, v }) => (
+                        ].filter(({ v }) => v).map(({ icon: Icon, l, v, href }: { icon: any; l: string; v: any; href?: string | null }) => (
                           <div key={l} className="flex items-start gap-3">
                             <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(203,1,1,0.10)', border: '1px solid rgba(203,1,1,0.20)' }}>
                               <Icon size={14} style={{ color: TEAL }} />
                             </div>
                             <div>
                               <p className="text-xs mb-0.5" style={{ color: 'var(--text-muted)' }}>{l}</p>
-                              <p className="text-sm font-semibold capitalize" style={{ color: 'var(--text)' }}>{v}</p>
+                              {href
+                                ? <Link href={href} className="text-sm font-semibold capitalize hover:underline" style={{ color: TEAL }}>{v}</Link>
+                                : <p className="text-sm font-semibold capitalize" style={{ color: 'var(--text)' }}>{v}</p>}
                             </div>
                           </div>
                         ))}

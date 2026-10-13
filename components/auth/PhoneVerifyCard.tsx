@@ -1,12 +1,14 @@
 'use client'
+import PhoneInput from '@/components/shared/PhoneInput'
+import { checkPhone } from '@/lib/phone'
 import { useEffect, useState } from 'react'
-import { Phone, ShieldAlert, ShieldCheck, Loader2, Pencil } from 'lucide-react'
+import { ShieldAlert, ShieldCheck, Loader2, Pencil } from 'lucide-react'
 import toast from 'react-hot-toast'
 import type { ConfirmationResult } from 'firebase/auth'
 import { authAPI } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import type { User } from '@/types'
-import { firebasePhoneEnabled, sendPhoneCode, confirmPhoneCode, phoneAuthError, toE164, useResendCooldown, prepareRecaptcha } from '@/lib/firebase'
+import { firebasePhoneEnabled, sendPhoneCode, confirmPhoneCode, phoneAuthError, useResendCooldown, prepareRecaptcha } from '@/lib/firebase'
 
 // "Your number isn't verified" → send an SMS code to the registered number (or a corrected one) → verified.
 // Verifying a different number replaces the one on the account (the backend stores only the number Firebase proved).
@@ -28,12 +30,13 @@ export default function PhoneVerifyCard({
   const [busy, setBusy] = useState(false)
   const [cooldown, startCooldown] = useResendCooldown()
 
-  const e164 = toE164(phone)
+  const check = checkPhone(phone, { kind: 'mobile' })
+  const e164 = check.ok ? check.e164 : ''
   useEffect(() => { prepareRecaptcha('phone-verify-recaptcha') }, [])
   const codeSent = !!confirmation && sentTo === e164
 
   const send = async () => {
-    if (!e164) { toast.error('Enter your mobile number with the country code, e.g. +971 50 123 4567'); return }
+    if (!e164) { toast.error(check.error || 'Enter your mobile number with the country code, e.g. +971 50 123 4567'); return }
     if (cooldown > 0) return
     setBusy(true)
     try {
@@ -83,18 +86,14 @@ export default function PhoneVerifyCard({
             <label className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Mobile number</label>
             {editing ? (
               <div className="mt-1.5 flex flex-col sm:flex-row gap-2">
-                <div className="input-glass flex items-center gap-2 h-11 px-3 rounded-xl flex-1 min-w-0">
-                  <Phone size={14} style={{ color: 'var(--teal)', flexShrink: 0 }} />
-                  <input value={phone} onChange={e => setPhone(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()}
-                    inputMode="tel" placeholder="+971 50 123 4567" className="bg-transparent flex-1 text-sm outline-none min-w-0" style={{ color: 'var(--text)' }} />
-                </div>
+                <PhoneInput value={phone} onChange={setPhone} onEnter={send} kind="mobile" required className="flex-1 min-w-0" />
                 <button onClick={send} disabled={busy || cooldown > 0 || !e164} className="btn-primary h-11 justify-center disabled:opacity-60 whitespace-nowrap">
                   {busy ? <Loader2 size={14} className="animate-spin" /> : cooldown > 0 ? `Wait ${cooldown}s` : 'Send OTP'}
                 </button>
               </div>
             ) : (
               <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-                <span className="font-semibold text-sm" style={{ color: 'var(--text)' }}>{e164 || phone}</span>
+                <span className="font-semibold text-sm" style={{ color: 'var(--text)' }}>{check.international || phone}</span>
                 <button onClick={() => setEditing(true)} className="text-xs font-semibold inline-flex items-center gap-1" style={{ color: 'var(--teal)' }}>
                   <Pencil size={11} /> Change number
                 </button>

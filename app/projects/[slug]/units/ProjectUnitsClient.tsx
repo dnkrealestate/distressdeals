@@ -37,7 +37,7 @@ const SORTS = [
   { v: 'size_desc', l: 'Size: largest' }, { v: 'ppsf_asc', l: 'Best AED / sq ft' }, { v: 'below_desc', l: 'Biggest saving' },
 ] as const
 
-export default function ProjectUnitsClient({ group: g, slug }: { group: ProjectGroup; slug: string }) {
+export default function ProjectUnitsClient({ group: g, slug, areaHref }: { group: ProjectGroup; slug: string; areaHref?: string | null }) {
   const p = g.project
   const name = p.title.trim()
   const [lightbox, setLightbox] = useState<number | null>(null)
@@ -162,7 +162,7 @@ export default function ProjectUnitsClient({ group: g, slug }: { group: ProjectG
               <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(22,163,74,0.10)', color: '#15803D' }}><BadgeCheck size={11} /> Verified</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--text)' }}>{name}: Unit Types, Prices &amp; Payment Plan</h1>
-            <p className="flex items-center gap-1.5 text-sm mt-1" style={{ color: 'var(--text-mid)' }}><MapPin size={14} style={{ color: 'var(--teal)' }} />{[p.community, p.area, p.emirate].filter(Boolean).join(', ')}</p>
+            <p className="flex items-center gap-1.5 text-sm mt-1" style={{ color: 'var(--text-mid)' }}><MapPin size={14} style={{ color: 'var(--teal)' }} />{p.community && <>{p.community}, </>}{areaHref ? <Link href={areaHref} className="font-semibold hover:underline" style={{ color: 'var(--teal)' }}>{p.area}</Link> : p.area}{p.emirate && <>, {p.emirate}</>}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link href={mapHref} className="btn-sm gap-1.5 inline-flex items-center rounded-xl font-semibold text-white shadow-md hover:opacity-95 transition-opacity" style={{ background: 'linear-gradient(120deg, #0F766E, #0EA5E9)', boxShadow: '0 4px 14px rgba(14,165,233,0.35)' }}><MapIcon size={13} /> View on our map</Link>

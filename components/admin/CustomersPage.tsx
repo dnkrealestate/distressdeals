@@ -1,4 +1,5 @@
 'use client'
+import PhoneInput from '@/components/shared/PhoneInput'
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -239,7 +240,7 @@ function CustomerDrawer({ u, isSeller, onClose, onChanged }: { u: Customer; isSe
                   If you have confirmed the number yourself (e.g. by phone), mark it verified.
                 </p>
                 <div className="flex gap-2">
-                  <input className="input flex-1 min-w-0" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+971 50 123 4567" />
+                  <PhoneInput value={phone} onChange={setPhone} kind="mobile" required className="flex-1 min-w-0" />
                   <button onClick={() => setVerified(true)} disabled={busy || !phone.trim()} className="btn-primary btn-sm whitespace-nowrap disabled:opacity-60">
                     {busy ? <Loader2 size={13} className="animate-spin" /> : 'Mark verified'}
                   </button>

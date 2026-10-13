@@ -1,13 +1,13 @@
 'use client'
 import { motion } from 'framer-motion'
-import { Bookmark, GitCompare } from 'lucide-react'
+import { Bookmark, GitCompare, Share2 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useFavoritesStore } from '@/store/favoritesStore'
 import { useProjectCompareStore } from '@/store/projectCompareStore'
 import type { Project } from '@/types'
 
-// Save + Compare for a project's detail page (same stores as the project cards, so both stay in sync).
-export function ProjectSaveCompare({ project }: { project: Project }) {
+// Save + Compare (+ Share) for a project's detail page (same stores as the project cards, so both stay in sync).
+export function ProjectSaveCompare({ project, onShare }: { project: Project; onShare?: () => void }) {
   const { isAuthenticated } = useAuthStore()
   const saved = useFavoritesStore(s => s.projectFavorites.includes(project._id))
   const toggleSave = useFavoritesStore(s => s.toggleProjectFavorite)
@@ -18,11 +18,12 @@ export function ProjectSaveCompare({ project }: { project: Project }) {
       saved={saved} inCompare={inCmp}
       onSave={() => { if (!isAuthenticated) { window.location.href = '/auth/login'; return } toggleSave(project._id) }}
       onCompare={() => toggleCmp(project)}
+      onShare={onShare}
     />
   )
 }
 
-export function SaveCompareRow({ saved, inCompare, onSave, onCompare }: { saved: boolean; inCompare: boolean; onSave: () => void; onCompare: () => void }) {
+export function SaveCompareRow({ saved, inCompare, onSave, onCompare, onShare }: { saved: boolean; inCompare: boolean; onSave: () => void; onCompare: () => void; onShare?: () => void }) {
   const btn = 'inline-flex items-center gap-2 h-10 px-4 rounded-xl text-sm font-semibold transition-all'
   return (
     <div className="flex items-center gap-2">
@@ -40,6 +41,12 @@ export function SaveCompareRow({ saved, inCompare, onSave, onCompare }: { saved:
           : { background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)' }}>
         <GitCompare size={16} /> {inCompare ? 'In compare' : 'Compare'}
       </motion.button>
+      {onShare && (
+        <motion.button whileTap={{ scale: 0.94 }} type="button" onClick={onShare} className={btn} title="Share"
+          style={{ background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)' }}>
+          <Share2 size={16} /> Share
+        </motion.button>
+      )}
     </div>
   )
 }

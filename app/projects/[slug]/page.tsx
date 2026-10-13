@@ -6,6 +6,7 @@ import ProjectDetailClient from './ProjectDetailClient'
 import type { Project } from '@/types'
 import { shareImages, fitTitle, fitDescription } from '@/lib/seo'
 import { projectKeywords } from '@/lib/listingSeo'
+import { areaPageHref } from '@/lib/areaLink'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -71,7 +72,7 @@ export default async function ProjectDetailPage({ params }: { params: { slug: st
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       {/* eslint-disable-next-line react/no-danger */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
-      <ProjectDetailClient project={project} />
+      <ProjectDetailClient project={project} areaHref={await areaPageHref(project.area)} />
     </>
   )
 }

@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useForm, Controller } from 'react-hook-form'
@@ -12,7 +12,7 @@ import {
   BarChart3, MessageCircleHeart, Share2, Map as MapIcon, Crosshair, UserRound, ChevronLeft, ChevronRight, GripVertical,
   Image as ImagePlaceholder, Video as VideoIcon, LayoutGrid as MasterPlanIcon,
 } from 'lucide-react'
-import { projectAPI, uploadAPI, developerAPI } from '@/lib/api'
+import { projectAPI, uploadAPI, developerAPI, areaContentAPI } from '@/lib/api'
 import { formatDate, cn, formatPrice } from '@/lib/utils'
 import { UAE_EMIRATES } from '@/lib/constants'
 import CommunitySelect, { useCommunities, matchCommunity } from '@/components/shared/CommunitySelect'
@@ -34,6 +34,7 @@ import ProjectNameInput from '@/components/admin/ProjectNameInput'
 import type { Offer } from '@/types'
 import { useAuthStore } from '@/store/authStore'
 import { useFormDraft, listDrafts, removeDraft, timeAgoShort } from '@/lib/useFormDraft'
+import AreaDatalist from '@/components/admin/AreaDatalist'
 
 
 const LocationPickerMap = dynamic(() => import('@/components/shared/LocationPickerMap'), {
@@ -366,18 +367,43 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
   // Google picks carry area/emirate directly; OpenStreetMap ones are parsed from the label, as in the Property wizard.
   const communities = useCommunities()
 
-  const onLocationSelect = (r: GeocodeResult) => {
-    const area = r.area || r.label.split(',')[0].trim()
+  // The Area field is filled with the district the pin is in — one of our area names when it matches — never the picked
+  // building's own name (that is how project names used to end up as "areas").
+  const [areaNote, setAreaNote] = useState<{ text: string; tone: 'busy' | 'ok' | 'new' | 'warn' } | null>(null)
+  const areaLookup = useRef(0)
+  const onLocationSelect = async (r: GeocodeResult) => {
     // The picked place (or the district it's in) is one of our communities — select it.
     const community = matchCommunity(communities, r.name, r.area)
     if (community && !getValues('community')) setValue('community', community.name, { shouldDirty: true })
     const emirate = UAE_EMIRATES.find(e => e === r.emirate) || UAE_EMIRATES.find(e => r.label.includes(e))
-    setValue('area', area, { shouldDirty: true, shouldValidate: true })
     setValue('lat', r.lat as any, { shouldDirty: true })
     setValue('lng', r.lng as any, { shouldDirty: true })
     if (emirate) setValue('emirate', emirate, { shouldDirty: true })
-    setLocatedIn(`${emirate || getValues('emirate') || 'Dubai'} / ${area}`)
     setLocationVersion(v => v + 1)
+    const ticket = ++areaLookup.current
+    setAreaNote({ text: 'Finding the area for this location…', tone: 'busy' })
+    const apply = (area: string, em?: string) => {
+      setValue('area', area, { shouldDirty: true, shouldValidate: true })
+      if (em && !emirate) setValue('emirate', em, { shouldDirty: true })
+      setLocatedIn(`${emirate || em || getValues('emirate') || 'Dubai'} / ${area}`)
+      setLocationVersion(v => v + 1)
+    }
+    try {
+      const res = await areaContentAPI.resolve(r.lat, r.lng, [r.area || ''], r.name || r.label.split(',')[0].trim())
+      if (ticket !== areaLookup.current) return
+      const d = res.data.data as { area: string | null; emirate?: string; source: string }
+      if (d.area) {
+        apply(d.area, d.emirate)
+        setAreaNote(d.source === 'osm'
+          ? { text: `Area set from the map: ${d.area} — a new area; its page is created when the project is saved.`, tone: 'new' }
+          : { text: `Area set from the map: ${d.area}${d.source === 'nearby' ? ' (nearest area to the pin)' : ''}.`, tone: 'ok' })
+      } else setAreaNote({ text: 'Couldn’t tell the district from the map — type the area name (not the project name).', tone: 'warn' })
+    } catch {
+      if (ticket !== areaLookup.current) return
+      // The lookup is unavailable: use the district the map search gave, if any — never the place's own name.
+      if (r.area && !(r.name && r.area.toLowerCase() === r.name.toLowerCase())) { apply(r.area); setAreaNote({ text: `Area set from the map: ${r.area}.`, tone: 'ok' }) }
+      else setAreaNote({ text: 'Couldn’t look up the area — type the district name.', tone: 'warn' })
+    }
   }
 
   const onMapPick = async (lat: number, lng: number) => {
@@ -684,7 +710,11 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <Field label="Area *">
-                    <input key={`area-${locationVersion}`} className="input" {...register('area', { required: true })} />
+                    <input key={`area-${locationVersion}`} className="input" list="dd-project-areas" autoComplete="off" {...register('area', { required: true })} />
+                    <AreaDatalist id="dd-project-areas" />
+                    {areaNote
+                      ? <p className="text-[11px] mt-1 flex items-start gap-1" style={{ color: areaNote.tone === 'warn' ? '#B45309' : areaNote.tone === 'new' ? '#0369A1' : areaNote.tone === 'ok' ? '#15803D' : 'var(--text-muted)' }}>{areaNote.tone === 'busy' && <Loader2 size={11} className="animate-spin mt-0.5 flex-shrink-0" />}{areaNote.text}</p>
+                      : <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>District, not the project name. Set automatically when you pick the location.</p>}
                     {errors.area && <p className="text-xs mt-1" style={{ color: '#FB7185' }}>Area is required</p>}
                   </Field>
                   <Field label="Community">

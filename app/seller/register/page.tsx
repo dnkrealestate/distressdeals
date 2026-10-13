@@ -8,6 +8,7 @@ import {
   ShieldCheck, Building2, ChevronRight, Eye, EyeOff,
 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
+import PhoneField from '@/components/shared/PhoneField'
 import { authAPI } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import GoogleSignInButton from '@/components/auth/GoogleSignInButton'
@@ -47,8 +48,8 @@ export default function SellerRegisterPage() {
     startCooldown()
   }
 
-  const { register, handleSubmit, formState: { errors } } = useForm()
-  const { register: registerPhone, handleSubmit: handlePhoneSubmit, formState: { errors: phoneErrors } } = useForm()
+  const { register, handleSubmit, control, formState: { errors } } = useForm()
+  const { handleSubmit: handlePhoneSubmit, control: phoneControl } = useForm()
 
   const onRegister = async (data: any) => {
     setLoading(true)
@@ -272,17 +273,11 @@ export default function SellerRegisterPage() {
 
                   <div>
                     <label className="text-xs font-semibold mb-1.5 block" style={{ color: 'var(--text-mid)' }}>Mobile Number *</label>
-                    <div className="input-glass flex items-center gap-2 h-12 px-4 rounded-xl">
-                      <Phone size={15} style={{ color: 'var(--teal)', flexShrink: 0 }} />
-                      <input {...register('phone', { required: 'Phone is required' })}
-                        className="bg-transparent flex-1 text-sm outline-none" style={{ color: 'var(--text)' }}
-                        placeholder="+971 50 000 0000" />
-                    </div>
+                    <PhoneField control={control} required kind="mobile" />
                     <p className="text-xs mt-1.5 flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
                       <MessageCircle size={11} style={{ color: 'var(--green)' }} />
                       A verification code will be sent to this number by SMS
                     </p>
-                    {errors.phone && <p className="text-xs mt-1" style={{ color: '#FB7185' }}>{errors.phone.message as string}</p>}
                   </div>
 
                   <div>
@@ -326,13 +321,7 @@ export default function SellerRegisterPage() {
                 <form onSubmit={handlePhoneSubmit(submitPhone)} className="space-y-4">
                   <div>
                     <label className="text-xs font-semibold mb-1.5 block" style={{ color: 'var(--text-mid)' }}>Mobile Number *</label>
-                    <div className="input-glass flex items-center gap-2 h-12 px-4 rounded-xl">
-                      <Phone size={15} style={{ color: 'var(--teal)', flexShrink: 0 }} />
-                      <input {...registerPhone('phone', { required: 'Phone is required' })}
-                        className="bg-transparent flex-1 text-sm outline-none" style={{ color: 'var(--text)' }}
-                        placeholder="+971 50 000 0000" />
-                    </div>
-                    {phoneErrors.phone && <p className="text-xs mt-1" style={{ color: '#FB7185' }}>{phoneErrors.phone.message as string}</p>}
+                    <PhoneField control={phoneControl} required kind="mobile" />
                   </div>
 
                   <button type="submit" disabled={phoneSubmitting} className="btn-primary w-full py-3.5 disabled:opacity-60">

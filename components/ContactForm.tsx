@@ -1,4 +1,6 @@
 'use client'
+import PhoneInput from '@/components/shared/PhoneInput'
+import { checkPhone } from '@/lib/phone'
 
 import { useState } from 'react'
 import { Loader2, CheckCircle2 } from 'lucide-react'
@@ -30,7 +32,9 @@ export default function ContactForm({ source, messagePlaceholder = 'Tell us a bi
     }
     setLoading(true)
     try {
-      await contactAPI.submit({ name, email, phone: phone || undefined, message, source })
+      const ph = checkPhone(phone, { required: false })
+      if (!ph.ok) { toast.error(ph.error!); return }
+      await contactAPI.submit({ name, email, phone: ph.e164 || undefined, message, source })
       trackLead(
         source === 'valuation_request' ? 'Valuation request submitted' : source === 'fast_sale_request' ? 'Fast sale request submitted' : 'Contact form submitted',
         { name, phone, email },
@@ -66,7 +70,7 @@ export default function ContactForm({ source, messagePlaceholder = 'Tell us a bi
         </div>
         <div>
           <label className="text-xs font-semibold mb-1.5 block" style={{ color: 'var(--text-mid)' }}>Phone</label>
-          <input className="input w-full" type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+971 5X XXX XXXX" />
+          <PhoneInput value={phone} onChange={setPhone} />
         </div>
       </div>
       <div>

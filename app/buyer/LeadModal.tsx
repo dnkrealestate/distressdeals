@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { X, Send, CheckCircle2, MapPin, Bed, Maximize2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
+import PhoneField from '@/components/shared/PhoneField'
 import { leadAPI } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import { getStoredUtm } from '@/lib/utm'
@@ -23,7 +24,7 @@ export default function LeadModal({ property, onClose }: Props) {
   const [outcome, setOutcome] = useState<{ duplicate?: boolean; email?: string } & LeadAccountMeta>({})
   const [loading, setLoading]     = useState(false)
 
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const { register, handleSubmit, control, formState: { errors } } = useForm({
     defaultValues: {
       name:         user?.name || '',
       email:        user?.email || '',
@@ -97,7 +98,7 @@ export default function LeadModal({ property, onClose }: Props) {
             </div>
 
             <div className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3">
                 <div>
                   <label className="text-xs mb-1.5 block" style={{ color: 'var(--text-muted)' }}>Full Name *</label>
                   <input {...register('name', { required: true })}
@@ -106,9 +107,7 @@ export default function LeadModal({ property, onClose }: Props) {
                 </div>
                 <div>
                   <label className="text-xs mb-1.5 block" style={{ color: 'var(--text-muted)' }}>Phone *</label>
-                  <input {...register('phone', { required: true })}
-                    className={cn('input text-sm py-2.5', errors.phone && 'border-red-500/40')}
-                    placeholder="+971 50 000 0000" />
+                  <PhoneField control={control} required />
                 </div>
               </div>
 

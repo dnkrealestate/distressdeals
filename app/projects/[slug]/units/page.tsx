@@ -6,6 +6,7 @@ import { fitTitle, fitDescription, shareImages } from '@/lib/seo'
 import { projectKeywords } from '@/lib/listingSeo'
 import { formatPrice } from '@/lib/utils'
 import { liveOffer, offerPrice } from '@/lib/offer'
+import { areaPageHref } from '@/lib/areaLink'
 import type { ProjectGroup } from '@/types'
 import ProjectUnitsClient from './ProjectUnitsClient'
 
@@ -123,7 +124,7 @@ export default async function ProjectUnitsPage({ params }: { params: { slug: str
     <>
       {/* eslint-disable-next-line react/no-danger */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <ProjectUnitsClient group={g} slug={params.slug} />
+      <ProjectUnitsClient group={g} slug={params.slug} areaHref={await areaPageHref(p.area)} />
     </>
   )
 }

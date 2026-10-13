@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   Mail, Lock, Eye, EyeOff, ArrowRight, Building2, User as UserIcon,
-  ShieldCheck, Star, MessageCircle,
+  ShieldCheck, Star,
 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
+import PhoneField from '@/components/shared/PhoneField'
 import { useAuthStore } from '@/store/authStore'
 import GoogleSignInButton from '@/components/auth/GoogleSignInButton'
 import FacebookSignInButton from '@/components/auth/FacebookSignInButton'
@@ -21,7 +22,7 @@ export default function RegisterPage() {
   const [showPw, setShowPw] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  const { register, handleSubmit, watch, formState: { errors } } = useForm()
+  const { register, handleSubmit, watch, control, formState: { errors } } = useForm()
   const password = watch('password')
 
   const goToRoleHome = () => {
@@ -136,12 +137,7 @@ export default function RegisterPage() {
 
             <div>
               <label className="text-xs font-semibold mb-1.5 block" style={{ color: 'var(--text-mid)' }}>Phone</label>
-              <div className="input-glass flex items-center gap-2 h-12 px-4 rounded-xl">
-                <MessageCircle size={15} style={{ color: 'var(--teal)', flexShrink: 0 }} />
-                <input {...register('phone')}
-                  type="tel" className="bg-transparent flex-1 text-sm outline-none" style={{ color: 'var(--text)' }}
-                  placeholder="+971 5X XXX XXXX" />
-              </div>
+              <PhoneField control={control} kind="mobile" />
             </div>
 
             <div>

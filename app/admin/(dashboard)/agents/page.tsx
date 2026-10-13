@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useForm } from 'react-hook-form'
+import PhoneField from '@/components/shared/PhoneField'
 import { Plus, X, Trash2, ShieldCheck, Users as UsersIcon, TrendingUp, Trophy, Clock,  List } from 'lucide-react'
 import DirhamIcon from '@/components/shared/DirhamIcon'
 import { agentAPI, leadAPI } from '@/lib/api'
@@ -38,7 +39,7 @@ function PresenceDot({ online }: { online?: boolean }) {
 }
 
 function CreateAgentModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
+  const { register, handleSubmit, control, formState: { errors, isSubmitting } } = useForm({
     defaultValues: { name: '', email: '', password: '', phone: '', agentRole: 'agent' },
   })
 
@@ -63,7 +64,7 @@ function CreateAgentModal({ onClose, onCreated }: { onClose: () => void; onCreat
           <input className="input" placeholder="Full name" {...register('name', { required: true })} />
           <input className="input" type="email" placeholder="Email" {...register('email', { required: true })} />
           <input className="input" type="password" placeholder="Password" {...register('password', { required: true, minLength: 6 })} />
-          <input className="input" placeholder="Phone (optional)" {...register('phone')} />
+          <PhoneField control={control} />
           <select className="select-field" {...register('agentRole')}>
             {ROLES.map(r => <option key={r} value={r}>{r.replace('_', ' ')}</option>)}
           </select>

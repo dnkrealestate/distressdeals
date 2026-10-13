@@ -18,6 +18,7 @@ import type { AreaStats, AreaContentWithStats, Property, Project } from '@/types
 import { shareImages, fitTitle, fitDescription } from '@/lib/seo'
 import FaqSection, { type Faq } from '@/components/shared/FaqSection'
 import RealEstateLinks from '@/components/shared/RealEstateLinks'
+import AreaNearby from '@/components/areas/AreaNearby'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -261,6 +262,10 @@ export default async function AreaDetailPage({ params, searchParams }: { params:
             )}
           </div>
         </section>
+      )}
+
+      {content?.nearby && content.nearby.length > 0 && (
+        <AreaNearby area={area.area} center={content.center} nearby={content.nearby} updatedAt={content.nearbyUpdatedAt} />
       )}
 
       {content?.communities && content.communities.length > 0 && (

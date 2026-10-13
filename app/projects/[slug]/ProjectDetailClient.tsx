@@ -241,7 +241,7 @@ function AmenitiesSection({ amenities }: { amenities: Record<string, boolean> })
 // Matches Property detail page's icon-chip fact tile exactly (see
 // PropertyDetailClient.tsx's "Property details" / "Regulatory information"
 // grids) so both listing types read as one consistent design system.
-function Fact({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+function Fact({ icon: Icon, label, value, href }: { icon: any; label: string; value: string; href?: string | null }) {
   return (
     <div className="flex items-start gap-3">
       <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(203,1,1,0.10)', border: '1px solid rgba(203,1,1,0.20)' }}>
@@ -249,13 +249,15 @@ function Fact({ icon: Icon, label, value }: { icon: any; label: string; value: s
       </div>
       <div>
         <p className="text-xs mb-0.5" style={{ color: 'var(--text-muted)' }}>{label}</p>
-        <p className="text-sm font-semibold capitalize" style={{ color: 'var(--text)' }}>{value}</p>
+        {href
+          ? <Link href={href} className="text-sm font-semibold capitalize hover:underline" style={{ color: 'var(--teal)' }}>{value}</Link>
+          : <p className="text-sm font-semibold capitalize" style={{ color: 'var(--text)' }}>{value}</p>}
       </div>
     </div>
   )
 }
 
-export default function ProjectDetailClient({ project }: { project: Project }) {
+export default function ProjectDetailClient({ project, areaHref }: { project: Project; areaHref?: string | null }) {
   useItemTracking('project', project._id)
   // "Our Deal Price" only when a documented reference price stands behind it; otherwise the normal starting price.
   const projectClaim = dealClaim(project)
@@ -330,6 +332,7 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
           <span>/</span>
           <Link href="/projects" className="hover:opacity-80 transition-opacity">Projects</Link>
           <span>/</span>
+          {areaHref && project.area && <><Link href={areaHref} className="hover:opacity-80 transition-opacity">{project.area}</Link><span>/</span></>}
           <span style={{ color: 'var(--teal)' }} className="truncate max-w-xs">{project.title}</span>
         </div>
       </div>
@@ -410,10 +413,10 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
               <InfoBadge label="Verified" icon={BadgeCheck} title="Verified listing" message={VERIFIED_NOTE} style={{ background: 'rgba(22,163,74,0.10)', color: '#15803D', border: '1px solid rgba(22,163,74,0.25)' }} />
               {project.status !== 'ready' && !isHandedOver(project) && <InfoBadge label="Off-plan" icon={Info} title="Off-plan initial sale" message={OFF_PLAN_NOTE} style={{ background: 'rgba(139,92,246,0.10)', color: '#7C3AED', border: '1px solid rgba(139,92,246,0.25)' }} />}
             </div>
-            <div className="mb-4"><ProjectSaveCompare project={project} /></div>
+            <div className="mb-4"><ProjectSaveCompare project={project} onShare={share} /></div>
             <div className="flex items-center gap-3 flex-wrap mb-8">
               <p className="text-sm flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
-                <MapPin size={13} style={{ color: 'var(--teal)' }} />{project.area}, {project.city}
+                <MapPin size={13} style={{ color: 'var(--teal)' }} />{areaHref ? <Link href={areaHref} className="font-semibold hover:underline" style={{ color: 'var(--teal)' }}>{project.area}</Link> : project.area}, {project.city}
               </p>
               {project.referenceId && (
                 <span className="text-xs font-mono px-2 py-0.5 rounded-md" style={{ background: 'var(--bg-alt)', color: 'var(--text-muted)' }}>
@@ -634,11 +637,11 @@ export default function ProjectDetailClient({ project }: { project: Project }) {
                     {[
                       { icon: Tag,         l: 'Ref ID',         v: project.referenceId },
                       { icon: Clock,       l: 'Listed',         v: timeAgo(project.createdAt) },
-                      { icon: MapPin,      l: 'Zone name',      v: project.area },
+                      { icon: MapPin,      l: 'Zone name',      v: project.area, href: areaHref },
                       { icon: Building2,   l: 'Land Department', v: landDepartmentFor(project.emirate) },
                       { icon: ShieldCheck, l: 'Permit No.',     v: project.permitNumber },
-                    ].filter(({ v }) => v).map(({ icon: Icon, l, v }) => (
-                      <Fact key={l} icon={Icon} label={l} value={v as string} />
+                    ].filter(({ v }) => v).map(({ icon: Icon, l, v, href }: { icon: any; l: string; v: any; href?: string | null }) => (
+                      <Fact key={l} icon={Icon} label={l} value={v as string} href={href} />
                     ))}
                   </div>
                   {/* DLD permit QR — only when there's permit data to show. */}
