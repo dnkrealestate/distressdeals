@@ -5,6 +5,7 @@ import { formatPrice, rentSuffix, cn } from '@/lib/utils'
 import { PANEL_SORTS, formatType, type MapPin, type PanelSort, type PinStats } from '@/lib/mapPins'
 import RentalBadge from '@/components/buyer/RentalBadge'
 import { formatDrive, TAG_COLORS } from '@/lib/driveTime'
+import { exactPrice } from '@/lib/currency'
 
 // The results list beside the map: everything currently in view, sortable,
 // with a market snapshot on top. Hovering a card highlights its pin (and the
@@ -81,7 +82,7 @@ export default function MapListPanel({
                     <dl className="space-y-1 text-[11px]">
                       <Row label="Median" value={formatPrice(s.medianPrice)} />
                       <Row label="Average" value={formatPrice(s.avgPrice)} />
-                      {s.avgPpsf ? <Row label="AED / sqft" value={Math.round(s.avgPpsf).toLocaleString()} /> : null}
+                      {s.avgPpsf ? <Row label="Per sqft" value={exactPrice(s.avgPpsf)} /> : null}
                       <Row label="Range" value={s.count > 1 ? `${formatPrice(s.minPrice)} – ${formatPrice(s.maxPrice)}` : formatPrice(s.minPrice)} />
                     </dl>
                   </div>

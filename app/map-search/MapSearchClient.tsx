@@ -5,7 +5,7 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { ChevronDown, ChevronUp, LayoutList, List, Map as MapIcon, Navigation, PanelLeftClose, PanelLeftOpen, Search, Home, SlidersHorizontal, X } from 'lucide-react'
 import Navbar from '@/components/layouts/Navbar'
-import { Pill, FilterDropdown, DropdownOption, AREAS, BEDS, PRICES } from '@/components/buyer/PropertyFilterBar'
+import { Pill, FilterDropdown, DropdownOption, AREAS, BEDS, localPrices } from '@/components/buyer/PropertyFilterBar'
 import { PropertyTypeDropdown, PropertyTypeInline } from '@/components/shared/PropertyTypePicker'
 import MapListPanel from '@/components/map/MapListPanel'
 import PinPreviewCard, { type NearKind, type NearPlace } from '@/components/map/PinPreviewCard'
@@ -25,6 +25,8 @@ import {
 import { cn } from '@/lib/utils'
 import type { PropertyFilters } from '@/types'
 import toast from 'react-hot-toast'
+import { sameRange } from '@/lib/currency'
+import RateLine from '@/components/currency/RateLine'
 
 // Loaded client-side only — the Maps script needs `window`.
 const MapEngine = dynamic(() => import('@/components/map/MapEngine'), {
@@ -496,10 +498,11 @@ function MapSearchClientInner() {
               <div>
                 {sheetLabel('Price')}
                 <div className="flex flex-wrap gap-1.5">
-                  {PRICES.map(p => (
-                    <Pill key={p.l} active={filters.priceMin === p.min && filters.priceMax === p.max} onClick={() => { setFilter('priceMin', p.min); setFilter('priceMax', p.max) }} className="px-3 py-1.5">{p.l}</Pill>
+                  {localPrices().map(p => (
+                    <Pill key={p.l} active={sameRange(p.min, p.max, filters.priceMin, filters.priceMax)} onClick={() => { setFilter('priceMin', p.min); setFilter('priceMax', p.max) }} className="px-3 py-1.5">{p.l}</Pill>
                   ))}
                 </div>
+                <RateLine className="mt-1.5" />
               </div>
               <Link href={backHref} className="inline-flex items-center gap-1.5 text-sm font-medium" style={{ color: 'var(--text-mid)' }}>
                 <LayoutList size={15} /> Back to list page
@@ -649,11 +652,12 @@ function MapSearchClientInner() {
                 <div>
                   <p className="text-[10px] uppercase tracking-widest mb-2 font-semibold" style={{ color: 'var(--text-muted)' }}>Price</p>
                   <div className="flex flex-col gap-1">
-                    {PRICES.map(p => (
-                      <DropdownOption key={p.l} active={filters.priceMin === p.min && filters.priceMax === p.max} onClick={() => { setFilter('priceMin', p.min); setFilter('priceMax', p.max) }}>
+                    {localPrices().map(p => (
+                      <DropdownOption key={p.l} active={sameRange(p.min, p.max, filters.priceMin, filters.priceMax)} onClick={() => { setFilter('priceMin', p.min); setFilter('priceMax', p.max) }}>
                         {p.l}
                       </DropdownOption>
                     ))}
+                    <RateLine className="px-2 pt-1" />
                   </div>
                 </div>
               </div>

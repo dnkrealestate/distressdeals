@@ -7,6 +7,7 @@ import Footer from '@/components/layouts/Footer'
 import { useCompareStore } from '@/store/compareStore'
 import { formatPrice, formatArea, rentSuffix } from '@/lib/utils'
 import { rentalLabel } from '@/lib/rental'
+import { exactPrice } from '@/lib/currency'
 
 const cap = (s?: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '')
 
@@ -17,7 +18,7 @@ const SPECS: { label: string; value: (p: any) => React.ReactNode }[] = [
   { label: 'Bedrooms',     value: p => (p.amenities?.bedrooms ? `${p.amenities.bedrooms} Bed` : 'Studio') },
   { label: 'Bathrooms',    value: p => (p.amenities?.bathrooms ? `${p.amenities.bathrooms} Bath` : undefined) },
   { label: 'Floor Area',   value: p => (p.amenities?.floorArea ? `${formatArea(p.amenities.floorArea)} sqft` : undefined) },
-  { label: 'Price / sqft', value: p => (p.pricePerSqft ? `AED ${Math.round(p.pricePerSqft).toLocaleString()}` : undefined) },
+  { label: 'Price / sqft', value: p => (p.pricePerSqft ? exactPrice(p.pricePerSqft) : undefined) },
   { label: 'Parking',      value: p => p.amenities?.parkingSpaces },
   { label: 'Furnishing',   value: p => cap(p.furnishing?.replace('_', ' ')) },
   { label: 'Completion',   value: p => (p.listingType === 'rent' ? undefined : p.completion === 'off_plan' ? 'Off-Plan' : 'Ready') },

@@ -432,6 +432,12 @@ export const areaPricesAPI = {
 }
 
 // Personalised For Sale feed (backend services/feed). Anonymous visitor id; events go through lib/feed.ts.
+// Prices in the visitor's currency (rates refreshed daily on the server).
+export const currencyAPI = {
+  rates: () => api.get('/currency/rates'),
+  detect: (tz: string, lang: string) => api.get('/currency/detect', { params: { tz, lang } }),
+}
+
 export const feedAPI = {
   page:        (params: Record<string, any>) => api.get('/feed', { params }),
   sections:    (visitorId: string) => api.get('/feed/sections', { params: { visitorId } }),

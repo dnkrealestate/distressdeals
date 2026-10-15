@@ -1,3 +1,5 @@
+import { activeCurrency, formatMoney } from '@/lib/currency'
+
 /**
  * Format a numeric price into a human-readable currency string.
  * @param price
@@ -10,6 +12,9 @@ export function formatPrice(
   locale: string = 'en-AE'
 ): string {
   if (price == null || isNaN(price)) return '—'
+  // An AED price on a public page, while the visitor's currency is active: shown converted (lib/currency).
+  const show = activeCurrency()
+  if (currency === 'AED' && show.code !== 'AED') return formatMoney(price * show.rate, show.code)
 
   if (price >= 1_000_000) {
     const millions = price / 1_000_000

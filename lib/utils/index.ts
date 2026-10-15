@@ -1,10 +1,14 @@
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { formatDistanceToNow, format, parseISO } from 'date-fns'
+import { activeCurrency, formatMoney } from '@/lib/currency'
 
 export function cn(...inputs: ClassValue[]) { return twMerge(clsx(inputs)) }
 
 export function formatPrice(price: number, currency = 'AED'): string {
+  // An AED price on a public page, while the visitor's currency is active: shown converted (lib/currency).
+  const show = activeCurrency()
+  if (currency === 'AED' && show.code !== 'AED' && Number.isFinite(price)) return formatMoney(price * show.rate, show.code)
   if (price >= 1_000_000) return `${currency} ${(price / 1_000_000).toFixed(price % 1_000_000 === 0 ? 0 : 2)}M`
   if (price >= 1_000)     return `${currency} ${(price / 1_000).toFixed(price % 1_000 === 0 ? 0 : 0)}K`
   return `${currency} ${price.toLocaleString()}`

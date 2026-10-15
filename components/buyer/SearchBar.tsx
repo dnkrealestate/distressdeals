@@ -16,6 +16,8 @@ import {
 } from '@/components/buyer/PropertyFilterBar'
 import type { PropertyFilters } from '@/types'
 import toast from 'react-hot-toast'
+import { priceBuckets, sameRange, type PriceBucket } from '@/lib/currency'
+import CurrencyIcon from '@/components/currency/CurrencyIcon'
 
 const DUBAI_AREAS = [
   'Downtown Dubai','Dubai Marina','Palm Jumeirah','Business Bay','JBR',
@@ -38,15 +40,17 @@ const PROPERTY_TYPES = [
 
 const BEDROOM_OPTIONS = ['Studio', '1', '2', '3', '4', '5', '6+']
 
-const PRICE_RANGES = [
-  { label: 'Any',            min: 0,         max: 0         },
-  { label: 'Under AED 500K', min: 0,         max: 500000    },
-  { label: 'AED 500K – 1M',  min: 500000,    max: 1000000   },
-  { label: 'AED 1M – 2M',    min: 1000000,   max: 2000000   },
-  { label: 'AED 2M – 5M',    min: 2000000,   max: 5000000   },
-  { label: 'AED 5M – 10M',   min: 5000000,   max: 10000000  },
-  { label: 'Above AED 10M',  min: 10000000,  max: 0         },
+const AED_PRICE_RANGES = [
+  { min: 0,        max: 0        },
+  { min: 0,        max: 500000   },
+  { min: 500000,   max: 1000000  },
+  { min: 1000000,  max: 2000000  },
+  { min: 2000000,  max: 5000000  },
+  { min: 5000000,  max: 10000000 },
+  { min: 10000000, max: 0        },
 ]
+// In the visitor's currency (round amounts), with the AED values to search by.
+const priceRanges = (): PriceBucket[] => priceBuckets(AED_PRICE_RANGES, 'Any')
 
 // Only meaningful for the "New Projects" tab — off-plan buyers filter by
 // delivery date, not by bedrooms, so this stands in for Beds & Baths there.
@@ -229,10 +233,10 @@ function BedroomChips({ value, onChange }: { value: string; onChange: (v: string
   )
 }
 
-function PriceChips({ value, onChange }: { value: typeof PRICE_RANGES[number]; onChange: (v: typeof PRICE_RANGES[number]) => void }) {
+function PriceChips({ value, onChange }: { value: PriceBucket; onChange: (v: PriceBucket) => void }) {
   return (
     <div className="flex flex-wrap gap-1.5">
-      {PRICE_RANGES.map(pr => (
+      {priceRanges().map(pr => (
         <Chip key={pr.label} active={value.label === pr.label} onClick={() => onChange(pr)}>
           {pr.label}
         </Chip>
@@ -269,7 +273,7 @@ function MobileFilterModal({
   area: string; setArea: (v: string) => void
   propType: string; setPropType: (v: string) => void
   bedrooms: string; setBedrooms: (v: string) => void
-  priceRange: typeof PRICE_RANGES[number]; setPriceRange: (v: typeof PRICE_RANGES[number]) => void
+  priceRange: PriceBucket; setPriceRange: (v: PriceBucket) => void
   onSearch: () => void
   onApplyAI: (filters: PropertyFilters) => void
   // Category-aware extras — only populated/rendered for the homepage's
@@ -509,7 +513,7 @@ function MobileFilterModal({
               {activeCount > 0 && (
                 <button
                   onClick={() => {
-                    setBedrooms(''); setPriceRange(PRICE_RANGES[0]); setPropType(''); setArea('')
+                    setBedrooms(''); setPriceRange(priceRanges()[0]); setPropType(''); setArea('')
                     if (compact) { setCategory?.(''); setBathrooms?.(''); setSizeRange?.(SIZES[0]); setHandover?.(HANDOVER_OPTIONS[0]); setRentAvail?.(RENT_AVAILABILITY_OPTIONS[0]); setHandoverQuarter?.('') }
                   }}
                   className="text-xs transition-colors"
@@ -571,7 +575,7 @@ export default function SearchBar({
   const [area,        setArea]        = useState('')
   const [propType,    setPropType]    = useState('')
   const [bedrooms,    setBedrooms]    = useState('')
-  const [priceRange,  setPriceRange]  = useState(PRICE_RANGES[0])
+  const [priceRange,  setPriceRange]  = useState(priceRanges()[0])
   const [showFilters, setShowFilters] = useState(false)
   const [showMobileModal, setShowMobileModal] = useState(false)
   // Category-aware extras — only surfaced in the UI when compact (the
@@ -656,8 +660,8 @@ export default function SearchBar({
       setBedrooms(n === '0' ? 'Studio' : Number(n) >= 6 ? '6+' : n)
     }
     if (filters.priceMin !== undefined || filters.priceMax !== undefined) {
-      const preset = PRICE_RANGES.find(pr => pr.min === (filters.priceMin || 0) && pr.max === (filters.priceMax || 0))
-      setPriceRange(preset || { label: 'AI pick', min: filters.priceMin || 0, max: filters.priceMax || 0 })
+      const preset = priceRanges().find(pr => sameRange(pr.min, pr.max, filters.priceMin || 0, filters.priceMax || 0))
+      setPriceRange(preset || { label: 'AI pick', min: filters.priceMin || 0, max: filters.priceMax || 0, lMin: 0, lMax: 0 })
     }
   }
 
@@ -990,15 +994,15 @@ export default function SearchBar({
 
             {/* Price */}
             <FilterDropdown
-              label={PRICE_RANGES.find(p => p.min === priceRange.min && p.max === priceRange.max && (p.min || p.max))?.label || 'Price'}
-              icon={DirhamIcon}
+              label={priceRanges().find(p => (p.min || p.max) && sameRange(p.min, p.max, priceRange.min, priceRange.max))?.label || 'Price'}
+              icon={CurrencyIcon}
               active={!!priceRange.min || !!priceRange.max}
               widthClass="w-52"
               fullWidth
             >
               {close => (
                 <div className="flex flex-col gap-1">
-                  {PRICE_RANGES.map(pr => (
+                  {priceRanges().map(pr => (
                     <DropdownOption key={pr.label} active={priceRange.label === pr.label} onClick={() => { setPriceRange(pr); close() }}>
                       {pr.label}
                     </DropdownOption>
@@ -1071,7 +1075,7 @@ export default function SearchBar({
                   Price Range
                 </p>
                 <div className="flex flex-wrap gap-1.5">
-                  {PRICE_RANGES.map(pr => (
+                  {priceRanges().map(pr => (
                     <Chip
                       key={pr.label}
                       active={priceRange.label === pr.label}
@@ -1086,7 +1090,7 @@ export default function SearchBar({
               {/* Clear */}
               {(bedrooms || priceRange.min > 0) && (
                 <button
-                  onClick={() => { setBedrooms(''); setPriceRange(PRICE_RANGES[0]) }}
+                  onClick={() => { setBedrooms(''); setPriceRange(priceRanges()[0]) }}
                   className="text-xs self-end pb-0.5 transition-colors"
                   style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
                   onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--teal)' }}

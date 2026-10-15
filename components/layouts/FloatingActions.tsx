@@ -12,6 +12,7 @@ function hidden(pathname: string): boolean {
   if (pathname.startsWith('/admin') || pathname.startsWith('/seller') || pathname.startsWith('/auth')) return true
   if (pathname.startsWith('/map-search')) return true        // already on the map
   if (pathname === '/sell') return true                       // already the "list your property" step
+  if (pathname === '/insights' || pathname.startsWith('/insights/')) return true   // reading guides — no map / listing buttons
   return false
 }
 
@@ -54,7 +55,7 @@ export default function FloatingActions() {
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6, duration: 0.45 }}
-        className="hidden md:flex fixed right-6 z-40 items-center gap-1.5 p-1.5 rounded-full"
+        className="hidden xl:flex fixed right-6 z-40 items-center gap-1.5 p-1.5 rounded-full"
         style={{
           bottom: 24 + lift,
           background: 'color-mix(in srgb, var(--surface) 88%, transparent)',
@@ -89,7 +90,7 @@ export default function FloatingActions() {
         initial={{ opacity: 0, scale: 0.6 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.6, type: 'spring', stiffness: 260, damping: 20 }}
-        className="md:hidden fixed right-4 z-40"
+        className="xl:hidden fixed right-4 z-40"
         style={{ bottom: `calc(${84 + lift}px + env(safe-area-inset-bottom))` }}
       >
         <Link

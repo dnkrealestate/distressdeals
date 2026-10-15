@@ -15,6 +15,7 @@ import FaqSection, { type Faq } from '@/components/shared/FaqSection'
 import LinkPagination from '@/components/shared/LinkPagination'
 import type { DeveloperWithStats, Project } from '@/types'
 import { DEFAULT_SHARE_IMAGE, fitTitle, fitDescription } from '@/lib/seo'
+import Price from '@/components/currency/Price'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -218,7 +219,7 @@ export default async function DeveloperDetailPage({ params, searchParams }: { pa
               { icon: Layers, v: String(dev.projectCount), l: dev.projectCount === 1 ? 'Project' : 'Projects' },
               { icon: Hammer, v: String(projects.filter(p => p.status !== 'ready' && !isHandedOver(p)).length), l: 'Off-plan' },
               { icon: MapPin, v: String(dev.areas?.length || 0), l: (dev.areas?.length || 0) === 1 ? 'Area' : 'Areas' },
-              { icon: Building2, v: dev.minPriceFrom > 0 ? formatPrice(dev.minPriceFrom) : '—', l: 'Starting from' },
+              { icon: Building2, v: <Price aed={dev.minPriceFrom} />, l: 'Starting from' },
             ].map(({ icon: Icon, v, l }) => (
               <div key={l} className="rounded-2xl px-4 py-3" style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.16)', backdropFilter: 'blur(10px)' }}>
                 <p className="text-lg md:text-xl font-bold text-white leading-tight">{v}</p>

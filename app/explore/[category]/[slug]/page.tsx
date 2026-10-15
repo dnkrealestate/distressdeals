@@ -19,6 +19,7 @@ import { EXPLORE_SECTIONS, sectionByKey, sectionByPath, placeHref, sectionHref, 
 import { placeTitle, placeDescription, placeKeywords, placeJsonLd } from '@/lib/placeSeo'
 import SectionList, { sectionListMetadata, type ListParams } from '@/components/explore/SectionList'
 import type { PlaceDetail } from '@/types'
+import Price from '@/components/currency/Price'
 
 export const revalidate = 120
 
@@ -260,7 +261,7 @@ export default async function PlacePage({ params, searchParams }: Props) {
                     <div className="p-3.5">
                       <p className="text-sm font-semibold line-clamp-1" style={{ color: 'var(--text)' }}>{p.name}</p>
                       <p className="text-[11px] mt-0.5 line-clamp-1" style={{ color: 'var(--text-muted)' }}>{[p.area, p.developer].filter(Boolean).join(' · ')}</p>
-                      {p.priceFrom ? <p className="text-xs font-bold mt-1.5" style={{ color: 'var(--teal)' }}>From {formatPrice(p.priceFrom)}</p> : null}
+                      {p.priceFrom ? <p className="text-xs font-bold mt-1.5" style={{ color: 'var(--teal)' }}>From <Price aed={p.priceFrom} /></p> : null}
                     </div>
                   </Link>
                 )

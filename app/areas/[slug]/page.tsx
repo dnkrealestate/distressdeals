@@ -19,6 +19,7 @@ import { shareImages, fitTitle, fitDescription } from '@/lib/seo'
 import FaqSection, { type Faq } from '@/components/shared/FaqSection'
 import RealEstateLinks from '@/components/shared/RealEstateLinks'
 import AreaNearby from '@/components/areas/AreaNearby'
+import Price from '@/components/currency/Price'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -149,11 +150,11 @@ export default async function AreaDetailPage({ params, searchParams }: { params:
     { label: 'Verified Listings', value: area.count.toLocaleString(), icon: HomeIcon },
     // With no resale listings yet, the useful numbers are the new projects and where their prices start.
     area.count > 0
-      ? { label: 'Average Price', value: formatPrice(Math.round(area.avgPrice)), icon: TrendingUp }
+      ? { label: 'Average Price', value: <Price aed={Math.round(area.avgPrice)} />, icon: TrendingUp }
       : { label: 'New Projects', value: projectTotal.toLocaleString(), icon: TrendingUp },
     area.count > 0
-      ? { label: 'Avg. Price / sqft', value: area.avgPricePerSqft ? `AED ${Math.round(area.avgPricePerSqft).toLocaleString()}` : '—', icon: Tag }
-      : { label: 'Projects From', value: cheapestProject ? formatPrice(cheapestProject) : '—', icon: Tag },
+      ? { label: 'Avg. Price / sqft', value: area.avgPricePerSqft ? <Price aed={area.avgPricePerSqft} exact /> : '—', icon: Tag }
+      : { label: 'Projects From', value: <Price aed={cheapestProject} />, icon: Tag },
   ]
 
   return (

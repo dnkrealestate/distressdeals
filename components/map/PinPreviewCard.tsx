@@ -11,6 +11,7 @@ import DirectionsPanel from '@/components/map/DirectionsPanel'
 import type { RouteView } from '@/lib/driveTime'
 import type { ResolvedPlace } from '@/lib/placeSearch'
 import { placeHref } from '@/lib/explore'
+import { exactPrice } from '@/lib/currency'
 
 // "Nearby" — what the card can show around the selected pin.
 export type NearKind = 'hospitals' | 'schools' | 'airports' | 'tourist' | 'cafes' | 'shopping'
@@ -150,7 +151,7 @@ export default function PinPreviewCard({
           </div>
           {(pin.ppsf || pin.views > 0) && (
             <div className="flex items-center gap-3 mt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>
-              {pin.ppsf ? <span>AED {pin.ppsf.toLocaleString()}/sqft</span> : null}
+              {pin.ppsf ? <span>{exactPrice(pin.ppsf)}/sqft</span> : null}
               {pin.views > 0 ? <span className="inline-flex items-center gap-1"><Eye size={10} />{pin.views.toLocaleString()} views</span> : null}
             </div>
           )}

@@ -7,16 +7,16 @@ import { AnimatePresence, motion } from 'framer-motion'
 import {
   Bookmark, GitCompare, Menu, X,
   ChevronDown, LogOut, Settings, User,
-  LayoutDashboard, Sun, Moon, ArrowRight, ArrowLeft,
+  LayoutDashboard, ArrowRight, ArrowLeft,
 } from 'lucide-react'
 import { useAuthStore }     from '@/store/authStore'
 import { useFavoritesStore } from '@/store/favoritesStore'
 import { useCompareStore }   from '@/store/compareStore'
-import { useThemeStore }     from '@/store/themeStore'   // see note below
 import { getInitials, cn }   from '@/lib/utils'
 import NotificationBell      from '@/components/NotificationBell'
 import ThemePicker           from '@/components/shared/ThemePicker'
 import { Logo }              from '@/components/shared/Logo'
+import CurrencySwitcher from '@/components/currency/CurrencySwitcher'
 
 /*
   NOTE: create a simple themeStore with Zustand:
@@ -155,28 +155,6 @@ const NAV: NavItem[] = [
   { href: '/sell', label: 'List Your Property', highlight: true },
 ]
 
-function ThemeToggle() {
-  const { dark, toggle } = useThemeStore()
-  return (
-    <button
-      onClick={toggle}
-      aria-label="Toggle theme"
-      className="theme-toggle"
-      data-dark={String(dark)}
-    >
-      <div
-        className="theme-toggle__thumb"
-        style={{ left: dark ? 27 : 3 }}
-      >
-        {dark
-          ? <Moon size={11} style={{ color: '#CB0101' }} />
-          : <Sun  size={11} style={{ color: '#94A3B8' }} />
-        }
-      </div>
-    </button>
-  )
-}
-
 /* ── Mega menu panel — full-width dropdown under a top-level nav item ── */
 function MegaMenu({ mega, onNavigate }: { mega: NonNullable<NavItem['mega']>; onNavigate: () => void }) {
   return (
@@ -299,7 +277,7 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
           {/* ── Logo (with a back arrow on phones, on detail pages) ── */}
           <div className="flex items-center gap-1.5 min-w-0">
             {detailListHref && (
-              <button onClick={goBack} aria-label="Back" className="md:hidden -ml-2 w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform"
+              <button onClick={goBack} aria-label="Back" className="xl:hidden -ml-2 w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform"
                 style={{ color: 'var(--text)' }}>
                 <ArrowLeft size={20} />
               </button>
@@ -308,7 +286,7 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
           </div>
 
           {/* ── Desktop nav ──────────────────────────── */}
-          <div className="hidden md:flex items-center gap-1.5">
+          <div className="hidden xl:flex items-center gap-1.5">
             {NAV.map(n => n.highlight ? (
               <Link
                 key={n.href}
@@ -338,15 +316,16 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
           {/* ── Right cluster ─────────────────────────── */}
           <div className="flex items-center gap-2">
 
-            {/* Theme toggle — desktop; on phones it lives in the menu */}
-            <div className="hidden md:block"><ThemeToggle /></div>
+            {/* Theme: in the profile menu (signed in), the phone menu, and the footer — not in the header */}
+            {/* Prices in the visitor's currency */}
+            <div className="hidden xl:block"><CurrencySwitcher /></div>
 
             {isAuthenticated && user ? (
               <>
                 <NotificationBell />
 
                 {/* Favorites */}
-                <Link href="/buyer/favorites" className="relative btn-ghost btn-sm p-2.5 hidden md:inline-flex">
+                <Link href="/buyer/favorites" className="relative btn-ghost btn-sm p-2.5 hidden xl:inline-flex">
                   <Bookmark size={16} />
                   {favorites.length > 0 && (
                     <span
@@ -360,7 +339,7 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
 
                 {/* Compare */}
                 {compareList.length > 0 && (
-                  <Link href="/buyer/compare" className="relative btn-ghost btn-sm p-2.5 hidden md:inline-flex">
+                  <Link href="/buyer/compare" className="relative btn-ghost btn-sm p-2.5 hidden xl:inline-flex">
                     <GitCompare size={16} />
                     <span
                       className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-white text-[9px] font-bold flex items-center justify-center"
@@ -375,25 +354,15 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
                 <div className="relative">
                   <button
                     onClick={() => setUserMenu(o => !o)}
-                    className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-xl hover:bg-[rgba(203,1,1,0.06)] transition-colors"
+                    aria-label={`Account menu — ${user.name}`} aria-expanded={userMenu} title={user.name}
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white overflow-hidden flex-shrink-0 transition-shadow"
+                    style={{ background: 'var(--grad)', boxShadow: userMenu ? '0 0 0 3px rgba(203,1,1,0.25)' : '0 0 0 2px var(--surface), 0 0 0 3px var(--border)' }}
                   >
-                    <div
-                      className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white overflow-hidden"
-                      style={{ background: 'var(--grad)' }}
-                    >
-                      {user.avatar
-                        ? <img src={user.avatar} className="w-full h-full object-cover" alt={user.name} />
-                        : getInitials(user.name)
-                      }
-                    </div>
-                    <span className="text-sm hidden lg:block" style={{ color: 'var(--text-mid)' }}>
-                      {user.name.split(' ')[0]}
-                    </span>
-                    <ChevronDown
-                      size={12}
-                      className={cn('transition-transform', userMenu && 'rotate-180')}
-                      style={{ color: 'var(--text-muted)' }}
-                    />
+                    {/* Just the round profile picture (or initials) — the name is inside the menu. */}
+                    {user.avatar
+                      ? <img src={user.avatar} className="w-full h-full object-cover" alt="" />
+                      : getInitials(user.name)
+                    }
                   </button>
 
                   <AnimatePresence>
@@ -403,12 +372,23 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 8 }}
                         transition={{ duration: 0.18 }}
-                        className="absolute right-0 top-full mt-2 w-48 rounded-xl overflow-hidden z-50 shadow-lg"
+                        className="absolute right-0 top-full mt-2 w-64 rounded-xl overflow-hidden z-50 shadow-lg"
                         style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
                       >
-                        <div className="p-3" style={{ borderBottom: '1px solid var(--border)' }}>
-                          <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{user.name}</p>
-                          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{user.email}</p>
+                        <div className="p-3 flex items-center gap-3" style={{ borderBottom: '1px solid var(--border)' }}>
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white overflow-hidden flex-shrink-0" style={{ background: 'var(--grad)' }}>
+                            {user.avatar ? <img src={user.avatar} className="w-full h-full object-cover" alt="" /> : getInitials(user.name)}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold break-words leading-snug" style={{ color: 'var(--text)' }}>{user.name}</p>
+                            <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }} title={user.email}>{user.email}</p>
+                          </div>
+                        </div>
+
+                        {/* Theme: Auto (dark 9 PM – 6 AM) / Light / Dark */}
+                        <div className="px-3 py-2.5" style={{ borderBottom: '1px solid var(--border)' }}>
+                          <p className="text-[10px] uppercase tracking-wider font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Theme</p>
+                          <ThemePicker compact />
                         </div>
 
                         {[
@@ -447,7 +427,7 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
                 </div>
               </>
             ) : (
-              <div className="hidden md:flex items-center gap-2">
+              <div className="hidden xl:flex items-center gap-2">
                 <Link href="/auth/login"    className="btn-ghost btn-sm">Sign In</Link>
                 <Link href="/auth/register" className="btn-primary btn-sm">Get Started</Link>
               </div>
@@ -456,7 +436,7 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
             {/* Mobile hamburger */}
             <button
               onClick={() => setMenu(o => !o)}
-              className="md:hidden btn-ghost p-2 rounded-lg"
+              className="xl:hidden btn-ghost p-2 rounded-lg"
             >
               {menu ? <X size={18} /> : <Menu size={18} />}
             </button>
@@ -485,7 +465,7 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-x-0 top-16 z-40 md:hidden shadow-lg overflow-y-auto"
+            className="fixed inset-x-0 top-16 z-40 xl:hidden shadow-lg overflow-y-auto"
             style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', maxHeight: 'calc(100vh - 4rem)' }}
           >
             <div className="wrap py-5">
@@ -568,6 +548,7 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
 
               {/* Saved, compare and theme — kept out of the crowded phone header */}
               <div className="mt-4 pt-4 space-y-3" style={{ borderTop: '1px solid var(--border-soft)' }}>
+                <CurrencySwitcher compact onPicked={() => setMenu(false)} />
                 {isAuthenticated && (
                   <div className="grid grid-cols-2 gap-2">
                     <Link href="/buyer/favorites" onClick={() => setMenu(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium" style={{ background: 'var(--bg-alt)', color: 'var(--text)' }}>

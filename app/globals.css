@@ -342,7 +342,8 @@ body {
   .page    { @apply min-h-screen; background: var(--bg); }
   /* Clears the fixed mobile bottom nav (MobileBottomNav.tsx) / the sticky
      "Interested" contact bar on detail pages — both sit ~56-64px tall. */
-  @media (max-width: 767px) {
+  /* Room for the bottom navigation bar, shown below 1280px (components/layouts/MobileBottomNav). */
+  @media (max-width: 1279px) {
     .page { padding-bottom: 64px; }
   }
   .wrap    { @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8; }

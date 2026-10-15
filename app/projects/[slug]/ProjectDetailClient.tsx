@@ -34,6 +34,8 @@ import ImageLightbox from '@/components/shared/ImageLightbox'
 import { Camera } from 'lucide-react'
 import { addRecentlyViewed } from '@/lib/recentlyViewed'
 import toast from 'react-hot-toast'
+import CurrencyNote from '@/components/currency/CurrencyNote'
+import PriceDetailsCard from '@/components/buyer/PriceDetailsCard'
 
 // Custom-styled Google map, loaded client-side only (the Maps script needs `window`).
 const LocationMap = dynamic(() => import('@/components/shared/LocationMap'), {
@@ -425,37 +427,27 @@ export default function ProjectDetailClient({ project, areaHref }: { project: Pr
               )}
             </div>
 
-            {/* Price + Stats — same horizontal layout as the Property
-                detail page's own price+stats card. */}
-            <div className="card p-5 flex flex-wrap items-center gap-6 mb-5">
-              <div>
-                <p className="text-xs mb-1 uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{dealLabel}</p>
-                <PriceInForce item={project} normalPrice={project.priceFrom} />
-                {!onOffer && <DealReference project={project} className="mt-0.5" />}
-                {project.priceTo && <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>up to {formatPrice(project.priceTo)}</p>}
-                <OpportunityBadges opportunity={project.opportunity} kind="project" className="mt-2" />
-                <MarketDisclaimer opportunity={project.opportunity} className="mt-1.5 max-w-xs" />
-              </div>
-              <div className="h-12 w-px hidden sm:block" style={{ background: 'var(--border)' }} />
-              {[
-                project.type &&      { icon: Home,      val: project.type.charAt(0).toUpperCase() + project.type.slice(1), label: 'Type' },
-                project.bedrooms &&  { icon: BedDouble,  val: project.bedrooms,  label: 'Bedrooms' },
-                project.bathrooms && { icon: Bath,       val: project.bathrooms, label: 'Bathrooms' },
-                project.sizeRange && { icon: Maximize2,  val: project.sizeRange, label: 'Floor Area' },
-              ].filter(Boolean).map(stat => {
-                const { icon: Icon, val, label } = stat as { icon: any; val: string; label: string }
-                return (
-                  <div key={label} className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(203,1,1,0.10)', border: '1px solid rgba(203,1,1,0.20)' }}>
-                      <Icon size={15} style={{ color: 'var(--teal)' }} />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{val}</p>
-                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{label}</p>
-                    </div>
-                  </div>
-                )
-              })}
+            {/* Price | key details — two columns (stacked on phones), same card as the property page. */}
+            <div className="mb-5">
+              <PriceDetailsCard
+                label={dealLabel}
+                price={<>
+                  <PriceInForce item={project} normalPrice={project.priceFrom} />
+                  {!onOffer && <DealReference project={project} className="mt-0.5" />}
+                  {project.priceTo && <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>up to {formatPrice(project.priceTo)}</p>}
+                  <OpportunityBadges opportunity={project.opportunity} kind="project" className="mt-2" />
+                  <MarketDisclaimer opportunity={project.opportunity} className="mt-1.5" />
+                  <CurrencyNote aed={project.priceFrom} className="mt-2" />
+                </>}
+                details={[
+                  { icon: Home, label: 'Type', value: project.type ? project.type.replace(/_/g, ' ') : undefined },
+                  { icon: BedDouble, label: 'Bedrooms', value: project.bedrooms },
+                  { icon: Bath, label: 'Bathrooms', value: project.bathrooms },
+                  { icon: Maximize2, label: 'Floor area', value: project.sizeRange ? (/sq/i.test(project.sizeRange) ? project.sizeRange : `${project.sizeRange} sqft`) : undefined },
+                  { icon: CalendarClock, label: 'Handover', value: handover !== 'TBA' ? handover : undefined },
+                  { icon: Wallet, label: 'Payment plan', value: project.paymentPlan },
+                ]}
+              />
             </div>
 
             {/* Limited-time offer — straight after the price, at the top of the page. Renders nothing without a live offer. */}

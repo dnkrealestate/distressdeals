@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { Providers } from '@/components/Providers'
+import CurrencyProvider from '@/components/currency/CurrencyProvider'
 import { Toaster } from 'react-hot-toast'
 import MobileBottomNav from '@/components/layouts/MobileBottomNav'
 import FloatingActions from '@/components/layouts/FloatingActions'
@@ -10,6 +11,7 @@ import { SpeedInsights } from '@vercel/speed-insights/next'
 import ContactClickTracker from '@/components/ContactClickTracker'
 import { THEME_BOOT_SCRIPT } from '@/store/themeStore'
 import { DEFAULT_SHARE_IMAGE } from '@/lib/seo'
+import RateBubble from '@/components/currency/RateBubble'
 
 // Canonical www — the actual live domain (non-www 301s to this), so metadataBase (and therefore every relative
 // `alternates.canonical` across the app) must resolve here too, not to a URL that immediately redirects away.
@@ -74,7 +76,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <GoogleTagNoScript />
         <GoogleTagHead />
         <Providers>
-          {children}
+          <CurrencyProvider>{children}<RateBubble /></CurrencyProvider>
           <MobileBottomNav />
           <FloatingActions />
           <Toaster

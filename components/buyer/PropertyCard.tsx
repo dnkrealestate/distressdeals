@@ -23,6 +23,7 @@ import { SpecPill }           from '@/components/buyer/SpecPill'
 import RentalBadge            from '@/components/buyer/RentalBadge'
 import LeadModal              from '@/app/buyer/LeadModal'
 import type { Property }     from '@/types'
+import { exactPrice } from '@/lib/currency'
 
 function formatType(type?: string): string {
   if (!type) return ''
@@ -217,7 +218,7 @@ export default function PropertyCard({
               {(p.amenities?.floorArea ?? 0) > 0 && <SpecPill icon={Maximize2} bold>{formatArea(p.amenities!.floorArea)} sqft</SpecPill>}
               {p.pricePerSqft && (
                 <span className="text-xs font-medium flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
-                  AED {Math.round(p.pricePerSqft).toLocaleString()}/sqft
+                  {exactPrice(p.pricePerSqft)}/sqft
                 </span>
               )}
             </div>
@@ -341,7 +342,7 @@ export default function PropertyCard({
 
             {p.pricePerSqft && (
               <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                AED {Math.round(p.pricePerSqft).toLocaleString()}/sqft
+                {exactPrice(p.pricePerSqft)}/sqft
               </span>
             )}
           </div>

@@ -11,6 +11,7 @@ import { resolveSeo } from '@/lib/seo'
 import { formatDate, formatPrice } from '@/lib/utils'
 import { EXPLORE_SECTIONS, sectionHref } from '@/lib/explore'
 import type { BlogPost, NewsItem, AreaContentWithStats, CommunityContentWithStats, BuildingContent, PlaceSectionSummary, Developer } from '@/types'
+import Price from '@/components/currency/Price'
 
 // The Insights hub: news, blog, area / community / building guides and UAE Explore in one server-rendered page, so
 // every section (and every link in it) is in the HTML search engines read. Rebuilt at most every 5 minutes.
@@ -45,14 +46,14 @@ function SectionHead({ id, icon: Icon, title, subtitle, href, cta }: { id: strin
 }
 
 // Photo tile with the name over it — areas, communities, buildings.
-function GuideTile({ href, image, title, sub, meta }: { href: string; image?: string; title: string; sub?: string; meta?: string }) {
+function GuideTile({ href, image, title, sub, meta }: { href: string; image?: string; title: string; sub?: string; meta?: React.ReactNode }) {
   return (
     <Link href={href} className="group relative block h-40 rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, #1E293B, #7F1D1D)' }}>
       {image && <img src={image} alt={title} loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />}
       <span className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(8,8,8,0.05) 30%, rgba(8,8,8,0.78) 100%)' }} />
       <span className="absolute left-3.5 right-3.5 bottom-3">
         <span className="block text-sm font-bold leading-snug text-white line-clamp-2">{title}</span>
-        {(sub || meta) && <span className="block text-[11px] mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.82)' }}>{[sub, meta].filter(Boolean).join(' · ')}</span>}
+        {(sub || meta) && <span className="block text-[11px] mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.82)' }}>{sub}{sub && meta ? ' · ' : ''}{meta}</span>}
       </span>
     </Link>
   )
@@ -242,7 +243,7 @@ export default async function InsightsPage() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {areasByListings.slice(0, 8).map(a => (
                 <GuideTile key={a._id} href={`/areas/${a.slug}`} image={a.heroImage} title={a.area}
-                  sub={a.count ? `${a.count} listing${a.count === 1 ? '' : 's'}` : undefined} meta={a.avgPrice > 0 ? `avg ${formatPrice(Math.round(a.avgPrice))}` : undefined} />
+                  sub={a.count ? `${a.count} listing${a.count === 1 ? '' : 's'}` : undefined} meta={a.avgPrice > 0 ? <>avg <Price aed={Math.round(a.avgPrice)} /></> : undefined} />
               ))}
             </div>
           </section>
@@ -298,7 +299,7 @@ export default async function InsightsPage() {
                   <span className="text-xs font-semibold leading-snug group-hover:text-[var(--teal)]" style={{ color: 'var(--text)' }}>{d.name}</span>
                   <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
                     {d.projectCount ? `${d.projectCount} project${d.projectCount === 1 ? '' : 's'}` : 'Developer guide'}
-                    {d.minPriceFrom ? ` · from ${formatPrice(d.minPriceFrom)}` : ''}
+                    {d.minPriceFrom ? <> · from <Price aed={d.minPriceFrom} /></> : ''}
                   </span>
                 </Link>
               ))}

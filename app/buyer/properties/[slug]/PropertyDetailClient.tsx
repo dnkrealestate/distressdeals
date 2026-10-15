@@ -42,6 +42,9 @@ import { useAuthStore } from '@/store/authStore'
 import { formatPrice, formatArea, timeAgo, cn, rentSuffix, rentPeriodLabel } from '@/lib/utils'
 import type { Property } from '@/types'
 import toast from 'react-hot-toast'
+import CurrencyNote from '@/components/currency/CurrencyNote'
+import { exactPrice } from '@/lib/currency'
+import PriceDetailsCard from '@/components/buyer/PriceDetailsCard'
 
 const TEAL = 'var(--teal)'
 
@@ -365,33 +368,23 @@ export default function PropertyDetailClient({ property, areaHref }: { property:
               </div>
             </div>
 
-            {/* Price + Stats */}
-            <div className="card p-5 flex flex-wrap items-center gap-6">
-              <div>
-                <p className="text-xs mb-1 uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Price</p>
+            {/* Price | key details — two columns (stacked on phones). */}
+            <PriceDetailsCard
+              label={property.listingType === 'rent' ? 'Rent' : 'Price'}
+              price={<>
                 <PriceInForce item={property} normalPrice={property.price} suffix={rentSuffix(property)} />
-                {property.pricePerSqft && (
-                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>AED {Math.round(property.pricePerSqft).toLocaleString()}/sqft</p>
-                )}
-              </div>
-              <div className="h-12 w-px hidden sm:block" style={{ background: 'var(--border)' }} />
-              {[
-                { icon: Bed,      val: property.amenities.bedrooms > 0 ? `${property.amenities.bedrooms} Bed` : 'Studio', label: 'Bedrooms' },
-                { icon: Bath,     val: `${property.amenities.bathrooms} Bath`,    label: 'Bathrooms' },
-                { icon: Maximize2,val: `${formatArea(property.amenities.floorArea)} sqft`, label: 'Floor Area' },
-                { icon: Car,      val: `${property.amenities.parkingSpaces} Parking`, label: 'Parking' },
-              ].map(({ icon: Icon, val, label }) => (
-                <div key={label} className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(203,1,1,0.10)', border: '1px solid rgba(203,1,1,0.20)' }}>
-                    <Icon size={15} style={{ color: TEAL }} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{val}</p>
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{label}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+                {property.pricePerSqft ? <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{exactPrice(property.pricePerSqft)}/sqft</p> : null}
+                <CurrencyNote aed={property.price} className="mt-2" />
+              </>}
+              details={[
+                { icon: Bed, label: 'Bedrooms', value: property.amenities.bedrooms > 0 ? `${property.amenities.bedrooms} Bed` : 'Studio' },
+                { icon: Bath, label: 'Bathrooms', value: property.amenities.bathrooms ? `${property.amenities.bathrooms} Bath` : undefined },
+                { icon: Maximize2, label: 'Floor area', value: property.amenities.floorArea ? `${formatArea(property.amenities.floorArea)} sqft` : undefined },
+                { icon: Car, label: 'Parking', value: property.amenities.parkingSpaces ? `${property.amenities.parkingSpaces} space${property.amenities.parkingSpaces === 1 ? '' : 's'}` : undefined },
+                { icon: Building2, label: 'Type', value: property.type?.replace(/_/g, ' ') },
+                { icon: Calendar, label: property.listingType === 'rent' ? 'Availability' : 'Status', value: property.listingType === 'rent' ? rentalLabel(property) : property.completion === 'off_plan' ? 'Off-plan' : 'Ready' },
+              ]}
+            />
 
             {/* Limited-time offer — straight after the price, at the top of the page. Renders nothing without a live offer. */}
             <OfferBanner item={property} normalPrice={property.price} />

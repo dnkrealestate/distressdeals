@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { Logo } from '@/components/shared/Logo'
 import { COMPANY_PHONE_DISPLAY, telHref, whatsappHref } from '@/lib/contact'
+import RateLine from '@/components/currency/RateLine'
 
 const FOOTER_LINKS = {
   Properties: [
@@ -208,6 +209,7 @@ export default function Footer() {
             <Building2 size={12} />
             © {year} Distress Deals UAE. All rights reserved.
           </p>
+          <RateLine />
           <div className="flex items-center gap-5">
             {['About', 'Privacy', 'Terms', 'Cookies', 'Sitemap'].map(l => (
               <Link

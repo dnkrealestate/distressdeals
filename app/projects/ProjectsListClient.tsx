@@ -21,6 +21,9 @@ import { cn } from '@/lib/utils'
 import { FilterDropdown, DropdownOption, Pill } from '@/components/buyer/PropertyFilterBar'
 import { PropertyTypeDropdown } from '@/components/shared/PropertyTypePicker'
 import { Map as MapIcon, Layers } from 'lucide-react'
+import { priceBuckets, sameRange } from '@/lib/currency'
+import RateLine from '@/components/currency/RateLine'
+import CurrencyIcon from '@/components/currency/CurrencyIcon'
 
 const STATUSES: { value: Project['status'] | ''; label: string }[] = [
   { value: '',                   label: 'All' },
@@ -51,6 +54,8 @@ const PRICE_CHOICES = [
   { l: '5M – 10M',  min: 5000000, max: 10000000 },
   { l: '10M +',     min: 10000000, max: 0       },
 ]
+// The price presets in the visitor's currency (round amounts), with the AED values to search by.
+const projectPrices = () => priceBuckets(PRICE_CHOICES, 'Any price').map(b => ({ l: b.label, min: b.min, max: b.max }))
 const TYPE_CHOICES = [
   { v: 'apartment', l: 'Apartments' }, { v: 'villa', l: 'Villas' }, { v: 'townhouse', l: 'Townhouses' },
   { v: 'penthouse', l: 'Penthouses' }, { v: 'studio', l: 'Studios' }, { v: 'commercial', l: 'Commercial' },
@@ -345,11 +350,12 @@ function ProjectsListClientInner({ bottom }: { bottom?: React.ReactNode }) {
             )}
           </FilterDropdown>
           <FilterDropdown
-            label={PRICE_CHOICES.find(pc => pc.min === filters.priceMin && pc.max === filters.priceMax && (pc.min || pc.max))?.l || (filters.priceMin || filters.priceMax ? 'Custom price' : 'Price')}
-            icon={DirhamIcon} active={!!(filters.priceMin || filters.priceMax)} widthClass="w-52">
+            label={projectPrices().find(pc => (pc.min || pc.max) && sameRange(pc.min, pc.max, filters.priceMin, filters.priceMax))?.l || (filters.priceMin || filters.priceMax ? 'Custom price' : 'Price')}
+            icon={CurrencyIcon} active={!!(filters.priceMin || filters.priceMax)} widthClass="w-52">
             {close => (
               <div className="flex flex-col gap-1">
-                {PRICE_CHOICES.map(pc => <DropdownOption key={pc.l} active={filters.priceMin === pc.min && filters.priceMax === pc.max} onClick={() => { setFilters(f => ({ ...f, priceMin: pc.min, priceMax: pc.max, page: 1 })); close() }}>{pc.min || pc.max ? `AED ${pc.l}` : pc.l}</DropdownOption>)}
+                {projectPrices().map(pc => <DropdownOption key={pc.l} active={sameRange(pc.min, pc.max, filters.priceMin, filters.priceMax)} onClick={() => { setFilters(f => ({ ...f, priceMin: pc.min, priceMax: pc.max, page: 1 })); close() }}>{pc.l}</DropdownOption>)}
+                <RateLine className="px-2 pt-1" />
               </div>
             )}
           </FilterDropdown>

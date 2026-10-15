@@ -45,7 +45,7 @@ export default function MobileBottomNav() {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 inset-x-0 z-40 flex items-stretch"
+      className="xl:hidden fixed bottom-0 inset-x-0 z-40 flex items-stretch"
       style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)', paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       {NAV_LEFT.map(n => (

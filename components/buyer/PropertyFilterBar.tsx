@@ -11,6 +11,9 @@ import DirhamIcon from '@/components/shared/DirhamIcon'
 import { cn } from '@/lib/utils'
 import type { PropertyFilters } from '@/types'
 import { AVAILABILITY_FILTERS, AVAILABLE_WITHIN } from '@/lib/rental'
+import { priceBuckets, sameRange } from '@/lib/currency'
+import RateLine from '@/components/currency/RateLine'
+import CurrencyIcon from '@/components/currency/CurrencyIcon'
 
 /* ─── Shared data — property list pages + the map-search page all filter
    against the same vocabulary, so it lives here once instead of being
@@ -72,6 +75,8 @@ export const PRICES = [
   { l:'5M–10M',     min:5000000,   max:10000000   },
   { l:'>10M',       min:10000000,  max:0          },
 ]
+/** The price presets as the visitor sees them: in their currency (round amounts), with the AED values to search by. */
+export const localPrices = () => priceBuckets(PRICES, 'Any').map(b => ({ l: b.label, min: b.min, max: b.max }))
 
 // Commercial listings are measured by floor area, not bedrooms/bathrooms —
 // this replaces the "Beds & Baths" filter whenever Commercial is selected.
@@ -360,14 +365,15 @@ export function PropertyFilterBar({
         )}
 
         {/* Price */}
-        <FilterDropdown label={PRICES.find(p => p.min === filters.priceMin && p.max === filters.priceMax && (p.min || p.max))?.l || 'Price'} icon={DirhamIcon} active={!!filters.priceMin || !!filters.priceMax} widthClass="w-48">
+        <FilterDropdown label={localPrices().find(p => (p.min || p.max) && sameRange(p.min, p.max, filters.priceMin, filters.priceMax))?.l || 'Price'} icon={CurrencyIcon} active={!!filters.priceMin || !!filters.priceMax} widthClass="w-48">
           {close => (
             <div className="flex flex-col gap-1">
-              {PRICES.map(p => (
-                <DropdownOption key={p.l} active={filters.priceMin === p.min && filters.priceMax === p.max} onClick={() => { setFilter('priceMin', p.min); setFilter('priceMax', p.max); close() }}>
+              {localPrices().map(p => (
+                <DropdownOption key={p.l} active={sameRange(p.min, p.max, filters.priceMin, filters.priceMax)} onClick={() => { setFilter('priceMin', p.min); setFilter('priceMax', p.max); close() }}>
                   {p.l}
                 </DropdownOption>
               ))}
+              <RateLine className="px-2 pt-1" />
             </div>
           )}
         </FilterDropdown>

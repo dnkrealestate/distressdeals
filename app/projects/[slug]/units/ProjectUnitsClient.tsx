@@ -16,6 +16,7 @@ import { AMENITY_META } from '@/lib/amenities'
 import { formatPrice } from '@/lib/utils'
 import { offerPrice, liveOffer, offerTitle, offerEnds, offerSavingPct } from '@/lib/offer'
 import type { ProjectGroup, ProjectGroupUnit } from '@/types'
+import { exactPrice } from '@/lib/currency'
 
 // The whole project on one page: every photo, launch price / payment plans / handover, live offers highlighted at the
 // top, then a unit explorer — filter by bedrooms, type or deals, sort, cards or a comparison table, price per sq ft,
@@ -34,7 +35,7 @@ const priceOf = (u: ProjectGroupUnit) => offerPrice({ offer: u.offer }, u.priceF
 const claimOf = (u: ProjectGroupUnit) => dealClaim({ priceFrom: u.priceFrom || 0, opportunity: u.opportunity, offer: u.offer })
 const SORTS = [
   { v: 'price_asc', l: 'Price: low → high' }, { v: 'price_desc', l: 'Price: high → low' },
-  { v: 'size_desc', l: 'Size: largest' }, { v: 'ppsf_asc', l: 'Best AED / sq ft' }, { v: 'below_desc', l: 'Biggest saving' },
+  { v: 'size_desc', l: 'Size: largest' }, { v: 'ppsf_asc', l: 'Best price / sq ft' }, { v: 'below_desc', l: 'Biggest saving' },
 ] as const
 
 export default function ProjectUnitsClient({ group: g, slug, areaHref }: { group: ProjectGroup; slug: string; areaHref?: string | null }) {
@@ -294,7 +295,7 @@ export default function ProjectUnitsClient({ group: g, slug, areaHref }: { group
                         {u.paymentPlan && <span className="flex items-center gap-1"><Wallet size={12} style={{ color: 'var(--teal)' }} />{u.paymentPlan}</span>}
                       </div>
                       {liveOffer(u) && <OfferGifts item={u} max={3} className="mb-2" />}
-                      {size > 0 && priceOf(u) > 0 && <p className="text-[11px] mb-3" style={{ color: 'var(--text-muted)' }}>AED {Math.round(priceOf(u) / size).toLocaleString()} / sq ft</p>}
+                      {size > 0 && priceOf(u) > 0 && <p className="text-[11px] mb-3" style={{ color: 'var(--text-muted)' }}>{exactPrice(priceOf(u) / size)} / sq ft</p>}
                       <div className="flex gap-2 mt-auto">
                         <button type="button" onClick={() => enquireUnit(u)} className="btn-primary btn-sm flex-1 gap-1"><MessageCircleHeart size={12} /> Enquire</button>
                         <Link href={`/projects/${u.slug}`} className="btn-outline btn-sm flex-1 justify-center">Details</Link>
@@ -309,7 +310,7 @@ export default function ProjectUnitsClient({ group: g, slug, areaHref }: { group
               <table className="w-full text-sm min-w-[860px]">
                 <thead>
                   <tr style={{ color: 'var(--text-muted)' }}>
-                    {['Unit', 'Bedrooms', 'Bathrooms', 'Size', 'Price', 'Deal', 'AED / sq ft', 'Handover', 'Payment plan', ''].map(h => <th key={h} className="text-left text-[11px] uppercase tracking-wide font-semibold px-3 py-2">{h}</th>)}
+                    {['Unit', 'Bedrooms', 'Bathrooms', 'Size', 'Price', 'Deal', 'Price / sq ft', 'Handover', 'Payment plan', ''].map(h => <th key={h} className="text-left text-[11px] uppercase tracking-wide font-semibold px-3 py-2">{h}</th>)}
                   </tr>
                 </thead>
                 <tbody>
@@ -327,7 +328,7 @@ export default function ProjectUnitsClient({ group: g, slug, areaHref }: { group
                           {claim && <span className="block" style={{ color: '#047857' }}>{Math.round(claim.pct * 10) / 10}% below market</span>}
                           {!o && !claim && <span style={{ color: 'var(--text-muted)' }}>—</span>}
                         </td>
-                        <td className="px-3 py-2.5" style={{ color: 'var(--text-mid)' }}>{size && price ? Math.round(price / size).toLocaleString() : '—'}</td>
+                        <td className="px-3 py-2.5" style={{ color: 'var(--text-mid)' }}>{size && price ? exactPrice(price / size) : '—'}</td>
                         <td className="px-3 py-2.5" style={{ color: 'var(--text-mid)' }}>{u.handover || '—'}</td>
                         <td className="px-3 py-2.5" style={{ color: 'var(--text-mid)' }}>{u.paymentPlan || '—'}</td>
                         <td className="px-3 py-2.5 text-right"><button type="button" onClick={() => enquireUnit(u)} className="btn-outline btn-sm">Enquire</button></td>

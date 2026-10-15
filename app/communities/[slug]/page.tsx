@@ -19,6 +19,7 @@ import LinkPagination from '@/components/shared/LinkPagination'
 import { HOME_ICON_MAP } from '@/lib/homeIcons'
 import type { CommunityContentWithStats, Property, Project, Place } from '@/types'
 import { shareImages, fitTitle, fitDescription } from '@/lib/seo'
+import Price from '@/components/currency/Price'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -226,7 +227,7 @@ export default async function CommunityDetailPage({ params, searchParams }: { pa
               <p className="text-xs mt-1" style={{ color: community.heroImage ? 'rgba(255,255,255,0.75)' : 'var(--text-muted)' }}>Verified Listings</p>
             </div>
             <div className="stat-card" style={community.heroImage ? { background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.15)' } : undefined}>
-              <p className="text-lg font-bold" style={{ color: community.heroImage ? '#fff' : 'var(--text)' }}>{community.avgPrice > 0 ? formatPrice(Math.round(community.avgPrice)) : '—'}</p>
+              <p className="text-lg font-bold" style={{ color: community.heroImage ? '#fff' : 'var(--text)' }}><Price aed={Math.round(community.avgPrice)} /></p>
               <p className="text-xs mt-1" style={{ color: community.heroImage ? 'rgba(255,255,255,0.75)' : 'var(--text-muted)' }}>Average Price</p>
             </div>
           </div>

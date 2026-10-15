@@ -19,6 +19,7 @@ import { formatPrice } from '@/lib/utils'
 import { HOME_ICON_MAP } from '@/lib/homeIcons'
 import type { BuildingContent, Place } from '@/types'
 import { shareImages, fitTitle, fitDescription } from '@/lib/seo'
+import Price from '@/components/currency/Price'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -235,7 +236,7 @@ export default async function BuildingDetailPage({ params }: { params: { slug: s
                     <div className="p-3.5">
                       <p className="text-sm font-semibold line-clamp-1" style={{ color: 'var(--text)' }}>{p.name}</p>
                       <p className="text-[11px] mt-0.5 line-clamp-1" style={{ color: 'var(--text-muted)' }}>{[p.area, p.developer].filter(Boolean).join(' · ')}</p>
-                      {p.priceFrom ? <p className="text-xs font-bold mt-1.5" style={{ color: 'var(--teal)' }}>From {formatPrice(p.priceFrom)}</p> : null}
+                      {p.priceFrom ? <p className="text-xs font-bold mt-1.5" style={{ color: 'var(--teal)' }}>From <Price aed={p.priceFrom} /></p> : null}
                     </div>
                   </Link>
                 )
