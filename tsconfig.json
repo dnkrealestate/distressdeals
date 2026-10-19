@@ -39,7 +39,8 @@
     "components/buyer/PropertyCard.tsx",
     "app/layout.tsx",
     ".next-perf/types/**/*.ts",
-    ".next-test/types/**/*.ts"
+    ".next-test/types/**/*.ts",
+    ".next-ga/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

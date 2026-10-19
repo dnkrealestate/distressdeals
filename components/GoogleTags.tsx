@@ -5,8 +5,16 @@ import Script from 'next/script'
 //   NEXT_PUBLIC_GA_ID  = G-XXXXXXXXXX   (Analytics 4 measurement ID)
 //   NEXT_PUBLIC_GTM_ID = GTM-XXXXXXX    (Tag Manager container ID)
 // If GTM is used, GA4 is normally configured inside the container — set only one to avoid double-counting.
-const GA_ID = process.env.NEXT_PUBLIC_GA_ID
-const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID
+// The site's GA4 property "Distress Deals UAE" (stream https://www.distressdealsuae.com). A measurement ID is public —
+// it is in every page's HTML — so it can live here; it is used on production builds only, so local runs are not counted.
+// NEXT_PUBLIC_GA_ID overrides it (set it to an empty string to switch GA off).
+const DEFAULT_GA_ID = 'G-TL9KLGNL9P'
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID ?? (process.env.NODE_ENV === 'production' ? DEFAULT_GA_ID : undefined)
+// The site's Tag Manager container (public, like the measurement ID); production builds only. NEXT_PUBLIC_GTM_ID overrides it.
+// GA4 is already sent directly by GA_ID above — do not also add a GA4 / "Google tag" for G-TL9KLGNL9P inside this
+// container, or every page view is counted twice.
+const DEFAULT_GTM_ID = 'GTM-KFW4VP8H'
+const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID ?? (process.env.NODE_ENV === 'production' ? DEFAULT_GTM_ID : undefined)
 
 export function GoogleTagHead() {
   return (
