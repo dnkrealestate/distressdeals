@@ -11,12 +11,12 @@ import RateLine from '@/components/currency/RateLine'
 
 const FOOTER_LINKS = {
   Properties: [
-    { label: 'Apartments for Sale',  href: '/buyer/properties?type=apartment'  },
-    { label: 'Villas for Sale',      href: '/buyer/properties?type=villa'       },
-    { label: 'Penthouses',           href: '/buyer/properties?type=penthouse'   },
+    { label: 'Apartments for Sale',  href: '/for-sale?type=apartment'          },
+    { label: 'Villas for Sale',      href: '/for-sale?type=villa'              },
+    { label: 'Penthouses',           href: '/for-sale?type=penthouse'          },
     { label: 'Off-Plan Projects',    href: '/projects'                          },
     { label: 'Rent in Dubai',        href: '/for-rent'                          },
-    { label: 'Commercial Property',  href: '/buyer/properties?type=commercial'  },
+    { label: 'Commercial Property',  href: '/for-sale?type=commercial'         },
   ],
   'Distress Sales': [
     { label: 'Distress Sale Dubai',        href: '/distress-sale-dubai'          },

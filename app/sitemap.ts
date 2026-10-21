@@ -18,7 +18,8 @@ const STATIC_ROUTES = [
   '/distress-sale-dubai', '/distressed-villas-dubai', '/dubai-property-auctions',
   '/distressed-apartments-dubai', '/distressed-property-for-sale', '/panic-selling-dubai',
   '/sell-property-fast-dubai', '/free-property-valuation-dubai',
-  '/privacy', '/terms', '/cookies', '/delete-account', '/sitemap',
+  // Legal / account pages (privacy, terms, cookies, delete-account) stay reachable from the footer but are left out
+  // here — the sitemap lists the pages worth a crawl, so Google spends its visits on listings, projects and guides.
 ]
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

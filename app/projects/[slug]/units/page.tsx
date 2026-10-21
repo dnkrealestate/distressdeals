@@ -89,13 +89,15 @@ export default async function ProjectUnitsPage({ params }: { params: { slug: str
       ...(p.coordinates ? { geo: { '@type': 'GeoCoordinates', latitude: p.coordinates.lat, longitude: p.coordinates.lng } } : {}),
       keywords: keywordsFor(g).slice(0, 12).join(', '),
     },
+    // A listing, not a Product: Google's product snippets expect star ratings / reviews ("Missing field aggregateRating /
+    // review" in Search Console), and we have no genuine ones for a project — never invent them.
     ...(prices.length ? [{
       '@context': 'https://schema.org',
-      '@type': 'Product',
+      '@type': 'RealEstateListing',
       name: `${name} by ${p.developer}`,
+      url: pageUrl,
       image: g.gallery.slice(0, 5),
-      brand: { '@type': 'Brand', name: p.developer },
-      offers: { '@type': 'AggregateOffer', priceCurrency: 'AED', lowPrice: Math.min(...prices), highPrice: Math.max(...prices), offerCount: prices.length, url: pageUrl },
+      offers: { '@type': 'AggregateOffer', priceCurrency: 'AED', lowPrice: Math.min(...prices), highPrice: Math.max(...prices), offerCount: prices.length, url: pageUrl, businessFunction: 'https://schema.org/Sell' },
     }] : []),
     {
       '@context': 'https://schema.org',

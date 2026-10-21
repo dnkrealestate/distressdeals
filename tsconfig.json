@@ -40,7 +40,8 @@
     "app/layout.tsx",
     ".next-perf/types/**/*.ts",
     ".next-test/types/**/*.ts",
-    ".next-ga/types/**/*.ts"
+    ".next-ga/types/**/*.ts",
+    ".next-seo/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

@@ -35,6 +35,7 @@ const AreaPriceMap = dynamic(() => import('@/components/AreaPriceMap'), { ssr: f
 const MortgageSection = dynamic(() => import('@/components/MortgageSection'), { ssr: false, loading: () => <div className="section"><div className="wrap"><div className="shimmer rounded-3xl" style={{ height: 560 }} /></div></div> })
 import type { QuickLinksData } from '@/lib/quickLinks'
 import type { ListingKind } from '@/lib/listingTags'
+import { areaSlug } from '@/lib/areaLink'
 
 /* ─── DATA ──────────────────────────────────────────────────── */
 // Icons are purely cosmetic and keyed by area name — the actual listing
@@ -103,7 +104,7 @@ function HeadlineText({ text }: { text: string }) {
 function AreaCard({ area }: { area: AreaStat }) {
   const Icon = AREA_ICONS[area.area] || DEFAULT_AREA_ICON
   return (
-    <Link href={`/buyer/properties?area=${encodeURIComponent(area.area)}`}>
+    <Link href={`/areas/${areaSlug(area.area)}`}>
       <motion.div
         whileHover={{ y: -3 }}
         className="card-hover flex items-center gap-4 p-5 group"

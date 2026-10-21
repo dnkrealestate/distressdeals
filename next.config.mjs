@@ -25,6 +25,13 @@ const nextConfig = {
       allowedOrigins: ['localhost:3000', 'distressdealsuae.com', 'www.distressdealsuae.com'],
     },
   },
+  // One address for the whole site: the bare domain sends visitors and Google to www (301), so links and crawl
+  // credit are never split between two hosts.
+  async redirects() {
+    return [
+      { source: '/:path*', has: [{ type: 'host', value: 'distressdealsuae.com' }], destination: 'https://www.distressdealsuae.com/:path*', permanent: true },
+    ]
+  },
   async rewrites() {
     // Uploaded property images are stored/served by the Express API as
     // relative `/uploads/...` paths. Proxy them through Next so both plain
