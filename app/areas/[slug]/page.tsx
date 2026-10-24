@@ -20,6 +20,7 @@ import FaqSection, { type Faq } from '@/components/shared/FaqSection'
 import RealEstateLinks from '@/components/shared/RealEstateLinks'
 import AreaNearby from '@/components/areas/AreaNearby'
 import Price from '@/components/currency/Price'
+import { projectForCard } from '@/lib/cardData'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -311,7 +312,7 @@ export default async function AreaDetailPage({ params, searchParams }: { params:
                 New Projects in {area.area}<span className="font-normal text-sm ml-2" style={{ color: 'var(--text-muted)' }}>· {projectPage.total}</span>
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {projectPage.data.map((p, i) => <ProjectCard key={p._id} project={p} markAsProject delay={Math.min(i, 8) * 0.05} />)}
+                {projectPage.data.map((p, i) => <ProjectCard key={p._id} project={projectForCard(p)} markAsProject delay={Math.min(i, 8) * 0.05} />)}
               </div>
               <LinkPagination page={pPage} param="pp" totalPages={projectPage.totalPages} basePath={`/areas/${area.slug}`} anchor="projects"
                 total={projectPage.total} perPage={PER_PAGE} itemLabel={projectPage.total === 1 ? 'project' : 'projects'} />

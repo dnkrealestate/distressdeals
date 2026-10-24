@@ -12,6 +12,7 @@ import ContactClickTracker from '@/components/ContactClickTracker'
 import { THEME_BOOT_SCRIPT } from '@/store/themeStore'
 import { DEFAULT_SHARE_IMAGE } from '@/lib/seo'
 import RateBubble from '@/components/currency/RateBubble'
+import { COMPANY_PHONE } from '@/lib/contact'
 
 // Canonical www — the actual live domain (non-www 301s to this), so metadataBase (and therefore every relative
 // `alternates.canonical` across the app) must resolve here too, not to a URL that immediately redirects away.
@@ -50,6 +51,10 @@ const organizationJsonLd = {
   image: `${SITE_URL}/logo.webp`,
   description: "Dubai's centralized real estate platform — every listing verified, one dedicated in-house agent from first message to keys-in-hand.",
   areaServed: { '@type': 'City', name: 'Dubai' },
+  // Only details the site itself shows: the public number (footer, Contact page). No street address is published, so
+  // none is claimed here.
+  telephone: COMPANY_PHONE,
+  contactPoint: { '@type': 'ContactPoint', telephone: COMPANY_PHONE, contactType: 'customer service', areaServed: 'AE', availableLanguage: ['English'] },
   address: { '@type': 'PostalAddress', addressLocality: 'Dubai', addressCountry: 'AE' },
   sameAs: [
     'https://www.instagram.com/distressdeals_uae/',

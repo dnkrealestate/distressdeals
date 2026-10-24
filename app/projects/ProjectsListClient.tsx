@@ -149,16 +149,20 @@ function StatusPill({ active, onClick, children }: { active: boolean; onClick: (
   )
 }
 
+// The page of results the server already fetched for this URL — rendered straight away (so the cards and their links
+// are in the page's HTML for search engines and the first paint) instead of a loading skeleton.
+export interface InitialProjects { projects: Project[]; total: number; totalPages: number }
+
 // `bottom`: server-rendered blocks under the list, above the footer ("More searches", the new-projects guide).
-export default function ProjectsListClient({ bottom }: { bottom?: React.ReactNode }) {
+export default function ProjectsListClient({ bottom, initial }: { bottom?: React.ReactNode; initial?: InitialProjects }) {
   return (
     <Suspense fallback={null}>
-      <ProjectsListClientInner bottom={bottom} />
+      <ProjectsListClientInner bottom={bottom} initial={initial} />
     </Suspense>
   )
 }
 
-function ProjectsListClientInner({ bottom }: { bottom?: React.ReactNode }) {
+function ProjectsListClientInner({ bottom, initial }: { bottom?: React.ReactNode; initial?: InitialProjects }) {
   const searchParams = useSearchParams()
   const [filters, setFilters] = useState({
     q: searchParams.get('q') || '', area: searchParams.get('area') || '', developer: searchParams.get('developer') || '',
@@ -171,17 +175,19 @@ function ProjectsListClientInner({ bottom }: { bottom?: React.ReactNode }) {
     priceMax: Number(searchParams.get('priceMax')) || 0,
     handover: handoverKeyFromUrl(searchParams),
     quarter: /^Q[1-4]$/.test(searchParams.get('handoverQuarter') || '') ? (searchParams.get('handoverQuarter') as string) : '',
-    page: 1,
+    page: Math.max(1, Math.floor(Number(searchParams.get('page')) || 1)),
   })
   const [query,   setQuery]   = useState(searchParams.get('q') || '')
   // Bayut-style horizontal list rows by default — grid is the compact
   // alternative, same relationship as the property list pages.
   const [view, setView] = useState<'list' | 'grid'>('list')
 
-  const [projects,   setProjects]   = useState<Project[]>([])
-  const [total,      setTotal]      = useState(0)
-  const [totalPages, setTotalPages] = useState(1)
-  const [loading,    setLoading]    = useState(true)
+  const [projects,   setProjects]   = useState<Project[]>(initial?.projects || [])
+  const [total,      setTotal]      = useState(initial?.total || 0)
+  const [totalPages, setTotalPages] = useState(initial?.totalPages || 1)
+  const [loading,    setLoading]    = useState(!initial)
+  // The server's page is already showing — the first client fetch would only repeat it.
+  const skipFirstFetch = useRef(!!initial)
 
   const [areas,          setAreas]          = useState<string[]>([])
   const [developers,     setDevelopers]     = useState<DeveloperStat[]>([])
@@ -209,7 +215,8 @@ function ProjectsListClientInner({ bottom }: { bottom?: React.ReactNode }) {
   // Debounce the keyword field into `filters.q` — every other control
   // applies immediately.
   useEffect(() => {
-    const t = setTimeout(() => setFilters(f => ({ ...f, q: query, page: 1 })), query ? 350 : 0)
+    // Only a real change of the keyword goes back to page 1 (not the first run, which would undo ?page=N).
+    const t = setTimeout(() => setFilters(f => (f.q === query ? f : { ...f, q: query, page: 1 })), query ? 350 : 0)
     return () => clearTimeout(t)
   }, [query])
 
@@ -237,7 +244,23 @@ function ProjectsListClientInner({ bottom }: { bottom?: React.ReactNode }) {
       .finally(() => setLoading(false))
   }, [filters.status, filters.page, searchParamsFor])
 
-  useEffect(() => { fetchProjects() }, [fetchProjects])
+  useEffect(() => {
+    if (skipFirstFetch.current) { skipFirstFetch.current = false; return }
+    fetchProjects()
+  }, [fetchProjects])
+
+  // The page number lives in the address too (?page=N), so a refresh, a shared link or Back lands on the same page.
+  const pageHref = useCallback((p: number) => {
+    const qs = new URLSearchParams(searchParams.toString())
+    if (p > 1) qs.set('page', String(p)); else qs.delete('page')
+    const s = qs.toString()
+    return s ? `/projects?${s}` : '/projects'
+  }, [searchParams])
+  const goToPage = (p: number) => setFilter('page', p)
+  useEffect(() => {
+    const now = Math.max(1, Number(new URLSearchParams(window.location.search).get('page')) || 1)
+    if (now !== (filters.page || 1)) window.history.replaceState(null, '', pageHref(filters.page || 1))
+  }, [filters.page, pageHref])
 
   // Status counts respect every OTHER active filter, same reasoning as the
   // property-type counts row on /for-sale — each pill shows what picking
@@ -287,7 +310,7 @@ function ProjectsListClientInner({ bottom }: { bottom?: React.ReactNode }) {
           <Link href="/map-search" className="hidden sm:inline-flex items-center gap-1.5 h-12 px-4 rounded-xl text-sm font-semibold flex-shrink-0" style={{ border: '1px solid var(--border)', color: 'var(--text)' }}>
             <MapIcon size={16} style={{ color: 'var(--teal)' }} /> Map
           </Link>
-          <button onClick={() => setFilters(f => ({ ...f, q: query, page: 1 }))} className="btn-primary h-12 px-5 md:px-7 flex-shrink-0 gap-2">
+          <button onClick={() => setFilters(f => ({ ...f, q: query, page: 1 }))} aria-label="Search projects" className="btn-primary h-12 px-5 md:px-7 flex-shrink-0 gap-2">
             <Search size={16} /> <span className="hidden sm:inline">Search</span>
           </button>
         </div>
@@ -405,11 +428,14 @@ function ProjectsListClientInner({ bottom }: { bottom?: React.ReactNode }) {
               </div>
             ) : projects.length > 0 ? (
               <>
+                {/* Names the list for screen readers (the cards' h3s sit under it, not straight under the h1). */}
+                <h2 className="sr-only">{total.toLocaleString()} off-plan projects</h2>
                 <div className={view === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6' : 'flex flex-col gap-4'}>
                   {projects.map((project, i) => (
                     <Fragment key={project._id}>
-                      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 10) * 0.05 }}>
-                        <ProjectCard project={project} layout={view === 'grid' ? 'grid' : 'row'} />
+                      {/* Server-rendered cards show at once (no fade from invisible); later pages animate in. */}
+                      <motion.div initial={projects === initial?.projects ? false : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 10) * 0.05 }}>
+                        <ProjectCard project={project} priority={i === 0} layout={view === 'grid' ? 'grid' : 'row'} />
                       </motion.div>
                       {/* No sidebar below xl — the ad sits in the list instead. */}
                       {i === 5 && <AdSlot placement="listings" variant="wide" className="xl:hidden col-span-full" />}
@@ -420,7 +446,8 @@ function ProjectsListClientInner({ bottom }: { bottom?: React.ReactNode }) {
                 <Pagination
                   page={filters.page || 1}
                   totalPages={totalPages}
-                  onChange={p => setFilter('page', p)}
+                  onChange={goToPage}
+                  hrefFor={pageHref}
                   total={total}
                   perPage={limit}
                   itemLabel={total === 1 ? 'project' : 'projects'}

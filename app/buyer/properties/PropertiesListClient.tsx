@@ -24,6 +24,8 @@ import Pagination from '@/components/shared/Pagination'
 import SearchBar from '@/components/buyer/SearchBar'
 import { PropertyFilterBar, Pill, FilterDropdown, DropdownOption, TYPES, countForType } from '@/components/buyer/PropertyFilterBar'
 import { propertyAPI, savedSearchAPI, projectAPI } from '@/lib/api'
+import { TYPE_PAGE_LABELS } from '@/lib/listingSeo'
+import type { ListingSeed } from '@/lib/listingSeed'
 import { useAuthStore } from '@/store/authStore'
 import type { Property, PropertyFilters, Project } from '@/types'
 import type { MapPin } from '@/lib/mapPins'
@@ -197,6 +199,7 @@ function EmptyState({ onClear, mixed = false }: { onClear: () => void; mixed?: b
 // types and never for rent, and they can't be matched on bedrooms/size/availability — skip them for those searches.
 // 40 listings a page; up to 10 new projects mixed in.
 const PER_PAGE = 40
+const TYPE_HEADING = TYPE_PAGE_LABELS
 const PROJECTS_PER_PAGE = 10
 const PROJECT_TYPES = ['apartment', 'villa', 'townhouse', 'penthouse', 'studio', 'commercial', 'office', 'retail', 'warehouse', 'commercial_villa']
 
@@ -285,6 +288,9 @@ interface PropertiesListClientProps {
   initialProperties?: Property[]
   initialTotal?: number
   initialTotalPages?: number
+  // A page of the list in its fixed Best Opportunities order, rendered on the server (lib/listingSeed): shown at once —
+  // search engines and the first paint get real cards — until the visitor's own feed (page 1) or a refresh replaces it.
+  initial?: ListingSeed
   // Server-rendered blocks shown under the list, above the footer ("More searches", the buying/renting guide).
   bottom?: React.ReactNode
 }
@@ -297,24 +303,29 @@ export default function PropertiesListClient(props: PropertiesListClientProps) {
   )
 }
 
-function PropertiesListClientInner({ forcedListingType, initialProperties, initialTotal, initialTotalPages, bottom }: PropertiesListClientProps) {
+function PropertiesListClientInner({ forcedListingType, initialProperties, initialTotal, initialTotalPages, initial, bottom }: PropertiesListClientProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
 
-  const [properties, setProperties] = useState<Property[]>(initialProperties || [])
-  const [total,      setTotal]      = useState(initialTotal ?? 2400)
-  const [totalPages, setTotalPages] = useState(initialTotalPages ?? 1)
-  const [projects, setProjects] = useState<Project[]>([])
-  const [projectTotal, setProjectTotal] = useState(0)
-  const [pageOrder, setPageOrder] = useState('')   // "ppjpj…" for the Best Opportunities order (see mixListings)
+  const [properties, setProperties] = useState<Property[]>(initial?.properties ?? initialProperties ?? [])
+  const [total,      setTotal]      = useState(initial?.total ?? initialTotal ?? 2400)
+  const [totalPages, setTotalPages] = useState(initial?.totalPages ?? initialTotalPages ?? 1)
+  const [projects, setProjects] = useState<Project[]>(initial?.projects ?? [])
+  const [projectTotal, setProjectTotal] = useState(initial?.projectTotal ?? 0)
+  const [pageOrder, setPageOrder] = useState(initial?.order ?? '')
+  const seedCount = initial ? initial.properties.length + initial.projects.length : (initialProperties?.length || 0)
+  // While the server's cards are on screen, a refresh swaps them in place (no flash back to the loading skeleton).
+  const showingSeed = useRef(seedCount > 0)   // "ppjpj…" for the Best Opportunities order (see mixListings)
   // The personalised feed ("For You") — cards in the order the server laid out, appended batch by batch.
   const [feedItems, setFeedItems] = useState<{ kind: 'property' | 'project'; src: string; position: number; item: any }[]>([])
   const [feedMeta, setFeedMeta] = useState<{ feedId: string; page: number; hasMore: boolean; total: number; searching: boolean } | null>(null)
+  // The personalised feed failed (slow or down) — show the Best Opportunities list instead of an empty page.
+  const [feedBroken, setFeedBroken] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const feedReqKey = useRef<string | null>(null)
   const feedPending = useRef(false)
   const [sectionIds, setSectionIds] = useState<Set<string>>(new Set())
-  const [loading,    setLoading]    = useState(!initialProperties?.length)
+  const [loading,    setLoading]    = useState(seedCount === 0)
   const [view,       setView]       = useState<'grid'|'list'|'map'>('list')
 
   // The List toggle button is hidden below the `sm` breakpoint (see
@@ -357,9 +368,12 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
   // One list, exactly PER_PAGE cards a page: up to PROJECTS_PER_PAGE new projects plus properties; once either kind
   // runs out the other fills the page. Each page's slice is worked out from both totals and fetched by offset.
   // For You — the personalised feed — on the Buy page; every other sort works as before.
-  const feedMode = forcedListingType === 'sale' && (filters.sortBy || defaultSort(forcedListingType)) === 'relevance' && view !== 'map'
+  // Page 2, 3… (?page=N) are fixed pages in Best Opportunities order; the personalised feed is page 1's infinite scroll.
+  const feedMode = forcedListingType === 'sale' && (filters.sortBy || defaultSort(forcedListingType)) === 'relevance' && view !== 'map' && !feedBroken && (filters.page || 1) === 1
+  // "For You" outside the feed (a later page, or the feed failed) means the Best Opportunities order.
+  const listSort = (filters.sortBy || 'opportunity') === 'relevance' ? 'opportunity' : (filters.sortBy || 'opportunity')
   const fetchList = useCallback(async () => {
-    setLoading(true)
+    if (!showingSeed.current) setLoading(true)
     const page = filters.page || 1
     const clean: any = {}
     Object.entries(filters).forEach(([k, v]) => { if (v && k !== 'page' && k !== 'limit') clean[k] = v })
@@ -394,12 +408,14 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
         if (feedReqKey.current !== reqKey) return              // a newer search has started since
         const d = res.data.data
         setFeedVariants(d.variants)
+        showingSeed.current = false
         setFeedItems(d.items || [])
         setFeedMeta({ feedId: d.feedId, page: 1, hasMore: !!d.hasMore, total: d.total || 0, searching: !!d.searching })
         setTotal(d.total || 0); setProjectTotal(0); setTotalPages(1)
       } catch {
         feedReqKey.current = null
         setFeedItems([]); setFeedMeta(null)
+        setFeedBroken(true)   // falls back to Best Opportunities (feedMode turns off and the list is fetched that way)
       } finally {
         feedPending.current = false
         if (feedReqKey.current === reqKey || feedReqKey.current === null) setLoading(false)
@@ -407,6 +423,7 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
       return
     }
 
+    if (clean.sortBy === 'relevance') clean.sortBy = 'opportunity'
     const getProps = (offset: number, limit: number) => propertyAPI.getAll({ ...clean, offset, limit })
       .then(r => r.data.success ? r.data.data : null)
     const getProjs = (offset: number, limit: number) => withProjects
@@ -415,7 +432,7 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
     try {
       // Best Opportunities: ask the server which slice of each kind page N holds when both are ranked together by
       // Opportunity Score, fetch exactly those, and lay them out in the order it gives.
-      if ((filters.sortBy || 'opportunity') === 'opportunity') {
+      if (listSort === 'opportunity') {
         const { sortBy: _s, ...planFilters } = clean
         const planRes = await propertyAPI.getOpportunityPlan({ ...planFilters, page, perPage: PER_PAGE, ...(withProjects ? { projects: JSON.stringify(pParams) } : {}) })
         const plan = planRes.data.data
@@ -423,6 +440,7 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
           plan.properties.limit ? getProps(plan.properties.offset, plan.properties.limit) : Promise.resolve({ data: [] as Property[] }),
           plan.projects.limit ? projectAPI.getAll({ ...pParams, sortBy: 'opportunity', offset: plan.projects.offset, limit: plan.projects.limit }).then(r => r.data.success ? r.data.data : null).catch(() => null) : Promise.resolve({ data: [] as Project[] }),
         ])
+        showingSeed.current = false
         setProperties(pr?.data || [])
         setProjects(pj?.data || [])
         setPageOrder(plan.order || '')
@@ -443,6 +461,7 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
       if (plan.jo !== guess.jo && plan.j > 0) pj = await getProjs(plan.jo, plan.j)
       const propsPart = plan.po !== guess.po ? pr.data : pr.data.slice(0, plan.pr)
       const projsPart = plan.jo !== guess.jo ? (pj?.data || []) : (pj?.data || []).slice(0, plan.j)
+      showingSeed.current = false
       setProperties(propsPart.slice(0, plan.pr))
       setProjects(projsPart.slice(0, plan.j))
       setTotal(P)
@@ -453,7 +472,7 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
     } finally {
       setLoading(false)
     }
-  }, [filters, forcedListingType, feedMode])
+  }, [filters, forcedListingType, feedMode, listSort])
 
   useEffect(() => { fetchList() }, [fetchList])
   useEffect(() => { if (!feedMode) feedReqKey.current = null }, [feedMode])
@@ -503,11 +522,25 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
   // A plain feed (no search, no filters): the place for "Continue browsing" / "Recommended for you".
   const explicitSearch = ['q', 'area', 'community', 'type', 'bedrooms', 'bathrooms', 'priceMin', 'priceMax', 'sizeMin', 'sizeMax', 'category', 'completion', 'tag', 'offer', ...ADVANCED_KEYS]
     .some(k => (filters as any)[k])
-  const listItems: (ListItem & { src?: string; position?: number })[] = feedMode
+  // Until the feed has answered, the server's cards stay on screen.
+  const listItems: (ListItem & { src?: string; position?: number })[] = feedMode && feedMeta
     // Cards already shown in "Recommended for you" / "Because you viewed" above are not repeated in the feed.
     ? feedItems.filter(x => x?.item && (explicitSearch || !sectionIds.has(x.item._id))).map(x => ({ kind: x.kind, item: x.item, key: `${x.kind}-${x.item._id}`, src: x.src, position: x.position }))
-    : mixListings(properties, projects, filters.sortBy || 'opportunity', pageOrder)
+    : mixListings(properties, projects, listSort, pageOrder)
+  const fromSeed = !(feedMode && feedMeta) && !!initial && properties === initial.properties && projects === initial.projects
   const pageCount = totalPages
+  // Page numbers are real links (?page=N) and the address follows the page shown, so refresh / share / Back keep it.
+  const basePath = forcedListingType === 'rent' ? '/for-rent' : forcedListingType === 'sale' ? '/for-sale' : '/buyer/properties'
+  const pageHref = useCallback((p: number) => {
+    const qs = new URLSearchParams(searchParams.toString())
+    if (p > 1) qs.set('page', String(p)); else qs.delete('page')
+    const str = qs.toString()
+    return str ? `${basePath}?${str}` : basePath
+  }, [searchParams, basePath])
+  useEffect(() => {
+    const now = Math.max(1, Number(new URLSearchParams(window.location.search).get('page')) || 1)
+    if (now !== (filters.page || 1)) window.history.replaceState(null, '', pageHref(filters.page || 1))
+  }, [filters.page, pageHref])
 
   // PropertyFinder-style "Apartments 1,234 · Villas 567 …" counts row —
   // reflects every active filter EXCEPT the type filter itself (that's the
@@ -605,7 +638,8 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
       tag:         searchParams.get('tag')         || '',
       offer:       searchParams.get('offer') === 'true' ? 'true' : '',
       ...advancedFrom(searchParams as any),
-      page: 1,
+      // The page is part of the address too (?page=N) — a new search arrives without it, so this is still page 1 then.
+      page: Math.max(1, Math.floor(Number(searchParams.get('page')) || 1)),
     }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams.toString()])
@@ -720,7 +754,10 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
         </nav>
 
         <h1 className="heading-md mb-1">
-          {forcedListingType === 'sale' ? (
+          {/* A property-type page (/for-sale?type=villa) is its own page — its heading matches its title. */}
+          {forcedListingType && !filters.tag && TYPE_HEADING[filters.type || ''] ? (
+            <>{TYPE_HEADING[filters.type || '']} for <span className="grad-text">{forcedListingType === 'rent' ? 'Rent' : 'Sale'}</span> in Dubai &amp; UAE</>
+          ) : forcedListingType === 'sale' ? (
             <>Distressed Property for <span className="grad-text">Sale</span> in Dubai</>
           ) : forcedListingType === 'rent' ? (
             <>Property for <span className="grad-text">Rent</span> in Dubai</>
@@ -932,17 +969,18 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
             ) : (
               <>
                 {feedMode && !explicitSearch && <FeedSections view={view === 'list' ? 'list' : 'grid'} onShown={ids => setSectionIds(new Set(ids))} />}
+                <h2 className="sr-only">Listings</h2>
                 <div className={cn(view === 'grid' ? 'grid gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3' : 'flex flex-col gap-4')}>
                   {listItems.map((entry, i) => (
                     <Fragment key={entry.key}>
                       <motion.div
-                        initial={{ opacity: 0, y: 16 }}
+                        initial={fromSeed ? false : { opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: Math.min(i, 10) * 0.04 }}>
                         <FeedTracked kind={entry.kind} id={entry.item?._id} src={entry.src || `sort:${filters.sortBy || 'opportunity'}`} position={entry.position ?? i}>
                           {entry.kind === 'project'
-                            ? <ProjectCard project={entry.item} layout={view === 'grid' ? 'grid' : 'row'} markAsProject />
-                            : <PropertyCard property={entry.item} loading={!entry.item} layout={view === 'grid' ? 'grid' : 'row'} />}
+                            ? <ProjectCard project={entry.item} priority={i === 0} layout={view === 'grid' ? 'grid' : 'row'} markAsProject />
+                            : <PropertyCard property={entry.item} priority={i === 0} loading={!entry.item} layout={view === 'grid' ? 'grid' : 'row'} />}
                         </FeedTracked>
                       </motion.div>
                       {/* No sidebar below xl — the ad sits in the list instead, after the 6th listing. */}
@@ -960,12 +998,17 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
                     ) : (
                       <p className="text-xs" style={{ color: 'var(--text-muted)' }}>You've seen all {listItems.length.toLocaleString()} matching listings.</p>
                     )}
+                    {/* A plain link into the numbered pages — how search engines reach every listing beyond the feed. */}
+                    {(initial?.totalPages || 0) > 1 && (
+                      <a href={pageHref(2)} className="text-xs underline py-1" style={{ color: 'var(--text-muted)' }}>Browse all listings page by page</a>
+                    )}
                   </div>
                 ) : (
                 <Pagination
                   page={filters.page || 1}
                   totalPages={pageCount}
                   onChange={p => setFilters(f => ({ ...f, page: p }))}
+                  hrefFor={pageHref}
                   total={total + projectTotal}
                   perPage={PER_PAGE}
                   itemLabel={total + projectTotal === 1 ? 'listing' : 'listings'}

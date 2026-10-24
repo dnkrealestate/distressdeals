@@ -30,6 +30,8 @@ function SliderField({ label, value, onChange, min, max, step, format }: {
       </div>
       <input
         type="range" min={min} max={max} step={step} value={value}
+        aria-label={label}
+        aria-valuetext={format(value)}
         onChange={e => onChange(Number(e.target.value))}
         className="w-full"
         style={{ accentColor: 'var(--teal)' }}

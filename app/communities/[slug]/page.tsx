@@ -20,6 +20,7 @@ import { HOME_ICON_MAP } from '@/lib/homeIcons'
 import type { CommunityContentWithStats, Property, Project, Place } from '@/types'
 import { shareImages, fitTitle, fitDescription } from '@/lib/seo'
 import Price from '@/components/currency/Price'
+import { projectForCard } from '@/lib/cardData'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -299,7 +300,7 @@ export default async function CommunityDetailPage({ params, searchParams }: { pa
                 New Projects in {community.name}<span className="font-normal text-sm ml-2" style={{ color: 'var(--text-muted)' }}>· {projectPage.total}</span>
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {projects.map((p, i) => <ProjectCard key={p._id} project={p} markAsProject delay={Math.min(i, 8) * 0.05} />)}
+                {projects.map((p, i) => <ProjectCard key={p._id} project={projectForCard(p)} markAsProject delay={Math.min(i, 8) * 0.05} />)}
               </div>
               <LinkPagination page={pPage} param="pp" totalPages={projectPage.totalPages} basePath={`/communities/${community.slug}`} anchor="projects"
                 total={projectPage.total} perPage={PER_PAGE} itemLabel={projectPage.total === 1 ? 'project' : 'projects'} />

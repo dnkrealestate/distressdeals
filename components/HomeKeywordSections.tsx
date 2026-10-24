@@ -64,11 +64,12 @@ export default function HomeKeywordSections({ areas, communities, developers }: 
                     </h3>
                     {listedIn(a) && <span className="text-[11px] font-semibold rounded-full px-2 py-0.5 flex-shrink-0" style={{ background: 'var(--bg-alt)', color: 'var(--text-muted)' }}>{listedIn(a)}</span>}
                   </div>
-                  <p className="flex flex-wrap gap-x-3 gap-y-1 text-xs" style={{ color: 'var(--text-muted)' }}>
-                    <Link href={`/for-sale?area=${enc(a.area)}&type=apartment`} className="hover:underline">Apartments for sale</Link>
-                    <Link href={`/for-sale?area=${enc(a.area)}&type=villa`} className="hover:underline">Villas for sale</Link>
-                    <Link href={`/for-rent?area=${enc(a.area)}`} className="hover:underline">Property for rent</Link>
-                    <Link href={`/projects?area=${enc(a.area)}`} className="hover:underline">Off-plan projects</Link>
+                  {/* py-1 gives each small link a 24px-tall tap target (WCAG 2.2 target size). */}
+                  <p className="flex flex-wrap gap-x-3 text-xs" style={{ color: 'var(--text-muted)' }}>
+                    <Link href={`/for-sale?area=${enc(a.area)}&type=apartment`} className="inline-block py-1 hover:underline">Apartments for sale</Link>
+                    <Link href={`/for-sale?area=${enc(a.area)}&type=villa`} className="inline-block py-1 hover:underline">Villas for sale</Link>
+                    <Link href={`/for-rent?area=${enc(a.area)}`} className="inline-block py-1 hover:underline">Property for rent</Link>
+                    <Link href={`/projects?area=${enc(a.area)}`} className="inline-block py-1 hover:underline">Off-plan projects</Link>
                   </p>
                 </div>
               ))}

@@ -7,6 +7,7 @@ import type { Property } from '@/types'
 import { shareImages, fitTitle, fitDescription } from '@/lib/seo'
 import { propertyKeywords } from '@/lib/listingSeo'
 import { areaPageHref } from '@/lib/areaLink'
+import { displayTitle } from '@/lib/utils'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -20,17 +21,31 @@ const getProperty = cache(async (slug: string): Promise<Property | null> => {
   }
 })
 
+// Bedrooms only describe homes — a shop, office, warehouse or plot with 0 bedrooms is not a "Studio".
+const RESIDENTIAL = new Set(['apartment', 'villa', 'townhouse', 'penthouse', 'studio'])
 function bedroomsLabel(property: Property): string {
+  if (property.type === 'studio') return ''
+  if (!RESIDENTIAL.has(property.type)) return ''
   return property.amenities?.bedrooms > 0 ? `${property.amenities.bedrooms}-Bedroom` : 'Studio'
 }
+const typeLabel = (property: Property) => (property.type || 'property').replace(/_/g, ' ')
+// "2-Bedroom apartment" / "studio" / "retail" — the listing's own facts, nothing filled in.
+const whatItIs = (property: Property) => [bedroomsLabel(property), typeLabel(property)].filter(Boolean).join(' ')
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const property = await getProperty(params.slug)
   if (!property) return { title: 'Property Not Found' }
 
   const action = property.listingType === 'sale' ? 'for Sale' : 'for Rent'
-  const title = property.metaTitle?.trim() || `${bedroomsLabel(property)} ${property.type?.replace('_', ' ')} ${action} in ${property.location.area}, Dubai`
-  const description = property.metaDescription?.trim() || `${bedroomsLabel(property)} ${property.type} ${action.toLowerCase()} in ${property.location.area} — ${property.amenities.floorArea.toLocaleString()} sqft, ${property.amenities.bathrooms} bathrooms. Listed at ${property.price.toLocaleString()} AED. Verified listing, managed end-to-end by Distress Deals UAE.`
+  const place = [property.location.area, property.location.emirate || 'Dubai'].filter(Boolean).join(', ')
+  const what = whatItIs(property)
+  const title = property.metaTitle?.trim() || `${what.charAt(0).toUpperCase()}${what.slice(1)} ${action} in ${place}`
+  // Only facts the listing has — no "0 sqft, 0 bathrooms" when a field is empty.
+  const facts = [
+    property.amenities?.floorArea > 0 && `${property.amenities.floorArea.toLocaleString()} sqft`,
+    property.amenities?.bathrooms > 0 && `${property.amenities.bathrooms} bathroom${property.amenities.bathrooms === 1 ? '' : 's'}`,
+  ].filter(Boolean).join(', ')
+  const description = property.metaDescription?.trim() || `${what.charAt(0).toUpperCase()}${what.slice(1)} ${action.toLowerCase()} in ${place}${facts ? ` — ${facts}` : ''}. Listed at ${property.price.toLocaleString()} AED. Verified listing, managed end-to-end by Distress Deals UAE.`
   const images = shareImages(property.images?.[0]?.url)
 
   return {
@@ -52,7 +67,7 @@ export default async function PropertyDetailPage({ params }: { params: { slug: s
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'RealEstateListing',
-    name: property.title,
+    name: displayTitle(property.title),
     description: property.description.replace(/<[^>]*>/g, '').slice(0, 300),
     keywords: propertyKeywords(property).join(', '),
     url: `${SITE_URL}/buyer/properties/${property.slug}`,
@@ -67,9 +82,10 @@ export default async function PropertyDetailPage({ params }: { params: { slug: s
     ...(property.location.coordinates && {
       geo: { '@type': 'GeoCoordinates', latitude: property.location.coordinates.lat, longitude: property.location.coordinates.lng },
     }),
-    numberOfRooms: property.amenities?.bedrooms,
-    numberOfBathroomsTotal: property.amenities?.bathrooms,
-    floorSize: { '@type': 'QuantitativeValue', value: property.amenities?.floorArea, unitCode: 'FTK' },
+    // Empty fields are left out rather than stated as 0.
+    ...(RESIDENTIAL.has(property.type) && property.amenities?.bedrooms >= 0 ? { numberOfRooms: property.amenities.bedrooms } : {}),
+    ...(property.amenities?.bathrooms > 0 ? { numberOfBathroomsTotal: property.amenities.bathrooms } : {}),
+    ...(property.amenities?.floorArea > 0 ? { floorSize: { '@type': 'QuantitativeValue', value: property.amenities.floorArea, unitCode: 'FTK' } } : {}),
     offers: {
       '@type': 'Offer',
       price: property.price,
@@ -84,8 +100,8 @@ export default async function PropertyDetailPage({ params }: { params: { slug: s
     '@type': 'BreadcrumbList',
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
-      { '@type': 'ListItem', position: 2, name: 'Properties', item: `${SITE_URL}/buyer/properties` },
-      { '@type': 'ListItem', position: 3, name: property.title, item: `${SITE_URL}/buyer/properties/${property.slug}` },
+      { '@type': 'ListItem', position: 2, name: property.listingType === 'rent' ? 'For Rent' : 'For Sale', item: `${SITE_URL}/${property.listingType === 'rent' ? 'for-rent' : 'for-sale'}` },
+      { '@type': 'ListItem', position: 3, name: displayTitle(property.title), item: `${SITE_URL}/buyer/properties/${property.slug}` },
     ],
   }
 

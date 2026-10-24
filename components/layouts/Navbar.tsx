@@ -436,6 +436,8 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
             {/* Mobile hamburger */}
             <button
               onClick={() => setMenu(o => !o)}
+              aria-label={menu ? 'Close menu' : 'Open menu'}
+              aria-expanded={menu}
               className="xl:hidden btn-ghost p-2 rounded-lg"
             >
               {menu ? <X size={18} /> : <Menu size={18} />}

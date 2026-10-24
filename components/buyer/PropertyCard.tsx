@@ -17,7 +17,7 @@ import { OpportunityBadges } from '@/components/buyer/OpportunityBadges'
 import { OfferRibbon, OfferGifts, OfferPriceTag } from '@/components/buyer/OfferParts'
 import { liveOffer, offerPrice } from '@/lib/offer'
 import { useCompareStore }   from '@/store/compareStore'
-import { formatPrice, formatArea, cn, rentSuffix } from '@/lib/utils'
+import { formatPrice, formatArea, cn, rentSuffix, displayTitle } from '@/lib/utils'
 import ImageSlider            from '@/components/buyer/ImageSlider'
 import { SpecPill }           from '@/components/buyer/SpecPill'
 import RentalBadge            from '@/components/buyer/RentalBadge'
@@ -84,11 +84,13 @@ export default function PropertyCard({
   loading  = false,
   compact  = false,
   layout   = 'grid',
+  priority = false,
 }: {
   property?: Property
   loading?:  boolean
   compact?:  boolean
   layout?:   'grid' | 'row'
+  priority?: boolean   // first card of a list: load its photo early (it is usually the largest thing on screen)
 }) {
   const router = useRouter()
   const { isAuthenticated }                         = useAuthStore()
@@ -149,7 +151,7 @@ export default function PropertyCard({
 
           {/* ── Image — full height, stretches to match the body ──── */}
           <div className="relative overflow-hidden flex-shrink-0 h-56 sm:h-auto sm:w-[340px] sm:self-stretch">
-            <ImageSlider images={cardImages} alt={p.title} sizes="(max-width:768px)100vw,340px" />
+            <ImageSlider images={cardImages} alt={p.title} priority={priority} sizes="(max-width:768px)100vw,340px" />
 
             <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 45%)' }} />
             <OfferRibbon item={p} />
@@ -199,7 +201,7 @@ export default function PropertyCard({
             </div>
 
             <h3 className="font-semibold text-base sm:text-[1.1rem] line-clamp-1 mb-1.5 leading-snug transition-colors group-hover:text-[var(--teal)]" style={{ color: 'var(--text)' }}>
-              {p.title}
+              {displayTitle(p.title)}
             </h3>
 
             <div className="flex items-center gap-1.5 text-[0.9rem] mb-1">
@@ -251,7 +253,7 @@ export default function PropertyCard({
             compact ? 'h-44' : 'h-56'
           )}
         >
-          <ImageSlider images={cardImages} alt={p.title} sizes="(max-width:768px)100vw,(max-width:1200px)50vw,33vw" />
+          <ImageSlider images={cardImages} alt={p.title} priority={priority} sizes="(max-width:768px)100vw,(max-width:1200px)50vw,33vw" />
 
           {/* Gradient overlay */}
           <div
@@ -352,7 +354,7 @@ export default function PropertyCard({
             className="font-semibold text-[0.95rem] line-clamp-2 mb-2 leading-snug transition-colors group-hover:text-[var(--teal)]"
             style={{ color: 'var(--text)' }}
           >
-            {p.title}
+            {displayTitle(p.title)}
           </h3>
 
           {/* Location */}

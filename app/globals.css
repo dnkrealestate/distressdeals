@@ -10,7 +10,7 @@
      compatibility with every existing var(--teal) reference across the
      codebase; the actual palette is now the red→orange brand gradient. */
   --teal:        #CB0101;
-  --teal-light:  #E23B3B;
+  --teal-light:  #D63030;   /* white text on it passes WCAG AA (4.9:1); was #E23B3B (4.3:1) */
   --teal-dark:   #8F0000;
   --green:       #FD7147;
   --green-light: #FF8F66;
@@ -31,7 +31,7 @@
   /* Light mode text */
   --text:         #1E293B;
   --text-mid:     #475569;
-  --text-muted:   #94A3B8;
+  --text-muted:   #5E6E84;   /* readable on white / bg / bg-alt (≥4.7:1, WCAG AA); was #94A3B8 (2.6:1) */
 
   /* Shadows */
   --shadow-sm:  0 2px 8px rgba(0,0,0,0.06);
@@ -210,7 +210,9 @@ body {
   .badge {
     @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold;
   }
-  .badge-teal   { @apply badge; background: rgba(203,1,1,0.12);  color: #CB0101; border: 1px solid rgba(203,1,1,0.25); }
+  /* Text a shade darker than the brand red so it stays readable on the tinted badge (WCAG AA, 5.4:1); lighter in dark mode. */
+  .badge-teal   { @apply badge; background: rgba(203,1,1,0.12);  color: #B00000; border: 1px solid rgba(203,1,1,0.25); }
+  [data-theme="dark"] .badge-teal { color: #F87171; }
   .badge-green  { @apply badge; background: rgba(253,113,71,0.12);   color: #FD7147; border: 1px solid rgba(253,113,71,0.25); }
   .badge-purple { @apply badge; background: rgba(168,85,247,0.10);  color: #C084FC; border: 1px solid rgba(168,85,247,0.20); }
   .badge-blue   { @apply badge; background: rgba(59,130,246,0.10);  color: #60A5FA; border: 1px solid rgba(59,130,246,0.20); }
@@ -530,7 +532,7 @@ body {
    It resets the theme colours inside itself, so its text and border follow. */
 .light-card, [data-theme="dark"] .light-card {
   --surface: #FFFFFF; --bg-alt: #F1F5F9; --border: #E2E8F0; --border-soft: #F1F5F9;
-  --text: #1E293B; --text-mid: #475569; --text-muted: #64748B;
+  --text: #1E293B; --text-mid: #475569; --text-muted: #5E6E84;
   background: #FFFFFF; border-color: #E2E8F0; color: #1E293B; color-scheme: light;
 }
 [data-theme="light"] { color-scheme: light; }

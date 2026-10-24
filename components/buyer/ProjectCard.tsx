@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -162,7 +162,7 @@ function ByDeveloper({ project }: { project: Project }) {
         </p>
       )}
       <InfoBadge label="Verified" icon={BadgeCheck} title="Verified listing" message={VERIFIED_NOTE}
-                  style={{ background: 'rgba(22,163,74,0.10)', color: '#15803D', border: '1px solid rgba(22,163,74,0.25)' }} />
+                  style={{ background: 'rgba(22,163,74,0.10)', color: '#166534', border: '1px solid rgba(22,163,74,0.25)' }} />
       {offPlan && <InfoBadge label="Off-plan" icon={Info} title="Off-plan initial sale" message={OFF_PLAN_NOTE}
                   style={{ background: 'rgba(139,92,246,0.10)', color: '#7C3AED', border: '1px solid rgba(139,92,246,0.25)' }} />}
     </div>
@@ -192,16 +192,24 @@ function Badges({ project, markAsProject }: { project: Project; markAsProject?: 
   )
 }
 
+// Cards that arrive with the page (server-rendered) show at once — starting them invisible would hide them until the
+// JavaScript has loaded and delay the first paint. Cards mounted later (next page, filters) still fade in.
+let pageHydrated = false
+
 export default function ProjectCard({
-  project, delay = 0, layout = 'grid', markAsProject = false,
+  project, delay = 0, layout = 'grid', markAsProject = false, priority = false,
 }: {
   project: Project
+  priority?: boolean
   delay?: number
   layout?: 'grid' | 'row'
   markAsProject?: boolean
 }) {
   const router = useRouter()
   const [interestOpen, setInterestOpen] = useState(false)
+  const [fadeIn] = useState(() => pageHydrated)
+  useEffect(() => { pageHydrated = true }, [])
+  const enter = fadeIn ? { opacity: 0, y: 24 } : false
   // While an offer is live its own picture is the card image (it is not part of the gallery on the detail page).
   const offer = liveOffer(project)
   const images = offer?.thumbnail ? [{ url: offer.thumbnail }] : project.images?.length ? project.images : (project.coverImage ? [{ url: project.coverImage }] : [])
@@ -240,7 +248,7 @@ export default function ProjectCard({
   /* ── Bayut-style horizontal list row ─────────────────────── */
   if (layout === 'row') {
     return (
-      <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay }}>
+      <motion.div initial={enter} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay }}>
         <Link href={`/projects/${project.slug}`}>
           <div className={`prop-card group flex flex-col sm:flex-row${offer ? ' offer-card' : ''}`}>
 
@@ -249,7 +257,7 @@ export default function ProjectCard({
                 align-items: stretch), instead of a fixed px height that
                 can leave it shorter than a body with more detail rows. */}
             <div className="relative overflow-hidden flex-shrink-0 h-56 sm:h-auto sm:w-[340px] sm:self-stretch">
-              <ImageSlider images={images} alt={project.title} sizes="(max-width:768px)100vw,340px" />
+              <ImageSlider images={images} alt={project.title} priority={priority} sizes="(max-width:768px)100vw,340px" />
               <Badges project={project} markAsProject={markAsProject} />
               {!offer && <DeveloperBadge project={project} />}
               <OfferRibbon item={project} />
@@ -287,12 +295,12 @@ export default function ProjectCard({
 
   /* ── Grid card ────────────────────────────────────────────── */
   return (
-    <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay }}>
+    <motion.div initial={enter} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay }}>
       <Link href={`/projects/${project.slug}`}>
         <div className={`prop-card group h-full overflow-hidden${offer ? ' offer-card' : ''}`}>
           {/* Fixed-size image — never stretches or reflows with content. */}
           <div className="h-52 relative flex items-center justify-center flex-shrink-0 overflow-hidden" style={{ background: 'var(--bg-alt)' }}>
-            <ImageSlider images={images} alt={project.title} sizes="(max-width:768px)100vw,400px" />
+            <ImageSlider images={images} alt={project.title} priority={priority} sizes="(max-width:768px)100vw,400px" />
 
             <Badges project={project} markAsProject={markAsProject} />
             <CardActions project={project} onImage />

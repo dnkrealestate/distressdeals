@@ -5,6 +5,10 @@ import { EXPLORE_SECTIONS, EMIRATES, sectionHref, placeHref } from '@/lib/explor
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.distressdealsuae.com'
 
+// Rebuilt at most hourly. Without this the sitemap is generated once at build time and new projects, listings and
+// guides would only reach it on the next deploy.
+export const revalidate = 3600
+
 // Static, always-present routes — everything else below is generated from
 // live data so new listings/posts/projects show up without a manual edit.
 const STATIC_ROUTES = [
@@ -34,22 +38,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Each fetch is isolated — one failing source (e.g. the API being briefly
   // down) shouldn't take the whole sitemap down with it.
-  // The API pages its results (up to 50 properties / 100 projects per request), so walk every page.
+  // The API pages its results (up to 50 properties / 100 projects per request), so read every page: the first one
+  // says how many there are, the rest are fetched a few at a time in parallel (one after another took over a minute
+  // for ~13 project pages + ~10 place pages and timed the build out).
   const allPages = async (get: (page: number) => Promise<any>, max = 40): Promise<any[]> => {
-    const out: any[] = []
-    for (let page = 1; page <= max; page++) {
-      const d = await get(page).then(r => r.data.data).catch(() => null)
-      const rows = d?.data || []
-      out.push(...rows)
-      if (!rows.length || page >= (d?.totalPages || 1)) break
+    const first = await get(1).then(r => r.data.data).catch(() => null)
+    const out: any[] = [...(first?.data || [])]
+    const last = Math.min(max, first?.totalPages || 1)
+    for (let from = 2; from <= last; from += 6) {
+      const batch = Array.from({ length: Math.min(6, last - from + 1) }, (_, i) => get(from + i).then(r => r.data.data?.data || []).catch(() => []))
+      for (const rows of await Promise.all(batch)) out.push(...rows)
     }
     return out
   }
-  const [properties, posts, articles, projects] = await Promise.all([
+  const [properties, posts, articles, projects, places] = await Promise.all([
     allPages(page => propertyAPI.getAll({ limit: 50, page })),
     blogAPI.getAll({ limit: 500 }).then(r => r.data.data?.data || r.data.data || []).catch(() => []),
     newsAPI.getAll({ limit: 500 }).then(r => r.data.data?.data || r.data.data || []).catch(() => []),
-    allPages(page => projectAPI.getAll({ limit: 100, page })),
+    allPages(page => projectAPI.getAll({ fields: 'index', limit: 1000, page })),   // slug, title, developer, dates only
+    allPages(page => placeAPI.getAll({ limit: 60, page, sort: 'name' }), 60),
   ])
 
   // Every area with a page — with listings or a written guide — dated by its guide's last edit when it has one.
@@ -130,7 +137,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }
 
   // UAE Explore: every place, plus each section's per-emirate page.
-  const places = await allPages(page => placeAPI.getAll({ limit: 60, page, sort: 'name' }), 60)
   // Places with enough content of their own (photo + real description, FAQs or reviews — decided by the backend).
   for (const p of (places as { category: string; slug: string; emirate: string; updatedAt?: string; indexable?: boolean }[]).filter(p => p.indexable !== false)) {
     entries.push({ url: `${SITE_URL}${placeHref(p)}`, ...(p.updatedAt ? { lastModified: new Date(p.updatedAt) } : {}), changeFrequency: 'monthly', priority: 0.6 })

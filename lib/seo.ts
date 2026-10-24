@@ -72,3 +72,21 @@ export async function resolveSeo(pageKey: string, defaults: SeoDefaults): Promis
     twitter: { card: 'summary_large_image', title, description, images: [DEFAULT_SHARE_IMAGE.url] },
   }
 }
+
+/** Page N (N ≥ 2) of a paginated list is a page of its own: its own canonical (…?page=N — never page 1) and
+ *  "– Page N" in the title, placed before a trailing "| Distress Deals…" brand when the title already carries one. */
+export function withPage(meta: Metadata, page: number): Metadata {
+  if (page <= 1) return meta
+  const addPage = (t: string) => (/\s\|\s[^|]*distress deals[^|]*$/i.test(t) ? t.replace(/(\s\|\s[^|]*)$/, ` – Page ${page}$1`) : `${t} – Page ${page}`)
+  const raw = meta.title
+  const title: Metadata['title'] = typeof raw === 'string' ? addPage(raw)
+    : raw && typeof raw === 'object' && 'absolute' in raw ? { absolute: addPage(String(raw.absolute)) } : raw
+  const canonical = String(meta.alternates?.canonical || '')
+  const pagedCanonical = canonical ? `${canonical}${canonical.includes('?') ? '&' : '?'}page=${page}` : undefined
+  const plainTitle = typeof title === 'string' ? title : title && typeof title === 'object' && 'absolute' in title ? String(title.absolute) : undefined
+  return {
+    ...meta, title,
+    ...(pagedCanonical ? { alternates: { ...meta.alternates, canonical: pagedCanonical } } : {}),
+    openGraph: { ...(meta.openGraph || {}), ...(plainTitle ? { title: plainTitle } : {}), ...(pagedCanonical ? { url: pagedCanonical } : {}) },
+  }
+}

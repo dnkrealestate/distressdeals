@@ -16,8 +16,10 @@ function pageItems(page: number, total: number, siblings: number): (number | '�
 
 // Bottom-of-list page navigation for the Buy / Rent / New Projects lists.
 // Wide screens: ‹ Prev  1 … 4 5 [6] 7 8 … 20  Next ›  ·  phones: ‹  1 … [6] … 20  ›  plus "Page 6 of 20".
+// With `hrefFor` every page is a real <a href> (?page=N) — search engines can follow the list to its later pages —
+// while a click still switches pages in place.
 export default function Pagination({
-  page, totalPages, onChange, total, perPage, itemLabel = 'results',
+  page, totalPages, onChange, total, perPage, itemLabel = 'results', hrefFor,
 }: {
   page: number
   totalPages: number
@@ -25,6 +27,7 @@ export default function Pagination({
   total?: number          // shows "Showing 41–80 of 312 …" when given
   perPage?: number
   itemLabel?: string
+  hrefFor?: (page: number) => string
 }) {
   if (totalPages <= 1) return null
   const go = (p: number) => {
@@ -32,14 +35,20 @@ export default function Pagination({
     onChange(p)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
+  // A link to page p — or a plain button without `hrefFor`, and for an arrow that has nowhere to go.
+  type BtnProps = { p: number; disabled?: boolean; children: React.ReactNode; className: string; style: React.CSSProperties; 'aria-label': string; 'aria-current'?: 'page' }
+  const Btn = ({ p, disabled, children, ...rest }: BtnProps) =>
+    hrefFor && !disabled
+      ? <a href={hrefFor(p)} onClick={e => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; e.preventDefault(); go(p) }} {...rest}>{children}</a>
+      : <button type="button" onClick={() => go(p)} disabled={disabled} {...rest}>{children}</button>
 
   const numberBtn = (p: number | '…', i: number, compact: boolean) =>
     p === '…' ? (
       <span key={`gap-${i}`} className="w-8 text-center text-sm select-none" style={{ color: 'var(--text-muted)' }}>…</span>
     ) : (
-      <button
+      <Btn
         key={p}
-        onClick={() => go(p)}
+        p={p}
         aria-label={`Page ${p}`}
         aria-current={p === page ? 'page' : undefined}
         className={`${compact ? 'min-w-9 h-9' : 'min-w-10 h-10'} px-2 rounded-xl text-sm font-semibold transition-all`}
@@ -48,14 +57,14 @@ export default function Pagination({
           : { color: 'var(--text-mid)', border: '1px solid var(--border)', background: 'var(--surface)' }}
       >
         {p}
-      </button>
+      </Btn>
     )
 
   const arrow = (dir: -1 | 1, withLabel: boolean) => {
     const disabled = dir < 0 ? page <= 1 : page >= totalPages
     return (
-      <button
-        onClick={() => go(page + dir)}
+      <Btn
+        p={page + dir}
         disabled={disabled}
         aria-label={dir < 0 ? 'Previous page' : 'Next page'}
         className={`h-10 ${withLabel ? 'px-4 gap-1.5' : 'w-10 justify-center'} inline-flex items-center rounded-xl text-sm font-semibold transition-all disabled:opacity-35 disabled:cursor-not-allowed`}
@@ -64,7 +73,7 @@ export default function Pagination({
         {dir < 0 && <ChevronLeft size={16} />}
         {withLabel && (dir < 0 ? 'Previous' : 'Next')}
         {dir > 0 && <ChevronRight size={16} />}
-      </button>
+      </Btn>
     )
   }
 

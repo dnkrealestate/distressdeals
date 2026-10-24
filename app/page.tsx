@@ -7,6 +7,16 @@ import type { HomepageContent } from '@/types'
 // Homepage content, featured lists and search links come from the admin / database — refresh every 60 s.
 export const revalidate = 60
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.distressdealsuae.com'
+// The site's name in Google results (instead of the bare domain) — Google reads it from WebSite data on the home page only.
+const websiteJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Distress Deals UAE',
+  alternateName: ['Distress Deals', 'DistressDealsUAE'],
+  url: `${SITE_URL}/`,
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   return resolveSeo('home', {
     title: 'Distress Sale Dubai | Distressed Property Deals UAE',
@@ -78,5 +88,11 @@ export default async function HomePage() {
     communities: communities.map((c: any) => ({ _id: c._id, name: c.name, slug: c.slug, area: c.area, count: c.count, isFeatured: c.isFeatured })),
     developers: developers.map((d: any) => ({ _id: d._id, name: d.name, slug: d.slug, logo: d.logo, projectCount: d.projectCount, isFeatured: d.isFeatured })),
   }
-  return <HomeClient content={content} popularSearches={{ sale, rent, projects }} guides={guides} />
+  return (
+    <>
+      {/* eslint-disable-next-line react/no-danger */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
+      <HomeClient content={content} popularSearches={{ sale, rent, projects }} guides={guides} />
+    </>
+  )
 }

@@ -1,20 +1,25 @@
 import type { Metadata } from 'next'
-import { propertyAPI, quickLinksAPI } from '@/lib/api'
+import { quickLinksAPI } from '@/lib/api'
 import { getContentPage } from '@/lib/contentPages'
 import { GUIDE_RENTING } from '@/lib/guideContent'
 import { tagHeadline, TAG_LABELS } from '@/lib/listingTags'
 import MoreSearches from '@/components/listing/MoreSearches'
 import GuideSection from '@/components/listing/GuideSection'
 import AreaPriceMap from '@/components/AreaPriceMap'
-import { resolveSeo } from '@/lib/seo'
+import { resolveSeo, withPage } from '@/lib/seo'
+import { listingSeed } from '@/lib/listingSeed'
+import { notFound } from 'next/navigation'
+import { TYPE_PAGE_LABELS } from '@/lib/listingSeo'
 import PropertiesListClient from '../buyer/properties/PropertiesListClient'
 
-const TYPE_PAGE: Record<string, string> = {
-  apartment: 'Apartments', villa: 'Villas', townhouse: 'Townhouses', penthouse: 'Penthouses', studio: 'Studios', plot: 'Plots',
-  office: 'Offices', retail: 'Retail Spaces', warehouse: 'Warehouses', commercial: 'Commercial Properties', commercial_villa: 'Commercial Villas',
+const TYPE_PAGE = TYPE_PAGE_LABELS
+
+// Page 2, 3… (?page=N) get their own canonical and "– Page N" title (lib/seo withPage).
+export async function generateMetadata({ searchParams }: { searchParams?: { tag?: string; type?: string; page?: string } }): Promise<Metadata> {
+  return withPage(await baseMetadata(searchParams), Math.max(1, Math.floor(Number(searchParams?.page) || 1)))
 }
 
-export async function generateMetadata({ searchParams }: { searchParams?: { tag?: string; type?: string } }): Promise<Metadata> {
+async function baseMetadata(searchParams?: { tag?: string; type?: string }): Promise<Metadata> {
   const tag = searchParams?.tag && TAG_LABELS[searchParams.tag] ? searchParams.tag : ''
   const seo = await resolveSeo('for-rent', {
     title: 'Property for Rent in Dubai | Verified Listings',
@@ -34,24 +39,20 @@ export async function generateMetadata({ searchParams }: { searchParams?: { tag?
   return { ...seo, title: t, description: `${t} — verified listings direct from owners on Distress Deals UAE, with real prices and no third-party agents.`, alternates: { canonical: `/for-rent?tag=${tag}` } }
 }
 
-export default async function ForRentPage({ searchParams }: { searchParams?: { type?: string } }) {
-  const [quickLinks, guide] = await Promise.all([
+export default async function ForRentPage({ searchParams }: { searchParams?: Record<string, string | undefined> }) {
+  const [quickLinks, guide, initial] = await Promise.all([
     quickLinksAPI.get('rent').then(r => r.data.success ? r.data.data : null).catch(() => null),
     getContentPage('guide-renting', GUIDE_RENTING),
+    // The list's page in Best Opportunities order, rendered here so crawlers (and the first paint) see real cards.
+    listingSeed('rent', searchParams),
   ])
-  // Server-fetched first page — so crawlers (and the very first paint) see real listings, not an empty shell.
-  // The client component re-fetches on mount as usual for filters/sorting; this only seeds that initial render.
-  const type = searchParams?.type && TYPE_PAGE[searchParams.type] ? searchParams.type : undefined
-  const initial = await propertyAPI.getAll({ listingType: 'rent', page: 1, limit: 40, sortBy: 'recommended', ...(type ? { type } : {}) })
-    .then(r => r.data.success ? r.data.data : null)
-    .catch(() => null)
+  // A page past the end of the list (?page=999) is a real 404, not an empty 200 ("soft 404").
+  if (initial && initial.page > 1 && initial.page > initial.totalPages) notFound()
 
   return (
     <PropertiesListClient
       forcedListingType="rent"
-      initialProperties={initial?.data}
-      initialTotal={initial?.total}
-      initialTotalPages={initial?.totalPages}
+      initial={initial}
       bottom={<><AreaPriceMap defaultPurpose="rent" title="Compare rents by area" subtitle="See what a year’s rent gets you across different areas." /><MoreSearches data={quickLinks} /><GuideSection content={guide} /></>}
     />
   )

@@ -41,7 +41,9 @@
     ".next-perf/types/**/*.ts",
     ".next-test/types/**/*.ts",
     ".next-ga/types/**/*.ts",
-    ".next-seo/types/**/*.ts"
+    ".next-seo/types/**/*.ts",
+    ".next-fav/types/**/*.ts",
+    ".next-audit/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

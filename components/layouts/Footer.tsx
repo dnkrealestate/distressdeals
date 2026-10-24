@@ -167,9 +167,9 @@ export default function Footer() {
           {/* Links columns */}
           {Object.entries(FOOTER_LINKS).map(([heading, links]) => (
             <div key={heading}>
-              <h4 className="text-sm font-semibold mb-5" style={{ color: 'var(--text)' }}>
+              <h2 className="text-sm font-semibold mb-5" style={{ color: 'var(--text)' }}>
                 {heading}
-              </h4>
+              </h2>
               <ul className="space-y-3">
                 {links.map(({ label, href }) => (
                   <li key={label}>
@@ -190,9 +190,9 @@ export default function Footer() {
 
           {/* Get the App column */}
           {/* <div>
-            <h4 className="text-sm font-semibold mb-5" style={{ color: 'var(--text)' }}>
+            <h2 className="text-sm font-semibold mb-5" style={{ color: 'var(--text)' }}>
               Get the App
-            </h4>
+            </h2>
             <p className="text-sm leading-relaxed mb-5" style={{ color: 'var(--text-muted)' }}>
               Search, save, and message sellers on the go — download the Distress Deals app.
             </p>

@@ -439,7 +439,8 @@ export const currencyAPI = {
 }
 
 export const feedAPI = {
-  page:        (params: Record<string, any>) => api.get('/feed', { params }),
+  // Ranking the whole inventory for a new visitor can take longer than the default 15 s on a cold server.
+  page:        (params: Record<string, any>) => api.get('/feed', { params, timeout: 30000 }),
   sections:    (visitorId: string) => api.get('/feed/sections', { params: { visitorId } }),
   experiments: (visitorId: string) => api.get('/feed/experiments', { params: { visitorId } }),
   // Admin

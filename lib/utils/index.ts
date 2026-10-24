@@ -95,3 +95,21 @@ export function isHandedOver(p: { handoverYear?: number | null; handoverQuarter?
   const pq = Number(String(p.handoverQuarter || '').replace(/\D/g, '')) || 0
   return pq > 0 && pq < q
 }
+
+// Seller-typed titles written in capitals ("DISTRESS DEAL | 2BR IN JVC") read as shouting in a heading or a search
+// result. Shown in title case instead — the stored text is untouched, short codes stay in capitals, and any title with
+// lower-case letters is left exactly as typed.
+const KEEP_UPPER = new Set(['AED', 'UAE', 'USD', 'JVC', 'JVT', 'JLT', 'JBR', 'DIFC', 'DLD', 'RERA', 'NOC', 'MBR', 'DAMAC', 'ROI', 'BHK', 'BR', 'BUA', 'SQFT', 'DXB', 'II', 'III', 'IV', 'VI', 'VII', 'VIII', 'IX', 'XI', 'XII'])
+const SMALL = new Set(['a', 'an', 'and', 'at', 'by', 'for', 'in', 'of', 'on', 'or', 'the', 'to', 'with'])
+export function displayTitle(title?: string | null): string {
+  const t = String(title || '')
+  if (!/[A-Z]/.test(t) || /[a-z]/.test(t)) return t
+  let first = true
+  return t.replace(/[A-Z0-9][A-Z0-9'’&.-]*/g, w => {
+    const isFirst = first; first = false
+    if (KEEP_UPPER.has(w.replace(/[.'’]/g, '')) || /\d/.test(w)) return w           // codes, 2BR, B2, G+4
+    const lower = w.toLowerCase()
+    if (!isFirst && SMALL.has(lower)) return lower
+    return lower.charAt(0).toUpperCase() + lower.slice(1)
+  })
+}

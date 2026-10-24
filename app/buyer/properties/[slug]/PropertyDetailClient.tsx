@@ -39,7 +39,7 @@ import { AMENITY_META, AMENITY_GROUPS } from '@/lib/amenities'
 import { useFavoritesStore } from '@/store/favoritesStore'
 import { useCompareStore } from '@/store/compareStore'
 import { useAuthStore } from '@/store/authStore'
-import { formatPrice, formatArea, timeAgo, cn, rentSuffix, rentPeriodLabel } from '@/lib/utils'
+import { formatPrice, formatArea, timeAgo, cn, rentSuffix, rentPeriodLabel, displayTitle } from '@/lib/utils'
 import type { Property } from '@/types'
 import toast from 'react-hot-toast'
 import CurrencyNote from '@/components/currency/CurrencyNote'
@@ -240,13 +240,14 @@ export default function PropertyDetailClient({ property, areaHref }: { property:
         <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
           <Link href="/" className="hover:opacity-80 transition-opacity">Home</Link>
           <span>/</span>
-          <Link href="/buyer/properties" className="hover:opacity-80 transition-opacity">Properties</Link>
+          {/* The Buy / Rent list this listing belongs to (the indexable pages, not the all-in-one search). */}
+          <Link href={property.listingType === 'rent' ? '/for-rent' : '/for-sale'} className="hover:opacity-80 transition-opacity">{property.listingType === 'rent' ? 'For Rent' : 'For Sale'}</Link>
           <span>/</span>
           {areaHref
             ? <Link href={areaHref} className="hover:opacity-80 transition-opacity" style={{ color: 'var(--text-mid)' }}>{property.location.area}</Link>
             : <span style={{ color: 'var(--text-mid)' }}>{property.location.area}</span>}
           <span>/</span>
-          <span style={{ color: 'var(--teal)' }} className="truncate max-w-xs">{property.title}</span>
+          <span style={{ color: 'var(--teal)' }} className="truncate max-w-xs">{displayTitle(property.title)}</span>
         </div>
       </div>
 
@@ -337,7 +338,7 @@ export default function PropertyDetailClient({ property, areaHref }: { property:
                   )}
                   <span className="badge badge-gray capitalize">{property.type?.replace('_', ' ')}</span>
                 </div>
-                <h1 className="text-2xl md:text-3xl font-semibold mb-1 leading-tight" style={{ color: 'var(--text)' }}>{property.title}</h1>
+                <h1 className="text-2xl md:text-3xl font-semibold mb-1 leading-tight" style={{ color: 'var(--text)' }}>{displayTitle(property.title)}</h1>
                 {property.titleAr && (
                   <p dir="rtl" className="text-lg font-medium mb-3" style={{ color: 'var(--text-mid)' }}>{property.titleAr}</p>
                 )}
@@ -870,7 +871,7 @@ export default function PropertyDetailClient({ property, areaHref }: { property:
                 <h2 className="heading-md mb-2">Recommended <span className="grad-text">For You</span></h2>
                 <p className="muted">Popular listings across the marketplace</p>
               </div>
-              <Link href="/buyer/properties" className="btn-ghost btn-sm hidden md:flex">
+              <Link href={property.listingType === 'rent' ? '/for-rent' : '/for-sale'} className="btn-ghost btn-sm hidden md:flex">
                 View All
               </Link>
             </div>
@@ -898,7 +899,7 @@ export default function PropertyDetailClient({ property, areaHref }: { property:
           >
             <div className="wrap flex items-center gap-3 py-3">
               <div className="hidden sm:block flex-1 min-w-0">
-                <p className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>{property.title}</p>
+                <p className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>{displayTitle(property.title)}</p>
                 <p className="text-sm font-bold grad-text">{formatPrice(offerPrice(property, property.price) || property.price)}{rentSuffix(property)}</p>
               </div>
               <a href={telHref} className="btn-outline p-3 flex-shrink-0" aria-label={`Call ${COMPANY_PHONE_DISPLAY}`} title={`Call ${COMPANY_PHONE_DISPLAY}`}>

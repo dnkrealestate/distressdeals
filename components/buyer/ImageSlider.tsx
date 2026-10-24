@@ -15,8 +15,8 @@ function dotWindow(idx: number, count: number): number[] {
 }
 
 export default function ImageSlider({
-  images, alt, sizes, rounded,
-}: { images?: { url: string }[]; alt: string; sizes: string; rounded?: boolean }) {
+  images, alt, sizes, rounded, priority = false,
+}: { images?: { url: string }[]; alt: string; sizes: string; rounded?: boolean; priority?: boolean }) {
   const [idx, setIdx] = useState(0)
   const [err, setErr] = useState(false)
   const list = images && images.length > 0 ? images : []
@@ -45,6 +45,8 @@ export default function ImageSlider({
         className="object-cover transition-transform duration-700 group-hover:scale-105"
         onError={() => setErr(true)}
         sizes={sizes}
+        // The first card of a list is usually the largest thing on screen — fetch it early instead of lazily.
+        priority={priority && idx === 0}
       />
 
       {list.length > 1 && (

@@ -384,7 +384,7 @@ export default function ProjectDetailClient({ project, areaHref }: { project: Pr
                 return (
                   <button key={src} onClick={() => setViewerAt(n + 1)} aria-label="Open photos"
                     className="relative group overflow-hidden hidden md:block" style={{ background: 'var(--bg-alt)' }}>
-                    <Image src={src} alt="" fill sizes="33vw" className="object-cover transition-transform duration-700 group-hover:scale-[1.04]" />
+                    <Image src={src} alt={`${project.title} by ${project.developer} — photo ${n + 2}`} fill sizes="33vw" className="object-cover transition-transform duration-700 group-hover:scale-[1.04]" />
                     {isLast && more > 0 && (
                       <span className="absolute inset-0 flex items-center justify-center gap-2 text-white text-2xl font-semibold" style={{ background: 'rgba(0,0,0,0.42)' }}>
                         <Camera size={26} /> {more}+

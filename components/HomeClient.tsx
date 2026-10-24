@@ -391,14 +391,9 @@ export default function HomeClient({ content, popularSearches, guides }: {
             </p>
           </motion.div> */}
 
-          {/* CTAs */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.45 }}
-            className="flex flex-wrap gap-4 mb-14 w-full justify-center"
-          >
-            <Link href="/buyer/properties" className="btn-primary btn-lg" onClick={() => trackCta('hero_explore_properties')}>
+          {/* CTAs — above the fold, so they're visible from the first paint (not faded in once the JS has run). */}
+          <div className="flex flex-wrap gap-4 mb-14 w-full justify-center">
+            <Link href="/for-sale" className="btn-primary btn-lg" onClick={() => trackCta('hero_explore_properties')}>
               Explore Properties <ArrowRight size={16} />
             </Link>
             <Link
@@ -409,7 +404,7 @@ export default function HomeClient({ content, popularSearches, guides }: {
             >
               List Your Property
             </Link>
-          </motion.div>
+          </div>
 
           {/* Mini stats */}
           {/* <motion.div
@@ -608,7 +603,7 @@ export default function HomeClient({ content, popularSearches, guides }: {
               </h2>
               <p className="muted">Exceptional listings selected by our property specialists</p>
             </div>
-            <Link href="/buyer/properties?featured=true" className="btn-ghost btn-sm hidden md:flex">
+            <Link href="/for-sale" className="btn-ghost btn-sm hidden md:flex">
               View All <ArrowRight size={14} />
             </Link>
           </motion.div>

@@ -52,7 +52,7 @@ export default function InfoBadge({ label, icon: Icon, title, message, className
         aria-expanded={open}
         aria-label={`${label} — what does this mean?`}
         onClick={e => { e.preventDefault(); e.stopPropagation(); setOpen(o => !o) }}
-        className={`badge text-[10px] font-semibold inline-flex items-center gap-1 cursor-help ${className}`}
+        className={`badge text-[10px] font-semibold inline-flex items-center gap-1 cursor-help min-h-[24px] ${className}`}
         style={style}
       >
         {Icon && <Icon size={11} />}{label}

@@ -16,6 +16,7 @@ import LinkPagination from '@/components/shared/LinkPagination'
 import type { DeveloperWithStats, Project } from '@/types'
 import { DEFAULT_SHARE_IMAGE, fitTitle, fitDescription } from '@/lib/seo'
 import Price from '@/components/currency/Price'
+import { projectForCard } from '@/lib/cardData'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -164,9 +165,10 @@ export default async function DeveloperDetailPage({ params, searchParams }: { pa
       <section className="relative overflow-hidden" style={{ background: '#0B1220' }}>
         {banner.length > 0 ? (
           <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${Math.min(banner.length, 3)}, minmax(0, 1fr))` }} aria-hidden>
-            {banner.slice(0, 3).map(src => (
+            {/* Blurred backdrop — small, low-quality copies are enough; only the first is fetched early. */}
+            {banner.slice(0, 3).map((src, i) => (
               <div key={src} className="relative overflow-hidden">
-                <Image src={src} alt="" fill priority sizes="50vw" className="object-cover" style={{ filter: 'blur(6px) saturate(1.1)', transform: 'scale(1.12)' }} />
+                <Image src={src} alt="" fill priority={i === 0} quality={40} sizes="(max-width:768px) 100vw, 34vw" className="object-cover" style={{ filter: 'blur(6px) saturate(1.1)', transform: 'scale(1.12)' }} />
               </div>
             ))}
           </div>
@@ -240,7 +242,7 @@ export default async function DeveloperDetailPage({ params, searchParams }: { pa
           {listPage.data.length > 0 ? (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {listPage.data.map((project, i) => <ProjectCard key={project._id} project={project} delay={Math.min(i, 8) * 0.05} />)}
+                {listPage.data.map((project, i) => <ProjectCard key={project._id} project={projectForCard(project)} delay={Math.min(i, 8) * 0.05} />)}
               </div>
               <LinkPagination page={page} totalPages={listPage.totalPages} basePath={`/developers/${dev.slug}`} anchor="projects"
                 total={listPage.total} perPage={PER_PAGE} itemLabel={listPage.total === 1 ? 'project' : 'projects'} />

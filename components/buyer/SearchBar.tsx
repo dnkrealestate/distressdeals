@@ -722,6 +722,7 @@ export default function SearchBar({
 
         <button
           onClick={() => setShowMobileModal(true)}
+          aria-label={activeCount > 0 ? `Filters (${activeCount} active)` : 'Filters'}
           className="relative flex-shrink-0 flex items-center justify-center h-11 w-11 rounded-xl border"
           style={{
             borderColor: activeCount > 0 ? 'var(--teal)' : 'var(--border)',
@@ -742,6 +743,7 @@ export default function SearchBar({
 
         <button
           onClick={handleSearch}
+          aria-label="Search"
           className="btn-primary flex-shrink-0 h-11 w-11 rounded-xl p-0 flex items-center justify-center"
         >
           <Search size={15} />

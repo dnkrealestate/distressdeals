@@ -75,9 +75,21 @@ export default function AreaPriceMap({ defaultPurpose = 'buy', title = 'Compare 
   const inEmirate = (a: AreaPrice) => emirate === 'All UAE' || a.emirate === emirate
   const list = useMemo(() => all.filter(inEmirate).sort((a, b) => b.count - a.count), [all, emirate]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Map + boundaries (once)
+  // The map sits low on the page (home, Buy, Rent): Google Maps and the boundary file are only fetched once it is
+  // about to scroll into view — not with the page, where they competed with the first paint.
+  const [near, setNear] = useState(false)
   useEffect(() => {
-    if (mapState === 'no-key' || !mapEl.current) return
+    const el = mapEl.current
+    if (!el || near) return
+    if (typeof IntersectionObserver === 'undefined') { setNear(true); return }
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setNear(true); io.disconnect() } }, { rootMargin: '600px 0px' })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [near])
+
+  // Map + boundaries (once, when near)
+  useEffect(() => {
+    if (!near || mapState === 'no-key' || !mapEl.current) return
     let cancelled = false
     Promise.all([loadGoogleMaps(), loadShapes()]).then(([, geo]) => {
       if (cancelled || !mapEl.current) return
@@ -95,7 +107,7 @@ export default function AreaPriceMap({ defaultPurpose = 'buy', title = 'Compare 
     }).catch(() => !cancelled && setMapState('error'))
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [near])
   useEffect(() => { if (mapRef.current) mapRef.current.setOptions(baseMapOptions(theme)) }, [theme])
 
   // Colour the boundaries by price (grey = no prices yet); outline the selected one.

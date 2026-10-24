@@ -55,3 +55,9 @@ export function propertyKeywords(p: Property): string[] {
     'verified property listings UAE',
   ]).slice(0, 18)
 }
+
+// Property-type pages (/for-sale?type=villa, /for-rent?type=villa): the plural label used in their title and heading.
+export const TYPE_PAGE_LABELS: Record<string, string> = {
+  apartment: 'Apartments', villa: 'Villas', townhouse: 'Townhouses', penthouse: 'Penthouses', studio: 'Studios', plot: 'Plots',
+  office: 'Offices', retail: 'Retail Spaces', warehouse: 'Warehouses', commercial: 'Commercial Properties', commercial_villa: 'Commercial Villas',
+}
