@@ -8,12 +8,12 @@ import { getSocket } from '@/lib/socket'
 import { useAuthStore } from '@/store/authStore'
 import { timeAgo, cn } from '@/lib/utils'
 
-interface Notification {
+export interface Notification {
   _id: string; type: string; title: string; body: string
   data?: Record<string, any>; isRead: boolean; createdAt: string
 }
 
-const TYPE_ICON: Record<string, any> = {
+export const TYPE_ICON: Record<string, any> = {
   new_lead: TrendingUp, lead_update: TrendingUp,
   lead_delete_requested: TrendingUp, lead_delete_approved: TrendingUp, lead_delete_rejected: TrendingUp,
   property_approved: Home, property_rejected: Home, property_sold: Home, property_reopened: Home,
@@ -23,13 +23,25 @@ const TYPE_ICON: Record<string, any> = {
   task_assigned: ListTodo,
 }
 
+// The newer push-era types (NEW_MESSAGE, NEW_LEAD…) mapped onto the names the routing and icons above know.
+const LEGACY_TYPE: Record<string, string> = {
+  NEW_MESSAGE: 'message_received', NEW_LEAD: 'new_lead', SELLER_RESPONSE: 'lead_update',
+  PROPERTY_APPROVED: 'property_approved', PROPERTY_REJECTED: 'property_rejected',
+  NEW_PROPERTY: 'new_property_match', PROPERTY_ALERT: 'new_property_match', SAVED_SEARCH: 'new_property_match', PRICE_CHANGE: 'new_property_match',
+}
+export const normalizeType = (t: string) => LEGACY_TYPE[t] || t
+
 // Where a notification's "type" should take the user, depending on their
 // role — an agent's "new_lead" goes to the CRM, a buyer's "new_lead"
 // (their own enquiry confirmation) goes to their own leads page, etc.
 // Wherever the target page supports deep-linking to the exact item (chat
 // room, lead), we go straight there instead of dropping the user on the
 // list — the same "click it, land on it" behaviour the room list itself uses.
-function destinationFor(type: string, role?: string, data?: Record<string, any>): string | null {
+export function destinationFor(rawType: string, role?: string, data?: Record<string, any>): string | null {
+  const type = normalizeType(rawType)
+  // A new project announcement → that project.
+  if (data?.projectSlug) return `/projects/${data.projectSlug}`
+  if (data?.url && typeof data.url === 'string' && data.url.startsWith('/')) return data.url
   // "List your first property" reminder.
   if (data?.action === 'list_property') return '/sell'
   // Admin alerts about a new registration / number verification → that customer list.
@@ -200,7 +212,7 @@ export default function NotificationBell({ variant = 'navbar' }: { variant?: 'na
                 </div>
               ) : (
                 notifications.map(n => {
-                  const Icon = TYPE_ICON[n.type] || Bell
+                  const Icon = TYPE_ICON[normalizeType(n.type)] || Bell
                   return (
                     <button
                       key={n._id}
@@ -222,6 +234,10 @@ export default function NotificationBell({ variant = 'navbar' }: { variant?: 'na
                 })
               )}
             </div>
+            {/* The full list: filters, mark all read, clear. */}
+            <a href="/notifications" onClick={() => setOpen(false)} className="block text-center text-xs font-semibold py-3 hover:underline" style={{ color: 'var(--teal)', borderTop: '1px solid var(--border)' }}>
+              View all notifications
+            </a>
           </motion.div>
         )}
       </AnimatePresence>

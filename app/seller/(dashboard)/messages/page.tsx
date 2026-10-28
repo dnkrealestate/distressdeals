@@ -28,12 +28,11 @@ function agentParticipants(room: ChatRoom, sellerId?: string) {
 // Distinguishes the listing's primary agent from anyone else who has joined
 // the thread about a different buyer lead, so a multi-agent conversation
 // stays legible to the seller reading it.
+// Staff speak as the team in a seller's chats — no individual names.
+const STAFF = ['agent', 'admin', 'super_admin', 'editor']
 function roleLabel(room: ChatRoom, person?: UserT): string {
   if (!person) return ''
   if (room.property?.seller?._id === person._id) return 'You'
-  if (room.property?.agent?._id === person._id) return 'Listing Agent'
-  if (person.role === 'admin' || person.role === 'super_admin') return 'Admin'
-  if (person.role === 'agent') return 'Agent'
   return ''
 }
 
@@ -54,7 +53,7 @@ function RoomListItem({ room, active, onClick, currentUserId, isOnline }: { room
         <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white overflow-hidden" style={{ background: 'var(--grad)' }}>
           {room.property?.images?.[0]?.url ? (
             <img src={room.property.images[0].url} alt="" className="w-full h-full object-cover" />
-          ) : (primary?.name?.[0] || 'A')}
+          ) : 'D'}
         </div>
         {agents.length > 0 && <OnlineDot online={anyOnline} className="absolute -bottom-0.5 -right-0.5" />}
       </div>
@@ -63,7 +62,7 @@ function RoomListItem({ room, active, onClick, currentUserId, isOnline }: { room
           {/* Listing name is the primary label — a seller can have multiple listings,
               each with its own chat room, so the property is what tells them apart. */}
           <p className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>
-            {room.property?.title || primary?.name || 'Agent'}
+            {room.property?.title || 'Distress Deals team'}
           </p>
           {room.unreadCount > 0 && (
             <span className="min-w-4 h-4 px-1 rounded-full text-[9px] font-bold text-white flex items-center justify-center flex-shrink-0" style={{ background: 'var(--grad)' }}>
@@ -75,9 +74,9 @@ function RoomListItem({ room, active, onClick, currentUserId, isOnline }: { room
           {last ? (
             <>
               {lastMine && <StatusTicks message={last} className="flex-shrink-0" />}
-              <span className="truncate">{lastMine || last.type === 'system' ? '' : last.sender?.name ? `${last.sender.name}: ` : ''}{previewOf(last)}</span>
+              <span className="truncate">{lastMine || last.type === 'system' ? '' : last.sender?.name ? `${STAFF.includes(last.sender.role as string) ? 'Distress Deals team' : last.sender.name}: ` : ''}{previewOf(last)}</span>
             </>
-          ) : agents.length > 0 ? `${agents.map(a => a.name).join(', ')} · No messages yet` : 'No messages yet'}
+          ) : 'Distress Deals team · No messages yet'}
         </p>
         {agents.length > 1 && (
           <p className="text-[10px] flex items-center gap-1 mt-1" style={{ color: 'var(--text-muted)' }}>
@@ -219,10 +218,10 @@ function MessagesInner() {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>
-                  {activeRoomData?.property?.title || primaryAgent?.name || 'Agent'}
+                  {activeRoomData?.property?.title || 'Distress Deals team'}
                 </p>
                 <div className="flex items-center gap-2 min-w-0">
-                  <PresenceLine typingNames={thread.typers.map(t => t.name)} onlineCount={onlineAgents.length} lastSeenAt={agentLastSeen} />
+                  <PresenceLine typingNames={thread.typers.length ? ['Distress Deals team'] : []} onlineCount={onlineAgents.length} lastSeenAt={agentLastSeen} />
                   {activeAgents.length > 0 && (
                     <span className="text-xs truncate flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
                       <Users size={10} className="flex-shrink-0" /> {activeAgents.map(a => a.name).join(', ')}
@@ -244,7 +243,7 @@ function MessagesInner() {
                       const mine = item.m.sender._id === user?._id
                       const label = activeRoomData ? roleLabel(activeRoomData, item.m.sender) : ''
                       const id = item.m.sender.displayId ? ` (${item.m.sender.displayId})` : ''
-                      return <MessageBubble key={item.key} message={item.m} mine={mine} senderLabel={`${item.m.sender.name}${id}${label ? ` · ${label}` : ''}`} />
+                      return <MessageBubble key={item.key} message={item.m} mine={mine} senderLabel={STAFF.includes(item.m.sender.role as string) ? 'Distress Deals team' : `${item.m.sender.name}${id}${label ? ` · ${label}` : ''}`} />
                     })())
               )}
               {thread.typers.length > 0 && <TypingBubble />}

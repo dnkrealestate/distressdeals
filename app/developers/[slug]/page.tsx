@@ -17,6 +17,7 @@ import type { DeveloperWithStats, Project } from '@/types'
 import { DEFAULT_SHARE_IMAGE, fitTitle, fitDescription } from '@/lib/seo'
 import Price from '@/components/currency/Price'
 import { projectForCard } from '@/lib/cardData'
+import { groupPrimaries } from '@/lib/indexability'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -117,14 +118,18 @@ export default async function DeveloperDetailPage({ params, searchParams }: { pa
 
   // FAQs answered from live data — always current, never invented.
   const areas = Array.from(new Set(projects.map(p => p.area).filter(Boolean)))
-  const offPlan = projects.filter(p => p.status !== 'ready' && !isHandedOver(p))
+  // One project is often entered once per unit type — count projects, not records.
+  const offPlan = groupPrimaries(projects.filter(p => p.status !== 'ready' && !isHandedOver(p)))
+  const projectTotal = dev.projectCount || groupPrimaries(projects).length
+  const unitTotal = dev.unitCount || listPage.total
+  const unitsNote = unitTotal > projectTotal ? ` (${unitTotal} unit types)` : ''
   const plans = Array.from(new Set(projects.map(p => (p.paymentPlan || '').trim()).filter(Boolean))).slice(0, 4)
   const upcoming = offPlan.filter(p => p.handoverYear).sort((a, b) => (a.handoverYear! - b.handoverYear!) || String(a.handoverQuarter).localeCompare(String(b.handoverQuarter)))
   const list = (a: string[]) => a.length <= 1 ? a.join('') : `${a.slice(0, -1).join(', ')} and ${a[a.length - 1]}`
   const faqs: Faq[] = [
-    projects.length ? {
+    projectTotal ? {
       q: `How many ${dev.name} projects are listed on Distress Deals UAE?`,
-      a: `We currently list ${projects.length} ${dev.name} project${projects.length === 1 ? '' : 's'}${offPlan.length ? `, ${offPlan.length} of them off-plan` : ''}${areas.length ? `, in ${list(areas.slice(0, 5))}${areas.length > 5 ? ' and more' : ''}` : ''}.`,
+      a: `We currently list ${projectTotal} ${dev.name} project${projectTotal === 1 ? '' : 's'}${unitsNote}${offPlan.length ? `, ${offPlan.length} of them off-plan` : ''}${areas.length ? `, in ${list(areas.slice(0, 5))}${areas.length > 5 ? ' and more' : ''}` : ''}.`,
     } : { q: '', a: '' },
     dev.minPriceFrom > 0 ? {
       q: `What is the starting price of ${dev.name} projects?`,
@@ -144,7 +149,7 @@ export default async function DeveloperDetailPage({ params, searchParams }: { pa
     } : { q: '', a: '' },
     {
       q: `How do I buy a ${dev.name} property through Distress Deals UAE?`,
-      a: `Open any ${dev.name} project and send an enquiry. A dedicated Distress Deals UAE agent handles it from the first message to handover, with verified prices, floor plans and payment plan details.`,
+      a: `Open any ${dev.name} project and send an enquiry. The Distress Deals UAE team handles it from the first message to handover, with verified prices, floor plans and payment plan details.`,
     },
   ]
 
@@ -161,74 +166,105 @@ export default async function DeveloperDetailPage({ params, searchParams }: { pa
 
       <Navbar />
 
-      {/* ── Banner: their projects' photos, blurred, fading into the page — logo big, name and facts on top ── */}
-      <section className="relative overflow-hidden" style={{ background: '#0B1220' }}>
-        {banner.length > 0 ? (
-          <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${Math.min(banner.length, 3)}, minmax(0, 1fr))` }} aria-hidden>
-            {/* Blurred backdrop — small, low-quality copies are enough; only the first is fetched early. */}
-            {banner.slice(0, 3).map((src, i) => (
-              <div key={src} className="relative overflow-hidden">
-                <Image src={src} alt="" fill priority={i === 0} quality={40} sizes="(max-width:768px) 100vw, 34vw" className="object-cover" style={{ filter: 'blur(6px) saturate(1.1)', transform: 'scale(1.12)' }} />
+      {/* ── Banner: a sharp mosaic of their projects' photos, the logo card overlapping it, then name, facts and numbers ── */}
+      <section className="wrap pt-5 md:pt-8">
+        <nav className="text-xs mb-4 flex items-center gap-1.5 flex-wrap" style={{ color: 'var(--text-muted)' }} aria-label="Breadcrumb">
+          <Link href="/" className="hover:underline">Home</Link><span aria-hidden>/</span>
+          <Link href="/developers" className="hover:underline">Developers</Link><span aria-hidden>/</span>
+          <span style={{ color: 'var(--text)' }}>{dev.name}</span>
+        </nav>
+
+        <div className={`relative rounded-3xl overflow-hidden h-[220px] sm:h-[300px] md:h-[380px] grid gap-1.5${banner.length > 1 ? ' md:grid-cols-[2fr_1fr] md:grid-rows-2' : ''}`}
+          style={{ background: 'var(--bg)' }}>{/* the gaps between photos take the page colour (light / dark theme) */}
+          {banner.length > 0 ? (
+            <>
+              {/* The first photo is the page's main image (LCP): fetched early, sized to the space it fills */}
+              <div className={`relative${banner.length > 1 ? ' md:row-span-2' : ''}`} style={{ background: 'var(--bg-alt)' }}>
+                <Image src={banner[0]} alt={`A project by ${dev.name}`} fill priority quality={70} sizes="(max-width:768px) 100vw, 66vw" className="object-cover" />
               </div>
-            ))}
+              {banner.slice(1, 3).map((src, i, rest) => (
+                <div key={src} className={`relative hidden md:block${rest.length === 1 ? ' row-span-2' : ''}`} style={{ background: 'var(--bg-alt)' }}>
+                  <Image src={src} alt={`A project by ${dev.name}`} fill quality={60} sizes="34vw" className="object-cover" />
+                </div>
+              ))}
+            </>
+          ) : (
+            <div className="absolute inset-0" aria-hidden style={{ background: 'radial-gradient(ellipse at 20% 0%, rgba(203,1,1,0.45), transparent 60%), linear-gradient(135deg, #CB0101, #FD7147)' }} />
+          )}
+          {/* Darker at the bottom so the count reads on any photo */}
+          <div className="absolute inset-0 pointer-events-none" aria-hidden style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0) 50%, rgba(0,0,0,0.5) 100%)' }} />
+          {dev.projectCount > 0 && (
+            <a href="#projects" className="absolute right-3 bottom-3 md:right-5 md:bottom-5 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-white hover:bg-black/70 transition-colors"
+              style={{ background: 'rgba(0,0,0,0.55)' }}>
+              <Building2 size={13} /> {projectTotal} {projectTotal === 1 ? 'project' : 'projects'}{unitTotal > projectTotal ? ` · ${unitTotal} unit types` : ''}
+            </a>
+          )}
+        </div>
+
+        {/* The logo overlaps the photo; the name block starts just below it, never on the photo */}
+        <div className="relative px-4 md:px-8 -mt-12 md:-mt-16 flex flex-col md:flex-row md:items-start gap-4 md:gap-6">
+          {/* Logo on white so every logo reads, in light and dark mode */}
+          <div className="w-24 h-24 md:w-32 md:h-32 rounded-2xl md:rounded-3xl flex-shrink-0 flex items-center justify-center p-3 md:p-4"
+            style={{ background: '#fff', border: '1px solid var(--border)', boxShadow: '0 16px 40px -14px rgba(15,23,42,0.35)' }}>
+            {dev.logo
+              ? <Image src={dev.logo} alt={`${dev.name} logo`} width={128} height={128} className="object-contain w-full h-full" />
+              : <Building2 size={40} style={{ color: '#CB0101' }} />}
           </div>
-        ) : (
-          <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 20% 0%, rgba(203,1,1,0.35), transparent 60%), linear-gradient(135deg, #0B1220, #1E293B)' }} aria-hidden />
-        )}
-        {/* Readability + the soft fade into the page below */}
-        <div className="absolute inset-0" aria-hidden style={{ background: 'linear-gradient(90deg, rgba(8,12,24,0.88) 0%, rgba(8,12,24,0.66) 55%, rgba(8,12,24,0.45) 100%)' }} />
-        <div className="absolute inset-x-0 bottom-0 h-28" aria-hidden style={{ background: 'linear-gradient(180deg, transparent, var(--bg))' }} />
-
-        <div className="wrap relative z-10 pt-8 pb-20 md:pt-28 md:pb-28">
-          <nav className="text-xs mb-5 md:mb-6 flex items-center gap-1.5 flex-wrap" style={{ color: 'rgba(255,255,255,0.65)' }} aria-label="Breadcrumb">
-            <Link href="/" className="hover:text-white">Home</Link><span>/</span>
-            <Link href="/developers" className="hover:text-white">Developers</Link><span>/</span>
-            <span className="text-white">{dev.name}</span>
-          </nav>
-
-          <div className="flex flex-col md:flex-row md:items-center gap-5 md:gap-8">
-            {/* Logo on white so every logo reads, in light and dark mode */}
-            <div className="w-24 h-24 md:w-40 md:h-40 rounded-2xl md:rounded-3xl flex-shrink-0 flex items-center justify-center p-3 md:p-5"
-              style={{ background: '#fff', boxShadow: '0 20px 50px -12px rgba(0,0,0,0.55)' }}>
-              {dev.logo
-                ? <Image src={dev.logo} alt={`${dev.name} logo`} width={160} height={160} priority className="object-contain w-full h-full" />
-                : <Building2 size={44} style={{ color: '#CB0101' }} />}
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] mb-2" style={{ color: '#FCA5A5' }}>Real estate developer</p>
-              <h1 className="text-2xl md:text-[2rem] font-bold leading-tight text-white mb-3">{dev.name}</h1>
-              <div className="flex items-center gap-x-4 gap-y-1.5 text-xs flex-wrap mb-4" style={{ color: 'rgba(255,255,255,0.8)' }}>
-                {dev.headquarters && <span className="inline-flex items-center gap-1.5"><MapPin size={12} /> {dev.headquarters}</span>}
-                {dev.establishedYear && <span className="inline-flex items-center gap-1.5"><CalendarDays size={12} /> Since {dev.establishedYear}</span>}
-                {dev.website && (
-                  <a href={dev.website} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex items-center gap-1 font-semibold text-white hover:underline">
-                    <Globe size={12} /> {dev.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')} <ArrowUpRight size={12} />
-                  </a>
-                )}
-              </div>
-              {dev.description && (
-                <p className="text-sm md:text-[15px] leading-relaxed max-w-3xl line-clamp-3" style={{ color: 'rgba(255,255,255,0.88)' }}>
-                  {dev.description}
-                </p>
+          <div className="min-w-0 md:pt-[78px]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] mb-1.5" style={{ color: 'var(--teal)' }}>Real estate developer</p>
+            <h1 className="text-2xl md:text-[2.1rem] font-bold leading-tight mb-2" style={{ color: 'var(--text)' }}>{dev.name}</h1>
+            <div className="flex items-center gap-x-4 gap-y-1.5 text-sm flex-wrap" style={{ color: 'var(--text-mid)' }}>
+              {dev.headquarters && <span className="inline-flex items-center gap-1.5"><MapPin size={14} style={{ color: 'var(--text-muted)' }} /> {dev.headquarters}</span>}
+              {dev.establishedYear && <span className="inline-flex items-center gap-1.5"><CalendarDays size={14} style={{ color: 'var(--text-muted)' }} /> Since {dev.establishedYear}</span>}
+              {dev.website && (
+                <a href={dev.website} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex items-center gap-1 font-semibold hover:underline" style={{ color: 'var(--teal)' }}>
+                  <Globe size={14} /> {dev.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')} <ArrowUpRight size={13} />
+                </a>
               )}
             </div>
           </div>
+        </div>
 
+        <div className={`mt-7 grid gap-5 md:px-8${dev.description ? ' lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]' : ''}`}>
           {/* Key numbers */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-8 max-w-3xl">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-3 content-start">
             {[
-              { icon: Layers, v: String(dev.projectCount), l: dev.projectCount === 1 ? 'Project' : 'Projects' },
-              { icon: Hammer, v: String(projects.filter(p => p.status !== 'ready' && !isHandedOver(p)).length), l: 'Off-plan' },
+              // A project can hold several unit types (1BR, 2BR, villa…) — both numbers shown so neither is mistaken for the other
+              { icon: Building2, v: String(projectTotal), l: projectTotal === 1 ? 'Project' : 'Projects' },
+              { icon: Layers, v: String(unitTotal), l: unitTotal === 1 ? 'Unit type' : 'Unit types' },
               { icon: MapPin, v: String(dev.areas?.length || 0), l: (dev.areas?.length || 0) === 1 ? 'Area' : 'Areas' },
-              { icon: Building2, v: <Price aed={dev.minPriceFrom} />, l: 'Starting from' },
+              { icon: Hammer, v: <Price aed={dev.minPriceFrom} />, l: 'Starting from' },
             ].map(({ icon: Icon, v, l }) => (
-              <div key={l} className="rounded-2xl px-4 py-3" style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.16)', backdropFilter: 'blur(10px)' }}>
-                <p className="text-lg md:text-xl font-bold text-white leading-tight">{v}</p>
-                <p className="text-[11px] mt-0.5 flex items-center gap-1" style={{ color: 'rgba(255,255,255,0.7)' }}><Icon size={11} /> {l}</p>
+              <div key={l} className="card px-4 py-3.5 flex items-center gap-3">
+                <span className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(203,1,1,0.08)' }}>
+                  <Icon size={16} style={{ color: 'var(--teal)' }} />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-lg font-bold leading-tight truncate" style={{ color: 'var(--text)' }}>{v}</span>
+                  <span className="block text-xs" style={{ color: 'var(--text-muted)' }}>{l}</span>
+                </span>
               </div>
             ))}
           </div>
+
+          {dev.description && (
+            <div className="card p-5">
+              <h2 className="text-base font-semibold mb-2" style={{ color: 'var(--text)' }}>About {dev.name}</h2>
+              {/* Full text is in the page; long ones show ~6 lines with a no-JS "Read more" (native <details>) */}
+              {dev.description.length > 420 ? (
+                <details className="group">
+                  <summary className="list-none cursor-pointer [&::-webkit-details-marker]:hidden">
+                    <p className="text-sm leading-relaxed line-clamp-6 group-open:line-clamp-none" style={{ color: 'var(--text-mid)' }}>{dev.description}</p>
+                    <span className="inline-block mt-2 text-sm font-semibold" style={{ color: 'var(--teal)' }}>
+                      <span className="group-open:hidden">Read more</span><span className="hidden group-open:inline">Show less</span>
+                    </span>
+                  </summary>
+                </details>
+              ) : (
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-mid)' }}>{dev.description}</p>
+              )}
+            </div>
+          )}
         </div>
       </section>
 
@@ -237,7 +273,7 @@ export default async function DeveloperDetailPage({ params, searchParams }: { pa
           {/* The developer's offer on all its projects — renders nothing when none is running */}
           <DeveloperOfferBanner offer={dev.offer} name={dev.name} className="mb-8" />
           <h2 id="projects" className="text-lg font-bold mb-6 scroll-mt-24" style={{ color: 'var(--text)' }}>
-            Projects by {dev.name}{listPage.total > 0 && <span className="font-normal text-sm ml-2" style={{ color: 'var(--text-muted)' }}>· {listPage.total}</span>}
+            Projects by {dev.name}{listPage.total > 0 && <span className="font-normal text-sm ml-2" style={{ color: 'var(--text-muted)' }}>· {unitTotal} unit type{unitTotal === 1 ? '' : 's'} in {projectTotal} project{projectTotal === 1 ? '' : 's'}</span>}
           </h2>
           {listPage.data.length > 0 ? (
             <>
@@ -245,7 +281,7 @@ export default async function DeveloperDetailPage({ params, searchParams }: { pa
                 {listPage.data.map((project, i) => <ProjectCard key={project._id} project={projectForCard(project)} delay={Math.min(i, 8) * 0.05} />)}
               </div>
               <LinkPagination page={page} totalPages={listPage.totalPages} basePath={`/developers/${dev.slug}`} anchor="projects"
-                total={listPage.total} perPage={PER_PAGE} itemLabel={listPage.total === 1 ? 'project' : 'projects'} />
+                total={listPage.total} perPage={PER_PAGE} itemLabel={listPage.total === 1 ? 'unit type' : 'unit types'} />
             </>
           ) : (
             <div className="text-center py-16">

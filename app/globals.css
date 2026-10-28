@@ -99,10 +99,18 @@ body {
 }
 
 ::selection { background: rgba(203,1,1,0.20); color: var(--teal); }
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--teal); }
+/* Scrollbars: easy to see and to grab. 10px wide, with the thumb drawn inside a transparent border so it looks slim
+   but the whole width can be dragged. Firefox gets its own colours below (scrollbar-color would switch Chrome's
+   styling off, so it is limited to Firefox). */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--text-muted) 55%, transparent); border: 2px solid transparent; background-clip: padding-box; border-radius: 999px; min-height: 40px; }
+::-webkit-scrollbar-thumb:hover { background: var(--teal); background-clip: padding-box; }
+::-webkit-scrollbar-thumb:active { background: var(--teal); background-clip: padding-box; }
+::-webkit-scrollbar-corner { background: transparent; }
+@supports (-moz-appearance: none) {
+  * { scrollbar-color: color-mix(in srgb, var(--text-muted) 55%, transparent) transparent; }
+}
 
 @layer components {
 
@@ -442,6 +450,23 @@ body {
 @layer utilities {
   .scrollbar-hide::-webkit-scrollbar { display: none; }
   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  /* A sideways-scrolling row (components/shared/ScrollRow): its own slim scrollbar under the chips. */
+  .scroll-x { overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scroll-behavior: smooth; padding-bottom: 6px; margin-bottom: -6px; }
+  .scroll-x::-webkit-scrollbar { height: 6px; }
+  .scroll-x::-webkit-scrollbar-thumb { border-width: 1px; }
+  .scroll-row-btn {
+    position: absolute; top: calc(50% - 3px); transform: translateY(-50%); z-index: 2;
+    width: 30px; height: 30px; border-radius: 999px; display: flex; align-items: center; justify-content: center;
+    background: var(--surface); color: var(--text); border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .scroll-row-btn:hover { color: var(--teal); border-color: var(--teal); }
+  /* Card sliders: snap to each card; padding leaves room for the hover lift and shadow (pulled back with negative margins). */
+  .scroll-x-cards { scroll-snap-type: x mandatory; padding: 12px 8px 22px; margin: -12px -8px -16px; scroll-padding-left: 8px; }
+  .scroll-x-cards > * { scroll-snap-align: start; flex-shrink: 0; }
+  .scroll-row-btn-lg { width: 40px; height: 40px; top: calc(50% - 5px); }
+  /* Touch screens swipe; the arrows are for mouse users. */
+  @media (hover: none) { .scroll-row-btn { display: none; } }
   .no-select { user-select: none; }
   .text-balance { text-wrap: balance; }
   .grad-bg { background: var(--grad); }

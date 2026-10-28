@@ -6,9 +6,15 @@ import { useForm, Controller } from 'react-hook-form'
 import { useDropzone } from 'react-dropzone'
 import {
   UploadCloud, X, ImageIcon, Loader2, QrCode, Crosshair,
-  Home, Building2, Tag, KeyRound, Plus, Image as ImagePlaceholder, Video as VideoIcon,
+  Home, Building2, Tag, KeyRound, Plus, Image as ImagePlaceholder, Video as VideoIcon, Trash2, Sparkles, RefreshCw,
 } from 'lucide-react'
-import { propertyAPI, projectAPI, uploadAPI } from '@/lib/api'
+import { propertyAPI, uploadAPI, developerAPI, areaContentAPI } from '@/lib/api'
+import SearchSelect from './SearchSelect'
+import NearbyLandmarkFinder from '@/components/admin/NearbyLandmarkFinder'
+import ProjectNameInput from '@/components/admin/ProjectNameInput'
+import AreaDatalist from '@/components/admin/AreaDatalist'
+import RichEditor from './RichEditor'
+import { buildListingAutoSeo } from '@/lib/autoSeo'
 import { cn, formatPrice } from '@/lib/utils'
 import { MarketValueHint } from '@/components/admin/MarketValueHint'
 import MarketReferencePanel from '@/components/admin/MarketReferencePanel'
@@ -20,10 +26,9 @@ import CommunitySelect, { useCommunities, matchCommunity } from './CommunitySele
 import { reverseGeocode, type GeocodeResult } from '@/lib/distance'
 import { LocationSearch } from './LocationSearch'
 import StepIndicator from './StepIndicator'
-import RichTextEditor from './RichTextEditor'
 import AiWriterCard, { type Tone, type Length, type WriterInput } from '@/components/admin/seo/AiWriterCard'
 import SeoAppearancePanel, { type SeoFields, includesCI } from '@/components/admin/seo/SeoAppearancePanel'
-import type { Property, Project, RentalStatus } from '@/types'
+import type { Property, Developer, RentalStatus } from '@/types'
 import RentalAvailabilityFields from '@/components/shared/RentalAvailabilityFields'
 import { toDateInput, rentalStatusOf } from '@/lib/rental'
 import toast from 'react-hot-toast'
@@ -67,6 +72,23 @@ const OWNERSHIP_STATUSES = [
   { value: 'freehold', label: 'Freehold' },
   { value: 'leasehold', label: 'Leasehold' },
 ]
+// How each type reads in search wording ("2 bedroom apartment for rent", "shop for rent") — not the form's labels.
+const SEO_TYPE_WORD: Record<string, string> = {
+  apartment: 'apartment', villa: 'villa', townhouse: 'townhouse', penthouse: 'penthouse', studio: 'studio',
+  commercial: 'commercial property', office: 'office', retail: 'shop', warehouse: 'warehouse', commercial_villa: 'commercial villa', plot: 'plot',
+}
+
+// Nearby landmarks — same categories as the project form; distances are shown on the listing page.
+const LANDMARK_CATEGORIES = [
+  { value: 'metro',    label: 'Metro Station' },
+  { value: 'school',   label: 'School'        },
+  { value: 'mall',     label: 'Mall'          },
+  { value: 'landmark', label: 'Landmark'      },
+  { value: 'airport',  label: 'Airport'       },
+  { value: 'hospital', label: 'Hospital'      },
+]
+interface LandmarkEntry { name: string; category: string; lat: string; lng: string }
+
 const VIDEO_PLATFORMS = [
   { value: 'youtube', label: 'YouTube' },
   { value: 'vimeo', label: 'Vimeo' },
@@ -270,7 +292,13 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
   const [aiDrafting, setAiDrafting] = useState(false)
   const [permitQrImage, setPermitQrImage] = useState(property?.permitQrImage || '')
   const [uploadingQr, setUploadingQr] = useState(false)
-  const [projects, setProjects] = useState<Project[]>([])
+  const [developers, setDevelopers] = useState<Developer[]>([])
+  const [landmarks, setLandmarks] = useState<LandmarkEntry[]>(
+    (property?.landmarks || []).map(l => ({ name: l.name, category: l.category, lat: String(l.lat), lng: String(l.lng) }))
+  )
+  const addLandmark = () => setLandmarks(l => [...l, { name: '', category: 'metro', lat: '', lng: '' }])
+  const removeLandmark = (i: number) => setLandmarks(l => l.filter((_, idx) => idx !== i))
+  const updateLandmark = (i: number, patch: Partial<LandmarkEntry>) => setLandmarks(l => l.map((x, idx) => idx === i ? { ...x, ...patch } : x))
 
   const [uploadTab, setUploadTab] = useState<'images' | 'videos'>('images')
   const [videos, setVideos] = useState<VideoEntry[]>(property?.videos || [])
@@ -315,19 +343,19 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
   const titleValue = watch('title') || ''
   const titleArValue = watch('titleAr') || ''
 
+  // The Developers list (Admin → Developers) — reloaded when the tab regains focus, so one added in another tab shows up.
   useEffect(() => {
-    projectAPI.getAll({ limit: 200 }).then(r => { if (r.data.success) setProjects(r.data.data.data || []) }).catch(() => {})
+    const load = () => developerAPI.getAll().then(r => { if (r.data.success) setDevelopers(r.data.data || []) }).catch(() => {})
+    load()
+    window.addEventListener('focus', load)
+    return () => window.removeEventListener('focus', load)
   }, [])
-
-  // Picking an off-plan project this unit belongs to auto-fills Developer +
-  // Project Name from that project's own record, so the two stay consistent
-  // instead of the agent retyping (and potentially mistyping) them by hand.
-  const onSelectProject = (projectId: string) => {
-    const proj = projects.find(p => p._id === projectId)
-    if (!proj) return
-    setValue('developer', proj.developer)
-    setValue('projectName', proj.title)
-  }
+  // The saved developer stays selectable even when it isn't (yet) in the Developers list.
+  const savedDeveloper = watch('developer') || ''
+  const developerOptions = [
+    ...(savedDeveloper && !developers.some(d => d.name === savedDeveloper) ? [{ value: savedDeveloper, label: developers.length ? `${savedDeveloper} (not in Developers list)` : savedDeveloper }] : []),
+    ...developers.map(d => ({ value: d.name, label: d.name })),
+  ]
 
   // A Nominatim result's label reads most-specific-first, comma-separated
   // (e.g. "Downtown Dubai, Dubai, United Arab Emirates") — the first segment
@@ -336,18 +364,41 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
   // when the label doesn't clearly name one (still fills Area + coordinates).
   const communities = useCommunities()
 
-  const onLocationSelect = (r: GeocodeResult) => {
-    const area = r.area || r.label.split(',')[0].trim()
+  const [areaNote, setAreaNote] = useState<{ text: string; tone: 'busy' | 'ok' | 'new' | 'warn' } | null>(null)
+  const areaLookup = useRef(0)
+  const onLocationSelect = async (r: GeocodeResult) => {
     const community = matchCommunity(communities, r.name, r.area)
     if (community && !getValues('community')) setValue('community', community.name, { shouldDirty: true })
-    const emirate = UAE_EMIRATES.find(e => r.label.includes(e))
-    setValue('area', area, { shouldDirty: true, shouldTouch: true, shouldValidate: true })
+    const emirate = UAE_EMIRATES.find(e => e === r.emirate) || UAE_EMIRATES.find(e => r.label.includes(e))
     setValue('address', r.road || r.label, { shouldDirty: true, shouldTouch: true, shouldValidate: true })
     setValue('lat', r.lat, { shouldDirty: true, shouldTouch: true, shouldValidate: true })
     setValue('lng', r.lng, { shouldDirty: true, shouldTouch: true, shouldValidate: true })
     if (emirate) setValue('emirate', emirate, { shouldDirty: true })
-    setLocatedIn(`${emirate || getValues('emirate') || 'Dubai'} / ${area}`)
     setLocationVersion(v => v + 1)
+    // The Area is the district the pin is in — one of our area names when it matches (same lookup as the project form).
+    const ticket = ++areaLookup.current
+    setAreaNote({ text: 'Finding the area for this location…', tone: 'busy' })
+    const apply = (area: string, em?: string) => {
+      setValue('area', area, { shouldDirty: true, shouldTouch: true, shouldValidate: true })
+      if (em && !emirate) setValue('emirate', em, { shouldDirty: true })
+      setLocatedIn(`${emirate || em || getValues('emirate') || 'Dubai'} / ${area}`)
+      setLocationVersion(v => v + 1)
+    }
+    try {
+      const res = await areaContentAPI.resolve(r.lat, r.lng, [r.area || ''], r.name || r.label.split(',')[0].trim())
+      if (ticket !== areaLookup.current) return
+      const d = res.data.data as { area: string | null; emirate?: string; source: string }
+      if (d.area) {
+        apply(d.area, d.emirate)
+        setAreaNote(d.source === 'osm'
+          ? { text: `Area set from the map: ${d.area} — a new area.`, tone: 'new' }
+          : { text: `Area set from the map: ${d.area}${d.source === 'nearby' ? ' (nearest area to the pin)' : ''}.`, tone: 'ok' })
+      } else setAreaNote({ text: 'Couldn’t tell the district from the map — type the area name (not the building name).', tone: 'warn' })
+    } catch {
+      if (ticket !== areaLookup.current) return
+      if (r.area && !(r.name && r.area.toLowerCase() === r.name.toLowerCase())) { apply(r.area); setAreaNote({ text: `Area set from the map: ${r.area}.`, tone: 'ok' }) }
+      else setAreaNote({ text: 'Couldn’t look up the area — type the district name.', tone: 'warn' })
+    }
   }
 
   const onMapPick = async (lat: number, lng: number) => {
@@ -438,6 +489,7 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
       v.nearbyPublicTransport && `Public transport: ${v.nearbyPublicTransport}`,
       v.distanceFromAirport && `Airport: ${v.distanceFromAirport} km away`,
       v.otherNearbyPlaces && `Other: ${v.otherNearbyPlaces}`,
+      ...landmarks.filter(l => l.name.trim()).map(l => `${LANDMARK_CATEGORIES.find(c => c.value === l.category)?.label || l.category}: ${l.name.trim()}`),
     ].filter(Boolean) as string[]
     const availability = listingType !== 'rent' ? undefined
       : rentalStatus === 'available_now' ? 'available now'
@@ -473,6 +525,7 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
       setDescription(d.html)
       setDescriptionError(false)
       if (writeTitle && d.title) setValue('title', d.title, { shouldDirty: true, shouldValidate: true })
+      seoOwned.current = new Set(['focusKeyword', 'metaTitle', 'metaDescription', 'keywords'])
       setSeo({
         focusKeyword: seo.focusKeyword.trim() || d.focusKeyword || '',
         metaTitle: d.metaTitle || seo.metaTitle,
@@ -545,6 +598,9 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
       },
       features,
       videos,
+      landmarks: landmarks
+        .filter(l => l.name.trim() && l.lat !== '' && l.lng !== '')
+        .map(l => ({ name: l.name.trim(), category: l.category, lat: Number(l.lat), lng: Number(l.lng) })),
       metaTitle: seo.metaTitle.trim(),
       metaDescription: seo.metaDescription.trim(),
       focusKeyword: seo.focusKeyword.trim(),
@@ -594,6 +650,7 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
     const v = getValues()
     const featureCount = Object.values(features).filter(Boolean).length
     const nearbyCount = [v.nearbySchools, v.nearbyHospitals, v.nearbyShoppingMalls, v.nearbyPublicTransport, v.distanceFromAirport, v.otherNearbyPlaces].filter(Boolean).length
+      + landmarks.filter(l => l.name.trim()).length
     return [
       { label: `${typeLabel} for ${listingType}`, ok: true, step: 1 },
       { label: 'Location', ok: !!v.area, step: 1 },
@@ -606,6 +663,53 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
       { label: nearbyCount ? `${nearbyCount} nearby place${nearbyCount > 1 ? 's' : ''}` : 'Nearby places', ok: nearbyCount > 0, step: 2 },
     ]
   })()
+  // ── Auto SEO: rebuilt from the description + listing facts while writing. A field is only replaced while it's empty
+  // or still holds the last automatic value — once someone edits it (or the AI writer fills it) it's theirs.
+  const descriptionWords = description.replace(/<[^>]*>/g, ' ').trim().split(/\s+/).filter(Boolean).length
+  const seoRef = useRef(seo); seoRef.current = seo
+  // Fields a person edited (or the AI writer filled) in this session are left alone; the rest follow the description.
+  const seoOwned = useRef<Set<keyof SeoFields>>(new Set())
+  const ownSeo = (next: SeoFields) => {
+    for (const k of ['focusKeyword', 'metaTitle', 'metaDescription', 'keywords'] as (keyof SeoFields)[]) {
+      if (JSON.stringify(next[k]) !== JSON.stringify(seoRef.current[k])) seoOwned.current.add(k)
+    }
+    setSeo(next)
+  }
+  const listingSeoFacts = () => {
+    const v = getValues()
+    return {
+      title: v.title || '', type: SEO_TYPE_WORD[type] || typeLabel, purpose: (listingType === 'rent' ? 'rent' : 'sale') as 'sale' | 'rent', completion,
+      bedrooms: Number(v.bedrooms) || 0, area: v.area, community: v.community, emirate: v.emirate,
+      price: Number(v.price) || undefined, developer: v.developer, projectName: v.projectName,
+      furnished: furnishing === 'furnished', view: v.view,
+    }
+  }
+  const applyAutoSeo = (force = false) => {
+    const cur = seoRef.current
+    const isAuto = (k: keyof SeoFields) => !seoOwned.current.has(k)
+    const kwAuto = force || isAuto('focusKeyword')
+    const next = buildListingAutoSeo(description, listingSeoFacts(), kwAuto ? '' : cur.focusKeyword)
+    const out: SeoFields = {
+      focusKeyword: kwAuto ? next.focusKeyword : cur.focusKeyword,
+      metaTitle: force || isAuto('metaTitle') ? next.metaTitle : cur.metaTitle,
+      metaDescription: force || isAuto('metaDescription') ? next.metaDescription : cur.metaDescription,
+      keywords: force || isAuto('keywords') ? next.keywords : cur.keywords,
+    }
+    if (force) seoOwned.current.clear()
+    if (JSON.stringify(out) !== JSON.stringify(cur)) setSeo(out)
+  }
+  const seoFactsKey = JSON.stringify([watch('title'), watch('bedrooms'), watch('area'), watch('price'), watch('projectName'), watch('view'), type, listingType, completion, furnishing])
+  // Armed by the first real edit of the description — opening a listing never rewrites its saved SEO.
+  const initialDescription = useRef(description)
+  const seoArmed = useRef(false)
+  useEffect(() => {
+    if (!seoArmed.current) { if (description === initialDescription.current) return; seoArmed.current = true }
+    if (!description.replace(/<[^>]*>/g, '').trim()) return
+    const t = setTimeout(() => applyAutoSeo(), 700)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [description, seoFactsKey])
+
   const areaValue = watch('area') || ''
   const autoTitle = `${Number(watch('bedrooms')) ? `${watch('bedrooms')} Bedroom ` : ''}${typeLabel} for ${listingType === 'rent' ? 'Rent' : 'Sale'}${areaValue ? ` in ${areaValue}` : ''}, Dubai`
 
@@ -686,15 +790,23 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
             </div>
             <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Tip: click anywhere on the map, or drag the pin, to fine-tune the exact spot.</p>
 
+            {/* Same layout as the project form: the area comes from the map pin (the district it is in). */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Field label="Location (Area) *" className="col-span-2">
-                <input key={`area-${locationVersion}`} className="input" placeholder="e.g. Downtown Dubai" {...register('area', { required: true })} />
-                {errors.area && <p className="text-xs mt-1" style={{ color: '#FB7185' }}>Location is required</p>}
+              <Field label="Area *">
+                <input key={`area-${locationVersion}`} className="input" placeholder="e.g. Downtown Dubai" list="dd-listing-areas" autoComplete="off" {...register('area', { required: true })} />
+                <AreaDatalist id="dd-listing-areas" />
+                {areaNote
+                  ? <p className="text-[11px] mt-1 flex items-start gap-1" style={{ color: areaNote.tone === 'warn' ? '#B45309' : areaNote.tone === 'new' ? '#0369A1' : areaNote.tone === 'ok' ? '#15803D' : 'var(--text-muted)' }}>{areaNote.tone === 'busy' && <Loader2 size={11} className="animate-spin mt-0.5 flex-shrink-0" />}{areaNote.text}</p>
+                  : <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>District, not the building name. Set automatically when you pick the location.</p>}
+                {errors.area && <p className="text-xs mt-1" style={{ color: '#FB7185' }}>Area is required</p>}
               </Field>
               <Field label="Community">
                 <Controller name="community" control={control} render={({ field }) => (
                   <CommunitySelect value={field.value || ''} onChange={field.onChange} emirate={watch('emirate')} list={communities} />
                 )} />
+              </Field>
+              <Field label="City">
+                <input className="input" {...register('city')} />
               </Field>
               <Field label="Emirate">
                 <select key={`emirate-${locationVersion}`} className="select-field" {...register('emirate')}>
@@ -702,26 +814,6 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
                 </select>
               </Field>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Field label="Address *" className="md:col-span-2">
-                <input key={`address-${locationVersion}`} className="input" placeholder="Building, street" {...register('address', { required: true })} />
-                {errors.address && <p className="text-xs mt-1" style={{ color: '#FB7185' }}>Address is required</p>}
-              </Field>
-              <Field label="Unit No.">
-                <input className="input" placeholder="e.g. 1204" {...register('unitNo')} />
-              </Field>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Field label="City">
-                <input className="input" {...register('city')} />
-              </Field>
-              <Field label="District">
-                <input className="input" {...register('district')} />
-              </Field>
-            </div>
-            <Field label="Additional Address Details">
-              <textarea className="input" rows={2} {...register('additionalAddress')} />
-            </Field>
             <div className="grid grid-cols-2 gap-4">
               <Field label="Latitude *">
                 <input key={`lat-${locationVersion}`} className="input" type="number" step="any" placeholder="25.1972" {...register('lat', { required: true })} />
@@ -730,7 +822,55 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
                 <input key={`lng-${locationVersion}`} className="input" type="number" step="any" placeholder="55.2744" {...register('lng', { required: true })} />
               </Field>
             </div>
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Tip: right-click the location on Google Maps and copy the coordinates.</p>
+            {(errors.lat || errors.lng)
+              ? <p className="text-xs" style={{ color: '#FB7185' }}>Set the exact location on the map — search above, click the map or drag the pin.</p>
+              : <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Required — the pin is shown on the listing page and used for the nearby distances.</p>}
+
+            {/* The exact address stays with our team — never shown on the website. */}
+            <div className="rounded-xl p-4 space-y-3" style={{ background: 'var(--bg-alt)' }}>
+              <p className="text-xs font-medium" style={{ color: 'var(--text-mid)' }}>Exact address — only our team sees this, never shown publicly.</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Field label="Building / Street" className="md:col-span-2">
+                  <input key={`address-${locationVersion}`} className="input" placeholder="Building, street" {...register('address')} />
+                </Field>
+                <Field label="Unit No.">
+                  <input className="input" placeholder="e.g. 1204" {...register('unitNo')} />
+                </Field>
+              </div>
+              <Field label="Directions / Extra Details">
+                <textarea className="input" rows={2} {...register('additionalAddress')} />
+              </Field>
+            </div>
+
+            <div className="pt-2" style={{ borderTop: '1px solid var(--border-soft)' }}>
+              <Field label="Nearby Landmarks (for distance calculations on the listing page)">
+                <NearbyLandmarkFinder
+                  key={`finder-${locationVersion}`}
+                  lat={Number(watch('lat')) || undefined}
+                  lng={Number(watch('lng')) || undefined}
+                  added={landmarks.map(l => l.name)}
+                  onAdd={l => setLandmarks(list => [...list, { name: l.name, category: l.category, lat: String(l.lat), lng: String(l.lng) }])}
+                />
+                <div className="space-y-2">
+                  {landmarks.map((lm, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <select className="select-field text-xs w-32 flex-shrink-0" value={lm.category} onChange={e => updateLandmark(i, { category: e.target.value })}>
+                        {LANDMARK_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                      </select>
+                      <input className="input text-xs flex-1" placeholder="Name, e.g. Business Bay Metro Station" value={lm.name} onChange={e => updateLandmark(i, { name: e.target.value })} />
+                      <input className="input text-xs w-24" type="number" step="any" placeholder="Lat" value={lm.lat} onChange={e => updateLandmark(i, { lat: e.target.value })} />
+                      <input className="input text-xs w-24" type="number" step="any" placeholder="Lng" value={lm.lng} onChange={e => updateLandmark(i, { lng: e.target.value })} />
+                      <button type="button" onClick={() => removeLandmark(i)} className="btn-ghost btn-sm p-1.5 flex-shrink-0" style={{ color: '#FB7185' }} aria-label="Remove landmark">
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  ))}
+                  <button type="button" onClick={addLandmark} className="btn-outline btn-sm gap-1.5">
+                    <Plus size={13} /> Add Landmark
+                  </button>
+                </div>
+              </Field>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2" style={{ borderTop: '1px solid var(--border-soft)' }}>
               <Field label="Completion Status">
@@ -769,7 +909,40 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
             </div>
             {isStaffUser && <OfferEditor value={offer} onChange={setOffer} normalPrice={Number(watch('price')) || 0} priceLabel="price" />}
             {property?._id && isStaffUser && property.listingType !== 'rent' && <MarketReferencePanel kind="property" id={property._id} isAdmin={role === 'admin' || role === 'super_admin'} />}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Field label="Project Name">
+                {/* Suggestions from the projects already on the site — picking one uses its exact spelling and fills in
+                    the developer and location when they are still empty. */}
+                <Controller name="projectName" control={control} render={({ field }) => (
+                  <ProjectNameInput
+                    compact listLabel="Existing projects — pick one this unit belongs to"
+                    value={field.value || ''} onChange={field.onChange}
+                    inputProps={{ name: field.name, onBlur: field.onBlur, ref: field.ref }}
+                    onPick={sug => {
+                      if (sug.developer && !getValues('developer')) setValue('developer', sug.developer, { shouldDirty: true })
+                      if (sug.area && !getValues('area')) { setValue('area', sug.area, { shouldDirty: true, shouldValidate: true }); setLocationVersion(v => v + 1) }
+                      if (sug.community && !getValues('community')) setValue('community', sug.community, { shouldDirty: true })
+                      if (sug.emirate && !getValues('emirate')) setValue('emirate', sug.emirate, { shouldDirty: true })
+                    }}
+                  />
+                )} />
+              </Field>
+              <Field label="Developer">
+                <Controller name="developer" control={control} render={({ field }) => (
+                  <SearchSelect
+                    value={field.value || ''} onChange={field.onChange}
+                    placeholder="Select a developer…" searchPlaceholder="Search developers…" emptyText="No developer with that name"
+                    options={developerOptions}
+                    footer={
+                      <a href="/admin/developers" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-semibold hover:underline" style={{ color: 'var(--teal)' }}>
+                        <Plus size={12} /> Add new developer
+                      </a>
+                    }
+                  />
+                )} />
+              </Field>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Field label="All Inclusive Price (AED) *">
                 <input className="input" type="number" placeholder="0" {...register('price', { required: true, min: 1 })} />
                 {(watch('price') || 0) > 0 && (
@@ -780,21 +953,7 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
                 <input className="input" type="number" placeholder="Empty = automatic reference" {...register('marketValue')} />
                 <MarketValueHint price={Number(watch('price')) || 0} marketValue={Number(watch('marketValue')) || 0} />
               </Field>
-              <Field label="Developer">
-                <input className="input" placeholder="e.g. Emaar Properties" {...register('developer')} />
-              </Field>
-              <Field label="Project Name">
-                <input className="input" placeholder="e.g. Boulevard Point" {...register('projectName')} />
-              </Field>
             </div>
-            {projects.length > 0 && (
-              <Field label="Link to an Off-Plan Project (optional — auto-fills Developer + Project Name above)">
-                <select className="select-field" defaultValue="" onChange={e => onSelectProject(e.target.value)}>
-                  <option value="">— Select a project —</option>
-                  {projects.map(p => <option key={p._id} value={p._id}>{p.title} ({p.developer})</option>)}
-                </select>
-              </Field>
-            )}
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <Field label="Built-up Area (Square Feet) *">
@@ -860,20 +1019,12 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
       <div className={cn('space-y-5', step !== 2 && 'hidden')}>
         <div className="card p-6">
           <h2 className="font-bold text-sm mb-1" style={{ color: 'var(--text)' }}>Other Main Features</h2>
-          <p className="text-xs mb-5" style={{ color: 'var(--text-muted)' }}>Free-text details — leave blank if not applicable.</p>
+          <p className="text-xs mb-5" style={{ color: 'var(--text-muted)' }}>Free-text details — leave blank if not applicable. Nearby places are added under Location → Nearby Landmarks.</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="View"><input className="input" placeholder="e.g. Sea View" {...register('view')} /></Field>
-            <Field label="Floor"><input className="input" type="number" {...register('floor')} /></Field>
             <Field label="Pet Policy"><input className="input" {...register('petPolicy')} /></Field>
             <Field label="Other Rooms"><input className="input" {...register('otherRooms')} /></Field>
             <Field label="Other Facilities"><input className="input" {...register('otherFacilities')} /></Field>
-            <Field label="Land Area (sqft)"><input className="input" type="number" {...register('plotArea')} /></Field>
-            <Field label="Nearby Schools"><input className="input" {...register('nearbySchools')} /></Field>
-            <Field label="Nearby Hospitals"><input className="input" {...register('nearbyHospitals')} /></Field>
-            <Field label="Nearby Shopping Malls"><input className="input" {...register('nearbyShoppingMalls')} /></Field>
-            <Field label="Distance From Airport (kms)"><input className="input" type="number" {...register('distanceFromAirport')} /></Field>
-            <Field label="Nearby Public Transport"><input className="input" {...register('nearbyPublicTransport')} /></Field>
-            <Field label="Other Nearby Places"><input className="input" {...register('otherNearbyPlaces')} /></Field>
           </div>
         </div>
 
@@ -1017,7 +1168,7 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
         <AiWriterCard
           subtitle="Writes the listing title, an SEO-optimised description, search title, meta description and related keywords from what you entered in the earlier steps. It uses only those facts and never mentions the unit number or street address."
           inputs={aiInputs} onJump={setStep}
-          focusKeyword={seo.focusKeyword} onFocusKeywordChange={v => setSeo(s => ({ ...s, focusKeyword: v }))}
+          focusKeyword={seo.focusKeyword} onFocusKeywordChange={v => ownSeo({ ...seoRef.current, focusKeyword: v })}
           keywordPlaceholder={`e.g. ${Number(watch('bedrooms')) ? `${watch('bedrooms')} bedroom ` : ''}${typeLabel.toLowerCase()} for ${listingType} in ${areaValue || 'Dubai Marina'}`}
           tone={tone} onTone={setTone} length={length} onLength={setLength}
           generating={aiDrafting} hasContent={!!description.replace(/<[^>]*>/g, '').trim()} onGenerate={generateWithAI}
@@ -1041,14 +1192,18 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
               <input className="input" dir="rtl" {...register('titleAr')} />
               <CharCount value={titleArValue} max={150} />
             </Field>
-            <Field label="Description *">
-              <RichTextEditor
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-medium" style={{ color: 'var(--text-mid)' }}>Description *</label>
+                <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{descriptionWords} words</span>
+              </div>
+              <RichEditor
                 value={description}
                 onChange={html => { setDescription(html); if (html.replace(/<[^>]*>/g, '').trim()) setDescriptionError(false) }}
-                placeholder={'e.g.\nFully Furnished\nClosed Kitchen\nBalcony\n\nLocated in the heart of Business Bay...'}
+                placeholder="Write about the property — or let the AI draft it above, then edit here."
               />
               {descriptionError && <p className="text-xs mt-1" style={{ color: '#FB7185' }}>Description is required</p>}
-            </Field>
+            </div>
             <Field label="Description (Arabic)">
               <textarea className="input" dir="rtl" rows={4} value={descriptionAr} onChange={e => setDescriptionAr(e.target.value)} />
               <CharCount value={descriptionAr} max={2000} />
@@ -1056,8 +1211,19 @@ export default function PropertyForm({ property, onSuccess }: { property?: Prope
           </div>
         </div>
 
+        <div className="flex items-center justify-between gap-3 flex-wrap rounded-xl px-4 py-2.5 -mb-2"
+          style={{ background: 'rgba(22,163,74,0.07)', border: '1px solid rgba(22,163,74,0.22)' }}>
+          <p className="text-xs flex items-center gap-1.5" style={{ color: 'var(--text-mid)' }}>
+            <Sparkles size={13} style={{ color: '#16A34A' }} />
+            SEO fields fill in automatically as you write the description. Edit any field to take it over.
+          </p>
+          <button type="button" onClick={() => applyAutoSeo(true)} className="text-xs font-semibold inline-flex items-center gap-1" style={{ color: '#166534' }}>
+            <RefreshCw size={12} /> Rebuild all SEO fields
+          </button>
+        </div>
+
         <SeoAppearancePanel
-          html={description} seo={seo} onSeoChange={setSeo}
+          html={description} seo={seo} onSeoChange={ownSeo}
           fallbackTitle={autoTitle}
           urlPath={`buyer/properties/${property?.slug || 'your-listing'}`}
           extraChecks={[{ label: 'Keyword in listing title', ok: includesCI(titleValue, seo.focusKeyword.trim()) }]}

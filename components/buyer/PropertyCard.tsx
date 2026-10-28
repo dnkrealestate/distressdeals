@@ -243,7 +243,7 @@ export default function PropertyCard({
 
   return (
     <>
-    <Link href={`/buyer/properties/${p.slug || p._id}`}>
+    <Link href={`/buyer/properties/${p.slug || p._id}`} className="block h-full">
       <div className={`prop-card group h-full${offer ? ' offer-card' : ''}`}>
 
         {/* ── Image ──────────────────────────────────── */}

@@ -109,17 +109,24 @@ export default function ListingDetailPage() {
                 <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>Under review — approval in progress</p>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
                   {property.agent
-                    ? <>Assigned to <strong style={{ color: 'var(--text-mid)' }}>{property.agent.name}</strong> — they'll contact you to complete the listing before it goes live.</>
-                    : 'We\'re assigning an agent to your listing shortly.'}
+                    ? 'Our team is reviewing it and will contact you to complete the listing before it goes live.'
+                    : 'Our team will contact you about your listing shortly.'}
                 </p>
               </div>
             </div>
             {property.agent && (
               <button onClick={messageAgent} disabled={messaging} className="btn-primary btn-sm gap-2 flex-shrink-0">
                 {messaging ? <Loader2 size={13} className="animate-spin" /> : <MessageSquare size={13} />}
-                Message Agent
+                Message us
               </button>
             )}
+          </div>
+        )}
+
+        {/* Rental availability first — the thing an owner most often needs to change (rent listings only) */}
+        {property.listingType === 'rent' && (
+          <div className="mt-6">
+            <RentalAvailabilityCard key={`${property.rentalStatus}-${property.availableFrom}`} property={property} onUpdated={setProperty} />
           </div>
         )}
 
@@ -153,11 +160,6 @@ export default function ListingDetailPage() {
           <div className="text-sm leading-relaxed rich-content" style={{ color: 'var(--text-mid)' }}
             dangerouslySetInnerHTML={{ __html: property.description }} />
         </div>
-
-        {/* Rental availability — quick update, rent listings only */}
-        {property.listingType === 'rent' && (
-          <RentalAvailabilityCard key={`${property.rentalStatus}-${property.availableFrom}`} property={property} onUpdated={setProperty} />
-        )}
 
         {/* Details */}
         <div className="card p-6 mb-6">

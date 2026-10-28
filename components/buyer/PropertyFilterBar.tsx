@@ -14,6 +14,7 @@ import { AVAILABILITY_FILTERS, AVAILABLE_WITHIN } from '@/lib/rental'
 import { priceBuckets, sameRange } from '@/lib/currency'
 import RateLine from '@/components/currency/RateLine'
 import CurrencyIcon from '@/components/currency/CurrencyIcon'
+import ScrollRow from '@/components/shared/ScrollRow'
 
 /* ─── Shared data — property list pages + the map-search page all filter
    against the same vocabulary, so it lives here once instead of being
@@ -93,7 +94,9 @@ export const SIZES = [
 export function Pill({ active, onClick, children, className }: { active: boolean; onClick: () => void; children: React.ReactNode; className?: string }) {
   return (
     <button
+      type="button"
       onClick={onClick}
+      aria-pressed={active}
       className={cn('rounded-lg text-xs font-medium border transition-all', className)}
       style={{
         borderColor: active ? 'var(--teal)' : 'var(--border)',
@@ -271,7 +274,7 @@ export function PropertyFilterBar({
   const sizeLabel = SIZES.find(s => s.min === (filters as any).sizeMin && s.max === (filters as any).sizeMax && (s.min || s.max))?.l || 'Area (sqft)'
 
   return (
-    <div className="flex items-center gap-2 flex-nowrap overflow-x-auto scrollbar-hide">
+    <ScrollRow label="Filters">
       {/* Residential / Commercial — reshapes what the Type and Beds & Baths
           filters even mean, so it stays visually first, but shares the
           same single scrollable row as everything else instead of its own
@@ -439,6 +442,6 @@ export function PropertyFilterBar({
       {activeCount > 0 && (
         <button onClick={clearFilters} className="text-xs flex-shrink-0 px-2 whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>Clear all</button>
       )}
-    </div>
+    </ScrollRow>
   )
 }

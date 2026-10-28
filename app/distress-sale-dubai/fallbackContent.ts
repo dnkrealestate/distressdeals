@@ -33,15 +33,15 @@ export const FALLBACK_CONTENT: ContentPageData = {
         { icon: 'FileSearch', title: 'Confirm the title deed', body: 'Every genuine sale traces back to a title deed registered with the Dubai Land Department. We verify ownership before a listing goes live — never take a seller’s word alone.' },
         { icon: 'TrendingDown', title: 'Compare against real transactions', body: 'A genuine distress price sits meaningfully below recent comparable sales in the same building or community, not just below the seller’s own asking-price fantasy. We check DLD transaction data, not just other listings.' },
         { icon: 'ShieldCheck', title: 'Check for liens and service charge arrears', body: 'A property can be genuinely distressed and still have unresolved debts attached to it. We confirm no-objection status and outstanding service charges before a buyer commits.' },
-        { icon: 'Users2', title: 'Work through one accountable agent', body: 'A single dedicated agent manages the enquiry, the paperwork, and the negotiation — instead of you chasing multiple intermediaries with conflicting information.' },
+        { icon: 'Users2', title: 'Work with one accountable team', body: 'One dedicated team manages the enquiry, the paperwork, and the negotiation — instead of you chasing multiple intermediaries with conflicting information.' },
       ],
     },
     {
       heading: 'How Our Process Works',
       cards: [
         { title: 'Verified sourcing', body: 'Our team sources and verifies distress listings against title deeds and DLD transaction data before they go live.' },
-        { title: 'One dedicated agent', body: 'You submit interest on a listing and are connected with one dedicated agent — not a pool of competing agents.' },
-        { title: 'Managed negotiation', body: 'Your agent manages viewings, negotiation, and paperwork on your behalf, end to end.' },
+        { title: 'One dedicated team', body: 'You submit interest on a listing and our own team handles it — not a pool of competing brokers.' },
+        { title: 'Managed negotiation', body: 'We manage viewings, negotiation, and paperwork on your behalf, end to end.' },
         { title: 'Transparent close', body: 'You close with full visibility into the numbers that justified the discount, not just a seller’s claim.' },
       ],
     },

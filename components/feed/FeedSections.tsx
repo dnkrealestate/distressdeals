@@ -8,6 +8,7 @@ import { feedVisitorId } from '@/lib/feed'
 import PropertyCard from '@/components/buyer/PropertyCard'
 import ProjectCard from '@/components/buyer/ProjectCard'
 import FeedTracked from './FeedTracked'
+import ScrollRow from '@/components/shared/ScrollRow'
 
 // Above the For Sale feed: "Continue Browsing" (once something was opened), "Recommended for You" and "Because you
 // viewed …" (only once the visitor has done enough for them to mean something — the server decides). Renders nothing
@@ -26,7 +27,7 @@ function ContinueBrowsing({ items }: { items: Card[] }) {
         <h2 className="text-sm font-bold" style={{ color: 'var(--text)' }}>Continue Browsing</h2>
         <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Recently viewed</span>
       </div>
-      <div className="flex gap-3 overflow-x-auto pb-1" style={{ scrollbarWidth: 'thin' }}>
+      <ScrollRow innerClassName="gap-3" label="Recently viewed">
         {items.map((c, i) => {
           const p = c.item
           const href = c.kind === 'project' ? `/projects/${p.slug}` : `/buyer/properties/${p.slug || p._id}`
@@ -47,7 +48,7 @@ function ContinueBrowsing({ items }: { items: Card[] }) {
             </FeedTracked>
           )
         })}
-      </div>
+      </ScrollRow>
     </section>
   )
 }

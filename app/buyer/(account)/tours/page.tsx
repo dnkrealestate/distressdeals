@@ -62,7 +62,7 @@ export default function BuyerToursPage() {
             <CalendarClock size={28} style={{ color: 'var(--teal)' }} />
           </div>
           <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text)' }}>No tours scheduled</h3>
-          <p className="muted mb-7 max-w-xs">Once your agent schedules a viewing or call with you, it'll appear here.</p>
+          <p className="muted mb-7 max-w-xs">Once we schedule a viewing or call with you, it'll appear here.</p>
           <Link href="/buyer/properties" className="btn-primary"><Search size={15} /> Browse Properties</Link>
         </motion.div>
       ) : (

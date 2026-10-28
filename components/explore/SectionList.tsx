@@ -11,6 +11,7 @@ import { shareImages, fitTitle, fitDescription } from '@/lib/seo'
 import { EXPLORE_SECTIONS, EMIRATES, sectionHref, placeHref, type ExploreSection } from '@/lib/explore'
 import type { Metadata } from 'next'
 import type { Place } from '@/types'
+import ScrollRow from '@/components/shared/ScrollRow'
 
 // One Explore section as a list — the whole UAE (/explore/malls) or one emirate (/explore/malls/dubai). Both are real
 // landing pages with their own title, intro, structured data and FAQs; search / sort only re-order the same page.
@@ -118,22 +119,22 @@ export default async function SectionList({ section, emirate, searchParams = {} 
             {total > 0 && `This guide covers ${total.toLocaleString('en-US')} ${total === 1 ? section.singular : label} in ${where}${topAreas.length >= 2 ? `, including ${list(topAreas)}` : ''} — each with its exact location, practical details and reviews from visitors.`}
           </p>
 
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide mt-6 pb-1">
+          <ScrollRow className="mt-6" label="Explore sections">
             {EXPLORE_SECTIONS.map(s => (
-              <Link key={s.key} href={sectionHref(s, emirate)}
+              <Link key={s.key} href={sectionHref(s, emirate)} aria-current={s.key === section.key ? 'page' : undefined}
                 className="flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 h-9 rounded-full text-xs font-semibold whitespace-nowrap"
                 style={s.key === section.key ? { background: 'var(--grad)', color: '#fff' } : { background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-mid)' }}>
                 <s.icon size={13} /> {s.label}
               </Link>
             ))}
-          </div>
+          </ScrollRow>
         </div>
       </section>
 
       <section className="pb-14">
         <div className="wrap">
           <div className="flex flex-wrap items-center gap-2 mb-6">
-            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 flex-1 min-w-0">
+            <ScrollRow className="flex-1" label="Emirate">
               {['', ...EMIRATES].map(e => {
                 const active = (emirate || '') === e
                 const n = e ? perEmirate.find(x => x.emirate === e)?.count : undefined
@@ -146,7 +147,7 @@ export default async function SectionList({ section, emirate, searchParams = {} 
                   </Link>
                 )
               })}
-            </div>
+            </ScrollRow>
             {/* Plain GET form — works without JavaScript */}
             <form action={base} className="flex items-center gap-2 w-full sm:w-auto">
               <label className="relative flex-1 sm:w-56">

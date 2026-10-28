@@ -8,7 +8,7 @@ import NearbyLandmarkFinder from '@/components/admin/NearbyLandmarkFinder'
 import Pagination from '@/components/shared/Pagination'
 import { useDropzone } from 'react-dropzone'
 import {
-  Plus, X, Trash2, Pencil, Building2, UploadCloud, Loader2, Star, Eye, QrCode, Save, Search, LayoutList, LayoutGrid,
+  Plus, X, Trash2, Pencil, Layers, Building2, UploadCloud, Loader2, Star, Eye, QrCode, Save, Search, LayoutList, LayoutGrid,
   BarChart3, MessageCircleHeart, Share2, Map as MapIcon, Crosshair, UserRound, ChevronLeft, ChevronRight, GripVertical,
   Image as ImagePlaceholder, Video as VideoIcon, LayoutGrid as MasterPlanIcon,
 } from 'lucide-react'
@@ -166,16 +166,24 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 // ══════════════════════════ Form ══════════════════════════
 
-function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project | null; draftKey?: string; onClose: () => void; onSaved: () => void }) {
+// `template`: a new record that starts from another one's common details ("Add another unit type").
+// `startStage`: open a launch announcement straight in unit mode ("Add unit details").
+function ProjectForm({ project, template, startStage, draftKey, onClose, onSaved }: { project: Project | null; template?: Partial<Project>; startStage?: 'launch' | 'units'; draftKey?: string; onClose: () => void; onSaved: () => void }) {
+  // Edit: the project itself. New unit type: the shared details of the project it belongs to.
+  const src: Partial<Project> | null = project || template || null
+  // What is being saved: a launch announcement (common details only) or a unit type (price, beds, sizes…).
+  const [stage, setStage] = useState<'launch' | 'units'>(startStage || (project && (project.stage === 'launch' || !(project.priceFrom > 0)) ? 'launch' : 'units'))
+  const stageRef = useRef(stage); stageRef.current = stage
+  const isLaunch = stage === 'launch'
   const isMarketAdmin = useAuthStore(s => s.user?.role === 'admin' || s.user?.role === 'super_admin')
   const [step, setStep] = useState<number>(1)
   const [uploadTab, setUploadTab] = useState<'images' | 'floorplans' | 'masterplan' | 'videos'>('images')
 
-  const [coverImage, setCoverImage] = useState(project?.coverImage || '')
+  const [coverImage, setCoverImage] = useState(src?.coverImage || '')
   const [uploadingCover, setUploadingCover] = useState(false)
-  const [gallery, setGallery] = useState<string[]>(project?.images?.map(i => i.url) || [])
+  const [gallery, setGallery] = useState<string[]>(src?.images?.map(i => i.url) || [])
   const [uploadingGallery, setUploadingGallery] = useState(false)
-  const [descriptionHtml, setDescriptionHtml] = useState(project?.description || '')
+  const [descriptionHtml, setDescriptionHtml] = useState(src?.description || '')
   const [seo, setSeo] = useState<ProjectSeo>({
     metaTitle: project?.metaTitle || '', metaDescription: project?.metaDescription || '', focusKeyword: project?.focusKeyword || '',
     keywords: project?.seoKeywords || [],
@@ -187,7 +195,7 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
   const [offer, setOffer] = useState<Offer | null>(project?.offer && !project.offer.fromDeveloper ? project.offer : null)
   const [uploadingQr, setUploadingQr] = useState(false)
 
-  const [amenities, setAmenities] = useState<Record<string, boolean>>(project?.amenities || {})
+  const [amenities, setAmenities] = useState<Record<string, boolean>>(src?.amenities || {})
   // Feature-tag overrides on top of the automatic tags.
   const [tagsAdded, setTagsAdded] = useState<string[]>(project?.tagsAdded || [])
   const [tagsRemoved, setTagsRemoved] = useState<string[]>(project?.tagsRemoved || [])
@@ -195,13 +203,13 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
     (project?.floorPlans || []).map(f => ({ label: f.label, image: f.image || "", bedrooms: f.bedrooms || '', size: f.size || '', price: f.price ? String(f.price) : '', referencePrice: f.referencePrice ? String(f.referencePrice) : '' }))
   )
   const [uploadingFloorPlan, setUploadingFloorPlan] = useState<number | null>(null)
-  const [masterPlanImage, setMasterPlanImage] = useState(project?.masterPlan?.image || '')
-  const [masterPlanDescription, setMasterPlanDescription] = useState(project?.masterPlan?.description || '')
+  const [masterPlanImage, setMasterPlanImage] = useState(src?.masterPlan?.image || '')
+  const [masterPlanDescription, setMasterPlanDescription] = useState(src?.masterPlan?.description || '')
   const [uploadingMasterPlan, setUploadingMasterPlan] = useState(false)
   const [landmarks, setLandmarks] = useState<LandmarkEntry[]>(
-    (project?.landmarks || []).map(l => ({ name: l.name, category: l.category, lat: String(l.lat), lng: String(l.lng) }))
+    (src?.landmarks || []).map(l => ({ name: l.name, category: l.category, lat: String(l.lat), lng: String(l.lng) }))
   )
-  const [videos, setVideos] = useState<VideoEntry[]>(project?.videos || [])
+  const [videos, setVideos] = useState<VideoEntry[]>(src?.videos || [])
   const [videoDraft, setVideoDraft] = useState<VideoEntry>({ platform: 'youtube', url: '', title: '' })
 
   // "Located in: Emirate / Area" line + a remount-key bump — mirrors the
@@ -210,7 +218,7 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
   // <input {...register()}> with no `value` prop, so nothing tells React
   // to repaint them; bumping `key` forces a remount that picks up the fresh value.
   const [locatedIn, setLocatedIn] = useState(
-    project?.area ? `${project.emirate || 'Dubai'} / ${project.area}` : ''
+    src?.area ? `${src.emirate || 'Dubai'} / ${src.area}` : ''
   )
   const [locationVersion, setLocationVersion] = useState(0)
 
@@ -313,31 +321,31 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
 
   const { register, handleSubmit, setValue, getValues, watch, reset, control, formState: { errors } } = useForm({
     defaultValues: {
-      title:           project?.title || '',
-      developer:       project?.developer || '',
-      area:            project?.area || '',
-      community:       project?.community || '',
-      city:            project?.city || 'Dubai',
-      emirate:         project?.emirate || 'Dubai',
+      title:           src?.title || '',
+      developer:       src?.developer || '',
+      area:            src?.area || '',
+      community:       src?.community || '',
+      city:            src?.city || 'Dubai',
+      emirate:         src?.emirate || 'Dubai',
       priceFrom:       project?.priceFrom || '',
       priceTo:         project?.priceTo || '',
-      type:            project?.type || '',
+      type:            src?.type || '',
       bedrooms:        project?.bedrooms || '',
       bathrooms:       project?.bathrooms || '',
       sizeRange:       project?.sizeRange || '',
       // Older entries hold free text ('Q4-2029', 'Q2 ') — map to the dropdowns' values so nothing is lost on save.
-      handoverQuarter: (String(project?.handoverQuarter || '').toUpperCase().match(/Q[1-4]/) || [''])[0],
-      handoverYear:    project?.handoverYear || Number((String(project?.handoverQuarter || '').match(/(20\d{2})/) || [])[1]) || '',
-      paymentPlan:     project?.paymentPlan || '',
+      handoverQuarter: (String(src?.handoverQuarter || '').toUpperCase().match(/Q[1-4]/) || [''])[0],
+      handoverYear:    src?.handoverYear || Number((String(src?.handoverQuarter || '').match(/(20\d{2})/) || [])[1]) || '',
+      paymentPlan:     src?.paymentPlan || '',
       marketValue:     project?.marketValue || '',
       marketPriceSource:  project?.marketPriceSource || '',
       expectedAnnualRent: project?.expectedAnnualRent || '',
       incentivesText:  (project?.incentives || []).join('\n'),
       permitNumber:    project?.permitNumber || '',
-      status:          project?.status || 'upcoming',
+      status:          src?.status || 'upcoming',
       isFeatured:      project?.isFeatured || false,
-      lat:             project?.coordinates?.lat ?? '',
-      lng:             project?.coordinates?.lng ?? '',
+      lat:             src?.coordinates?.lat ?? '',
+      lng:             src?.coordinates?.lng ?? '',
     },
   })
 
@@ -493,8 +501,14 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
   const [dragOver, setDragOver] = useState<number | null>(null)
 
   const onSubmit = async (data: any) => {
+    // A launch announcement needs a photo and a description (it has no units or price to show yet).
+    if (isLaunch) {
+      if (!coverImage && !gallery.length) { setStep(3); setUploadTab('images'); toast.error('Add at least one photo for the launch announcement'); return }
+      if (!descriptionHtml.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').trim()) { setStep(4); toast.error('Add a description for the launch announcement'); return }
+    }
     setSubmitting(true)
     const payload: any = {
+      stage,
       title: data.title, developer: data.developer,
       description: descriptionHtml,
       coverImage, images: gallery.map(url => ({ url })),
@@ -522,7 +536,7 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
       coordinates: (data.lat !== '' && data.lng !== '') ? { lat: Number(data.lat), lng: Number(data.lng) } : undefined,
       amenities,
       // A floor plan is kept when it has a name (or at least bedrooms / a price, which then name it) — the picture is optional.
-      floorPlans: floorPlans
+      floorPlans: isLaunch ? [] : floorPlans
         .filter(f => f.label.trim() || f.bedrooms.trim() || f.price !== '')
         .map(f => ({ label: f.label.trim() || f.bedrooms.trim() || 'Floor plan', image: f.image || undefined, bedrooms: f.bedrooms || undefined, size: f.size || undefined, price: f.price !== '' ? Number(f.price) : undefined, referencePrice: Number(f.referencePrice) > 0 ? Number(f.referencePrice) : undefined })),
       masterPlan: masterPlanImage ? { image: masterPlanImage, description: masterPlanDescription || undefined } : undefined,
@@ -537,11 +551,14 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
       tagsAdded, tagsRemoved,
     }
 
+    // Launch: no unit details are saved (they are added later with "Add unit details").
+    if (isLaunch) Object.assign(payload, { priceFrom: 0, priceTo: undefined, bedrooms: undefined, bathrooms: undefined, sizeRange: undefined, offer: null, marketValue: 0, expectedAnnualRent: 0 })
+
     try {
       // JSON drops undefined keys, so an emptied field would never reach the server — send null to clear it.
       if (project) await projectAPI.update(project._id, Object.fromEntries(Object.entries(payload).map(([k, v]) => [k, v === undefined ? null : v])))
       else await projectAPI.create(payload)
-      toast.success(project ? 'Updated' : 'Created')
+      toast.success(project ? (startStage === 'units' ? 'Unit details added — it now shows in the Projects tab' : 'Updated') : isLaunch ? 'Launch announcement published — find it in the Launching tab' : 'Created')
       draft.clear()
       onSaved(); onClose()
     } catch (err: any) {
@@ -584,7 +601,7 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
         className="w-full h-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden flex flex-col" style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}>
 
         <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
-          <h2 className="font-bold text-sm" style={{ color: 'var(--text)' }}>{project ? 'Edit' : 'New'} Project</h2>
+          <h2 className="font-bold text-sm" style={{ color: 'var(--text)' }}>{project ? (startStage === 'units' ? 'Add unit details' : isLaunch ? 'Edit launch announcement' : 'Edit project') : template ? `New unit type — ${template.title}` : isLaunch ? 'New launch announcement' : 'New project'}</h2>
           <div className="flex items-center gap-1.5">
             <button type="button" onClick={saveDraft} disabled={!draft.dirty} className="btn-ghost btn-sm gap-1.5 disabled:opacity-40"
               title={draft.dirty ? 'Keep these changes as a draft' : 'No changes to save yet'}>
@@ -607,6 +624,39 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
 
           {/* ── Step 1 — Details ─────────────────────────────────── */}
           <div className={cn('space-y-5', step !== 1 && 'hidden')}>
+            {/* What is being added: a launch (announced before any unit details) or a unit type with its price and sizes */}
+            {(!project || project.stage === 'launch' || !(project.priceFrom > 0)) && !template && (
+              <div className="card p-4">
+                <p className="text-xs font-semibold mb-2.5" style={{ color: 'var(--text)' }}>What are you adding?</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {([
+                    { v: 'units', t: 'Project with unit details', d: 'Price, bedrooms, sizes and floor plans are known.' },
+                    { v: 'launch', t: 'Launch announcement', d: 'Only the project name and common details — units and prices are added later.' },
+                  ] as const).map(o => (
+                    <button key={o.v} type="button" onClick={() => setStage(o.v)} aria-pressed={stage === o.v}
+                      className="text-left rounded-xl p-3 transition-colors"
+                      style={{ border: `1.5px solid ${stage === o.v ? 'var(--teal)' : 'var(--border)'}`, background: stage === o.v ? 'rgba(203,1,1,0.05)' : 'transparent' }}>
+                      <span className="block text-sm font-semibold" style={{ color: stage === o.v ? 'var(--teal)' : 'var(--text)' }}>{o.t}</span>
+                      <span className="block text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{o.d}</span>
+                    </button>
+                  ))}
+                </div>
+                {isLaunch && (
+                  <p className="text-[11px] mt-2.5" style={{ color: 'var(--text-muted)' }}>
+                    Required for a launch: project name, developer, area, at least one photo (Uploads) and a description. It shows as
+                    “Launching soon · Price on announcement” with a Register interest button. When units are announced, use
+                    <b> Add unit details</b> on this project — it keeps the same page.
+                  </p>
+                )}
+              </div>
+            )}
+            {template && (
+              <div className="rounded-xl px-4 py-3 text-xs" style={{ background: 'rgba(203,1,1,0.05)', border: '1px solid rgba(203,1,1,0.18)', color: 'var(--text-mid)' }}>
+                A new unit type of <b>{template.title}</b>. The project's common details (name, developer, location, photos,
+                description, amenities) are filled in — add this unit's price, bedrooms and size below. Keep the name exactly the same:
+                that is what groups the unit types into one project.
+              </div>
+            )}
             <div className="card p-6 overflow-visible">
               <h3 className="font-bold text-sm mb-5" style={{ color: 'var(--text)' }}>Project Basics</h3>
               <div className="space-y-4">
@@ -793,6 +843,11 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
                 <Field label="Reference Number">
                   <input className="input" value={project?.referenceId || 'Assigned on save'} disabled style={{ opacity: 0.7 }} />
                 </Field>
+                {isLaunch ? (
+                  <p className="text-xs rounded-xl px-3 py-2.5" style={{ background: 'var(--bg-alt)', color: 'var(--text-muted)' }}>
+                    Launch announcement — price, bedrooms, sizes and floor plans are added later with <b>Add unit details</b>.
+                  </p>
+                ) : (<>
                 {/* Market Price is the main price; the Distress Deals Price is ours. Enter the market price and a discount and
                     the Distress Deals Price is filled in — or type the Distress Deals Price and the discount is shown. */}
                 {(() => {
@@ -828,7 +883,7 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
                 })()}
                 <div className="grid grid-cols-2 gap-4">
                   <Field label="Distress Deals Price (AED) *">
-                    <input className="input" type="number" {...register('priceFrom', { required: true, min: 1, onChange: () => setDiscountPct(null) })} />
+                    <input className="input" type="number" {...register('priceFrom', { validate: v => stageRef.current === 'launch' || Number(v) > 0, onChange: () => setDiscountPct(null) })} />
                     {Number(watch('marketValue')) > 0 && Number(watch('priceFrom')) > 0 && Number(watch('priceFrom')) < Number(watch('marketValue')) && (
                       <p className="text-[11px] mt-1 font-medium" style={{ color: '#047857' }}>{(Math.round(((Number(watch('marketValue')) - Number(watch('priceFrom'))) / Number(watch('marketValue'))) * 1000) / 10)}% below the market price · saving {formatPrice(Number(watch('marketValue')) - Number(watch('priceFrom')))}</p>
                     )}
@@ -905,6 +960,7 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
                     <input className="input" placeholder="e.g. 650 - 1,850 sqft" {...register('sizeRange')} />
                   </Field>
                 </div>
+                </>)}
                 <Field label="DLD Permit Number">
                   <input className="input" {...register('permitNumber')} />
                 </Field>
@@ -980,7 +1036,7 @@ function ProjectForm({ project, draftKey, onClose, onSaved }: { project: Project
               <div className="flex gap-2 mb-5 flex-wrap" style={{ borderBottom: '1px solid var(--border)' }}>
                 {([
                   { v: 'images', l: 'Images', icon: ImagePlaceholder },
-                  { v: 'floorplans', l: 'Floor Plans', icon: UploadCloud },
+                  ...(isLaunch ? [] : [{ v: 'floorplans' as const, l: 'Floor Plans', icon: UploadCloud }]),
                   { v: 'masterplan', l: 'Master Plan', icon: MasterPlanIcon },
                   { v: 'videos', l: 'Videos', icon: VideoIcon },
                 ] as const).map(t => (
@@ -1266,6 +1322,8 @@ type ListFacets = {
   developers: string[]; types: string[]
   creators: { id: string; name: string; displayId?: string; count: number }[]
   statuses: Record<string, number>
+  // Tab counts: launch announcements and every other project
+  launching?: number; projects?: number
 }
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Newest first' }, { value: 'updated', label: 'Recently updated' }, { value: 'oldest', label: 'Oldest first' },
@@ -1301,8 +1359,18 @@ export default function AdminProjectsPage() {
   const refreshDrafts = useCallback(() => setDrafts(listDrafts('project:')), [])
   useEffect(() => { refreshDrafts() }, [refreshDrafts])
   const draftForProject = (id: string) => drafts.find(d => d.key === `project:${id}`)
-  const startNew = () => { setDraftKey(`project:new:${Date.now().toString(36)}`); setEditing('new') }
-  const editProject = (p: Project) => { setDraftKey(undefined); setEditing(p) }
+  // "Add another unit type" starts a new record from a project's common details; "Add unit details" opens a launch
+  // announcement in unit mode (it becomes a full listing on the same page).
+  const [template, setTemplate] = useState<Partial<Project> | undefined>()
+  const [startStage, setStartStage] = useState<'units' | undefined>()
+  const startNew = () => { setTemplate(undefined); setStartStage(undefined); setDraftKey(`project:new:${Date.now().toString(36)}`); setEditing('new') }
+  const editProject = (p: Project) => { setTemplate(undefined); setStartStage(undefined); setDraftKey(undefined); setEditing(p) }
+  const addUnitDetails = (p: Project) => { setTemplate(undefined); setStartStage('units'); setDraftKey(`project:units:${p._id}`); setEditing(p) }
+  const addUnitType = (p: Project) => {
+    const { title, developer, area, community, city, emirate, coordinates, description, coverImage, images, amenities, landmarks, masterPlan, videos, status, type, handoverQuarter, handoverYear, paymentPlan } = p
+    setTemplate({ title, developer, area, community, city, emirate, coordinates, description, coverImage, images, amenities, landmarks, masterPlan, videos, status, type, handoverQuarter, handoverYear, paymentPlan })
+    setStartStage(undefined); setDraftKey(`project:new:unit-${Date.now().toString(36)}`); setEditing('new')
+  }
   const continueDraft = async (d: { key: string }) => {
     if (d.key.startsWith('project:new')) { setDraftKey(d.key); setEditing('new'); return }
     try {
@@ -1316,7 +1384,7 @@ export default function AdminProjectsPage() {
     if (!confirm(`Discard the draft "${d.values?.title || 'Untitled project'}"? This can't be undone.`)) return
     removeDraft(d.key); refreshDrafts()
   }
-  const closeForm = () => { setEditing(null); setDraftKey(undefined); setTimeout(refreshDrafts, 50) }
+  const closeForm = () => { setEditing(null); setDraftKey(undefined); setTemplate(undefined); setStartStage(undefined); setTimeout(refreshDrafts, 50) }
   const [perfProject, setPerfProject] = useState<Project | null>(null)
   const [total, setTotal] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
@@ -1328,6 +1396,8 @@ export default function AdminProjectsPage() {
   const [developer, setDeveloper] = useState('')
   const [type, setType] = useState('')
   const [status, setStatus] = useState('')
+  // Projects (with unit details) or Launching (announced, no units yet). Adding unit details moves a project across.
+  const [tab, setTab] = useState<'projects' | 'launching'>('projects')
   const [addedBy, setAddedBy] = useState('')
   const [featured, setFeatured] = useState(false)
   const [sort, setSort] = useState('newest')
@@ -1340,13 +1410,14 @@ export default function AdminProjectsPage() {
   // Typing waits a moment before searching.
   useEffect(() => { const t = setTimeout(() => setSearch(q.trim()), 350); return () => clearTimeout(t) }, [q])
   // Any filter change starts again from page 1.
-  useEffect(() => { setPage(1) }, [search, developer, type, status, addedBy, featured, sort, limit])
+  useEffect(() => { setPage(1) }, [search, developer, type, status, addedBy, featured, sort, limit, tab])
 
   const load = useCallback(() => {
     setLoading(true)
     projectAPI.manageAll({
       q: search || undefined, developer: developer || undefined, type: type || undefined, status: status || undefined,
       addedBy: addedBy || undefined, featured: featured ? 'true' : undefined, sort, page, limit,
+      stage: tab === 'launching' ? 'launch' : undefined,
     })
       .then(r => {
         if (!r.data.success) return
@@ -1356,7 +1427,7 @@ export default function AdminProjectsPage() {
       })
       .catch(() => toast.error('Failed to load projects'))
       .finally(() => setLoading(false))
-  }, [search, developer, type, status, addedBy, featured, sort, page, limit])
+  }, [search, developer, type, status, addedBy, featured, sort, page, limit, tab])
 
   useEffect(() => { load() }, [load])
 
@@ -1375,6 +1446,9 @@ export default function AdminProjectsPage() {
     <div className="flex items-center gap-1 flex-shrink-0">
       <a href={`/projects/${project.slug}`} target="_blank" rel="noopener noreferrer" className="btn-ghost btn-sm p-2" title="View on website"><Eye size={13} /></a>
       <button onClick={() => setPerfProject(project)} className="btn-ghost btn-sm p-2" title="Performance"><BarChart3 size={13} /></button>
+      {(project.stage === 'launch' || !(project.priceFrom > 0))
+        ? <button onClick={() => addUnitDetails(project)} className="btn-outline btn-sm gap-1 whitespace-nowrap" title="Units announced? Add the price, bedrooms and sizes — it keeps the same page"><Plus size={12} /> Add unit details</button>
+        : <button onClick={() => addUnitType(project)} className="btn-ghost btn-sm p-2" title="Add another unit type of this project (common details filled in)"><Layers size={13} /></button>}
       <button onClick={() => editProject(project)} className="btn-ghost btn-sm p-2" title="Edit"><Pencil size={13} /></button>
       <button onClick={() => remove(project)} className="btn-ghost btn-sm p-2" style={{ color: '#FB7185' }} title="Delete"><Trash2 size={13} /></button>
     </div>
@@ -1388,7 +1462,7 @@ export default function AdminProjectsPage() {
       <header className="flex items-center justify-between gap-3 px-7 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
         <div>
           <h1 className="text-lg font-bold" style={{ color: 'var(--text)' }}>Projects</h1>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Off-plan & new development listings · {allCount.toLocaleString()} in total</p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Off-plan & new development listings · {(facets.projects ?? allCount).toLocaleString()} projects · {(facets.launching ?? 0).toLocaleString()} launching</p>
         </div>
         <button onClick={startNew} className="btn-primary btn-sm gap-2">
           <Plus size={13} /> New Project
@@ -1426,6 +1500,30 @@ export default function AdminProjectsPage() {
               })}
             </div>
           </div>
+        )}
+
+        {/* Projects / Launching */}
+        <div className="flex gap-6" style={{ borderBottom: '1px solid var(--border)' }} role="tablist">
+          {([
+            { v: 'projects', l: 'Projects', n: facets.projects, hint: 'With unit details' },
+            { v: 'launching', l: 'Launching', n: facets.launching, hint: 'Announced — units and prices not added yet' },
+          ] as const).map(t => {
+            const on = tab === t.v
+            return (
+              <button key={t.v} role="tab" aria-selected={on} title={t.hint} onClick={() => { setTab(t.v); setStatus('') }}
+                className="pb-2.5 -mb-px text-sm font-semibold flex items-center gap-2 transition-colors"
+                style={{ color: on ? 'var(--teal)' : 'var(--text-muted)', borderBottom: `2px solid ${on ? 'var(--teal)' : 'transparent'}` }}>
+                {t.l}
+                <span className="text-[11px] font-bold rounded-full px-2 py-0.5" style={{ background: on ? 'rgba(203,1,1,0.10)' : 'var(--bg-alt)', color: on ? 'var(--teal)' : 'var(--text-muted)' }}>{(t.n ?? 0).toLocaleString()}</span>
+              </button>
+            )
+          })}
+        </div>
+        {tab === 'launching' && (
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+            Projects announced before their units and prices. When the developer releases them, use <b>Add unit details</b> — the project
+            then moves to the Projects tab (same page on the website).
+          </p>
         )}
 
         {/* Status tabs */}
@@ -1523,7 +1621,7 @@ export default function AdminProjectsPage() {
                     </p>
                     <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>
                       {project.referenceId && <span className="font-mono">{project.referenceId} · </span>}
-                      {project.developer} · {project.type ? `${typeLabel(project.type)} · ` : ''}{project.area} · from {formatPrice(project.priceFrom)}
+                      {project.developer} · {project.type ? `${typeLabel(project.type)} · ` : ''}{project.area} · {project.priceFrom > 0 ? `from ${formatPrice(project.priceFrom)}` : 'price on announcement'}
                       {' · '}<Eye size={10} className="inline" /> {project.views}
                     </p>
                     <ProjectAuthorship project={project} className="mt-0.5 truncate" />
@@ -1533,6 +1631,7 @@ export default function AdminProjectsPage() {
                   {draftForProject(project._id) && <span className="badge text-[10px] whitespace-nowrap" style={{ background: 'rgba(245,158,11,0.12)', color: '#B45309', border: 'none' }}>Unsaved draft</span>}
                   {handedOver(project) && <span className="badge text-[10px] whitespace-nowrap" style={{ background: 'rgba(225,29,72,0.10)', color: '#E11D48', border: 'none' }} title="Handover date has passed — still on the website, but no longer marked New Project / off-plan.">Handover passed</span>}
                   <StatusBadge s={project.status} />
+                  {(project.stage === 'launch' || !(project.priceFrom > 0)) && <span className="badge whitespace-nowrap" style={{ background: 'rgba(168,85,247,0.12)', color: '#7E22CE' }}>Launch</span>}
                   <Actions project={project} />
                 </div>
               </div>
@@ -1554,7 +1653,7 @@ export default function AdminProjectsPage() {
                 <div className="p-4 flex flex-col flex-1 min-w-0">
                   <p className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>{project.title}</p>
                   <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{project.developer} · {project.area}</p>
-                  <p className="text-sm font-bold grad-text mt-1.5">From {formatPrice(project.priceFrom)}</p>
+                  <p className="text-sm font-bold grad-text mt-1.5">{project.priceFrom > 0 ? `From ${formatPrice(project.priceFrom)}` : 'Price on announcement'}</p>
                   <p className="text-[11px] mt-1 truncate" style={{ color: 'var(--text-muted)' }}>
                     {project.referenceId && <span className="font-mono">{project.referenceId} · </span>}{project.type ? typeLabel(project.type) : '—'} · <Eye size={10} className="inline" /> {project.views}
                   </p>
@@ -1590,6 +1689,8 @@ export default function AdminProjectsPage() {
           <ProjectForm
             key={draftKey || (editing === 'new' ? 'new' : editing._id)}
             project={editing === 'new' ? null : editing}
+            template={editing === 'new' ? template : undefined}
+            startStage={editing === 'new' ? undefined : startStage}
             draftKey={draftKey}
             onClose={closeForm}
             onSaved={() => { load(); refreshDrafts() }}

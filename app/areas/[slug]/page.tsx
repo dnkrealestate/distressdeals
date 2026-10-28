@@ -196,7 +196,7 @@ export default async function AreaDetailPage({ params, searchParams }: { params:
               <>
                 {area.count} verified propert{area.count === 1 ? 'y' : 'ies'} currently available in {area.area}
                 {area.saleCount > 0 && area.rentCount > 0 && ` (${area.saleCount} for sale, ${area.rentCount} for rent)`}.
-                Every listing here passed our agent-completion and admin-approval gate — no duplicates, no stale posts.
+                Every listing here passed our team’s completion and approval checks — no duplicates, no stale posts.
               </>
             ) : (
               <>Area guide to {area.area}, {emirate}: property types, lifestyle and what is for sale{projectTotal > 0 ? ` — including ${projectTotal} new off-plan project${projectTotal === 1 ? '' : 's'}` : ''}.</>

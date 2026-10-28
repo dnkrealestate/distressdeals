@@ -14,6 +14,7 @@ import { formatPrice, formatArea, formatDate, cn, rentSuffix } from '@/lib/utils
 import RentalBadge from '@/components/buyer/RentalBadge'
 import type { Property } from '@/types'
 import toast from 'react-hot-toast'
+import ScrollRow from '@/components/shared/ScrollRow'
 
 const STATUS_TABS = [
   { v: '',             l: 'All'           },
@@ -201,11 +202,12 @@ export default function SellerListingsPage() {
         {/* Search + status tabs — nothing to filter yet on a brand new account */}
         {(loading || listings.length > 0) && (
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+          <ScrollRow label="Listing status">
             {STATUS_TABS.map(t => (
               <button
                 key={t.v}
                 onClick={() => setStatusTab(t.v)}
+                aria-pressed={statusTab === t.v}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium whitespace-nowrap border transition-all flex-shrink-0"
                 style={{
                   borderColor: statusTab === t.v ? 'var(--teal)' : 'var(--border)',
@@ -225,7 +227,7 @@ export default function SellerListingsPage() {
                 </span>
               </button>
             ))}
-          </div>
+          </ScrollRow>
 
           <div className="input-glass flex items-center gap-2 h-10 px-3 rounded-xl flex-shrink-0 w-full md:w-64">
             <Search size={14} style={{ color: 'var(--teal)', flexShrink: 0 }} />
@@ -337,17 +339,17 @@ export default function SellerListingsPage() {
                   </div>
                 )}
 
-                {/* Pending review — assigned agent + message */}
+                {/* Pending review — under review + message us */}
                 {(p.status === 'pending' || p.status === 'under_review') && (
                   <div className="mt-2 flex items-center justify-between gap-2.5 px-4 py-2.5 rounded-xl text-xs flex-wrap" style={{ background: 'rgba(203,1,1,0.06)', border: '1px solid rgba(203,1,1,0.18)', color: 'var(--text-mid)' }}>
                     <span className="flex items-center gap-2">
                       <Clock size={13} style={{ color: 'var(--teal)' }} className="flex-shrink-0" />
-                      {p.agent ? <>Assigned to <strong style={{ color: 'var(--text)' }}>{p.agent.name}</strong> — review in progress</> : 'Approval in progress — assigning an agent'}
+                      {p.agent ? 'Our team is reviewing it' : 'Approval in progress'}
                     </span>
                     {p.agent && (
                       <button onClick={e => messageAgent(e, p)} disabled={messaging === p._id} className="btn-ghost btn-sm gap-1.5 text-xs">
                         {messaging === p._id ? <Loader2 size={12} className="animate-spin" /> : <MessageSquare size={12} />}
-                        Message Agent
+                        Message us
                       </button>
                     )}
                   </div>

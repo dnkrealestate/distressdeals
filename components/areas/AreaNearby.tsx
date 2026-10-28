@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic'
 import { HeartPulse, GraduationCap, Landmark, TrainFront, ShoppingBag, Store, MapPin, ArrowUpRight } from 'lucide-react'
 import { placeHref } from '@/lib/explore'
 import type { AreaNearby as Nearby, NearbyCategory } from '@/types'
+import ScrollRow from '@/components/shared/ScrollRow'
 
 // "Nearby places" on an area page: hospitals, schools, tourist places, metro, malls and everyday places, each with its
 // straight-line distance from the area's centre, and a map of the selected group. Collected automatically
@@ -40,7 +41,7 @@ export default function AreaNearby({ area, center, nearby, updatedAt }: { area: 
           <h2 id="nearby-heading" className="font-bold text-lg mb-1" style={{ color: 'var(--text)' }}>Amenities &amp; nearby places in {area}</h2>
           <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>Hospitals, schools, tourist places, metro stations, malls and everyday places around {area}.</p>
 
-          <div className="flex gap-2 overflow-x-auto pb-1 mb-4" role="tablist">
+          <ScrollRow className="mb-4" role="tablist">
             {groups.map(g => (
               <button key={g.key} type="button" role="tab" aria-selected={g.key === current.key} onClick={() => setActive(g.key)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap flex-shrink-0 transition-colors"
@@ -48,7 +49,7 @@ export default function AreaNearby({ area, center, nearby, updatedAt }: { area: 
                 <g.icon size={13} /> {g.label} <span className="opacity-75">{g.items.length}</span>
               </button>
             ))}
-          </div>
+          </ScrollRow>
 
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
             <ul className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-2 content-start" role="tabpanel">

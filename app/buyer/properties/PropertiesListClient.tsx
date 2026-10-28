@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useLayoutEffect, useCallback, useRef, Suspense, Fragment } from 'react'
+import { useState, useEffect, useCallback, useRef, Suspense, Fragment } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -22,7 +22,8 @@ import ProjectCard from '@/components/buyer/ProjectCard'
 import ProjectCompareBar from '@/components/buyer/ProjectCompareBar'
 import Pagination from '@/components/shared/Pagination'
 import SearchBar from '@/components/buyer/SearchBar'
-import { PropertyFilterBar, Pill, FilterDropdown, DropdownOption, TYPES, countForType } from '@/components/buyer/PropertyFilterBar'
+import { PropertyFilterBar, Pill, TYPES, countForType } from '@/components/buyer/PropertyFilterBar'
+import ScrollRow from '@/components/shared/ScrollRow'
 import { propertyAPI, savedSearchAPI, projectAPI } from '@/lib/api'
 import { TYPE_PAGE_LABELS } from '@/lib/listingSeo'
 import type { ListingSeed } from '@/lib/listingSeed'
@@ -684,57 +685,10 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
     filters.rentalStatus, filters.availableWithin, (filters as any).completion, (filters as any).furnishing,
   ].filter(Boolean).length
 
-  // Type-count pills stay a single row on every screen size — but instead
-  // of a fixed guess at how many fit, an offscreen measuring copy of every
-  // pill (identical markup, so identical widths) is used to work out how
-  // many ACTUALLY fit in the space left after the Sort/View controls, and
-  // only that many render for real; whatever's left goes behind a "+N More"
-  // popover (out of the flex flow, so opening it can never wrap the row).
+  // Every property type with listings, in one row that scrolls sideways (components/shared/ScrollRow).
   const visibleTypeDefs = TYPES.filter(t => t.v && countForType(typeStats, t.v) > 0)
 
-  const typeRowRef  = useRef<HTMLDivElement>(null)
-  const sortViewRef = useRef<HTMLDivElement>(null)
-  const measureRef  = useRef<HTMLDivElement>(null)
-  const [visibleTypeCount, setVisibleTypeCount] = useState(visibleTypeDefs.length)
-
-  useLayoutEffect(() => {
-    const row = typeRowRef.current
-    const measure = measureRef.current
-    if (!row || !measure) return
-
-    const GAP = 8 // matches gap-2 on the pills row
-    const recompute = () => {
-      const sortViewWidth = sortViewRef.current?.offsetWidth || 0
-      const available = row.clientWidth - sortViewWidth - 12 // 12 = gap-3 between the two
-      const children = Array.from(measure.children) as HTMLElement[]
-      if (children.length < 2) { setVisibleTypeCount(visibleTypeDefs.length); return }
-
-      const allTypesWidth = children[0].offsetWidth
-      const moreWidth     = children[children.length - 1].offsetWidth
-      const typeWidths    = children.slice(1, -1).map(el => el.offsetWidth)
-
-      let total = allTypesWidth
-      let fit = 0
-      for (let i = 0; i < typeWidths.length; i++) {
-        const remaining  = typeWidths.length - (i + 1)
-        const reserveMore = remaining > 0 ? moreWidth + GAP : 0
-        if (total + GAP + typeWidths[i] + reserveMore <= available) {
-          total += GAP + typeWidths[i]
-          fit = i + 1
-        } else break
-      }
-      setVisibleTypeCount(fit)
-    }
-
-    recompute()
-    const ro = new ResizeObserver(recompute)
-    ro.observe(row)
-    return () => ro.disconnect()
-  }, [visibleTypeDefs.length, typeStatsTotal, pastSearch])
-
   const isRent = forcedListingType === 'rent' || filters.listingType === 'rent'
-  const shownTypeDefs = visibleTypeDefs.slice(0, visibleTypeCount)
-  const moreTypeDefs  = visibleTypeDefs.slice(visibleTypeCount)
 
   return (
     <div className="page">
@@ -829,96 +783,38 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
           box is still visible. Sort + view-type controls stay available
           here too, so switching to the filter bar never gates them. ── */}
       {!pastSearch && (
-        <div ref={typeRowRef} className="wrap pt-4 flex items-center justify-between gap-3">
-          {/* Offscreen measuring copy — identical markup/classes to the real
-              pills below, used only to read real rendered widths so the
-              visible count can be computed exactly instead of guessed. */}
-          {typeStats.length > 0 && (
-            <div
-              ref={measureRef}
-              aria-hidden
-              className="flex items-center gap-2 flex-nowrap"
-              style={{ position: 'absolute', visibility: 'hidden', pointerEvents: 'none', top: -9999, left: 0 }}
-            >
-              <Pill active={false} onClick={() => {}} className="px-3.5 py-2 flex-shrink-0 whitespace-nowrap">
-                All Types <span>&nbsp;{typeStatsTotal.toLocaleString()}</span>
+        <div className="wrap pt-4 flex items-center justify-between gap-3">
+          {typeStats.length > 0 ? (
+            <ScrollRow className="flex-1" label="Property type">
+              <Pill
+                active={!filters.type}
+                onClick={() => setFilter('type', '')}
+                className="px-3.5 py-2 flex-shrink-0 whitespace-nowrap"
+              >
+                All Types <span style={{ opacity: 0.55 }}>&nbsp;{typeStatsTotal.toLocaleString()}</span>
               </Pill>
               {visibleTypeDefs.map(t => {
                 const Icon  = t.icon
                 const count = countForType(typeStats, t.v)
                 return (
-                  <Pill key={t.v} active={false} onClick={() => {}} className="px-3.5 py-2 flex-shrink-0 whitespace-nowrap">
+                  <Pill
+                    key={t.v}
+                    active={filters.type === t.v}
+                    onClick={() => setFilter('type', filters.type === t.v ? '' : t.v)}
+                    className="px-3.5 py-2 flex-shrink-0 whitespace-nowrap"
+                  >
                     <span className="inline-flex items-center gap-1.5">
                       <Icon size={13} />
                       {t.l}
-                      <span>{count.toLocaleString()}</span>
+                      <span style={{ opacity: 0.55 }}>{count.toLocaleString()}</span>
                     </span>
                   </Pill>
                 )
               })}
-              <button className="flex items-center gap-1.5 h-10 px-3.5 rounded-lg border text-xs font-semibold whitespace-nowrap">
-                {`+${visibleTypeDefs.length} More`}
-                <ChevronDown size={11} />
-              </button>
-            </div>
-          )}
+            </ScrollRow>
+          ) : <div className="flex-1" />}
 
-          <div className="flex items-center gap-2 flex-nowrap flex-1 min-w-0" style={{ overflow: 'visible' }}>
-            {typeStats.length > 0 && (
-              <>
-                <Pill
-                  active={!filters.type}
-                  onClick={() => setFilter('type', '')}
-                  className="px-3.5 py-2 flex-shrink-0 whitespace-nowrap"
-                >
-                  All Types <span style={{ opacity: 0.55 }}>&nbsp;{typeStatsTotal.toLocaleString()}</span>
-                </Pill>
-                {shownTypeDefs.map(t => {
-                  const Icon  = t.icon
-                  const count = countForType(typeStats, t.v)
-                  return (
-                    <Pill
-                      key={t.v}
-                      active={filters.type === t.v}
-                      onClick={() => setFilter('type', filters.type === t.v ? '' : t.v)}
-                      className="px-3.5 py-2 flex-shrink-0 whitespace-nowrap"
-                    >
-                      <span className="inline-flex items-center gap-1.5">
-                        <Icon size={13} />
-                        {t.l}
-                        <span style={{ opacity: 0.55 }}>{count.toLocaleString()}</span>
-                      </span>
-                    </Pill>
-                  )
-                })}
-                {/* "More" opens a popover (out of the flex flow) instead of
-                    wrapping the rest inline — the row can never grow to a
-                    second line, on desktop or mobile. */}
-                {moreTypeDefs.length > 0 && (
-                  <FilterDropdown label={`+${moreTypeDefs.length} More`} widthClass="w-48">
-                    {close => (
-                      <div className="flex flex-col gap-1 max-h-72 overflow-y-auto">
-                        {moreTypeDefs.map(t => {
-                          const count = countForType(typeStats, t.v)
-                          return (
-                            <DropdownOption
-                              key={t.v}
-                              active={filters.type === t.v}
-                              onClick={() => { setFilter('type', filters.type === t.v ? '' : t.v); close() }}
-                            >
-                              {t.l} <span style={{ opacity: 0.55 }}>· {count.toLocaleString()}</span>
-                            </DropdownOption>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </FilterDropdown>
-                )}
-              </>
-            )}
-          </div>
-
-          <div ref={sortViewRef}>
+          <div className="flex-shrink-0">
             <SortViewControls
               sortBy={filters.sortBy || 'newest'} onSortChange={v => setFilter('sortBy', v)}
               view={view} onViewChange={setView} feed={forcedListingType === 'sale'}

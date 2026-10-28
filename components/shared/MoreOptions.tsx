@@ -8,6 +8,7 @@ import PropertyCard from '@/components/buyer/PropertyCard'
 import { projectAPI, propertyAPI } from '@/lib/api'
 import { placeHref, sectionByKey } from '@/lib/explore'
 import type { Place, Project, Property } from '@/types'
+import ScrollRow from '@/components/shared/ScrollRow'
 
 type Near<T> = T & { distanceKm?: number }
 interface More {
@@ -34,8 +35,7 @@ function Row({ title, accent, note, href, children }: { title: string; accent: s
         {href && <Link href={href} className="btn-ghost btn-sm flex-shrink-0">View all</Link>}
       </div>
       {/* Sideways only: the padding leaves room for the cards' shadow and hover lift, so nothing needs to scroll up/down. */}
-      <div className="flex gap-5 overflow-x-auto overflow-y-hidden scrollbar-hide -mx-2 px-2 pt-3 pb-6 -mt-3 -mb-3"
-        style={{ scrollSnapType: 'x mandatory', overscrollBehaviorX: 'contain', touchAction: 'pan-x pan-y' }}>{children}</div>
+      <ScrollRow variant="cards" innerClassName="gap-5" label={`${title} ${accent}`}>{children}</ScrollRow>
     </div>
   )
 }

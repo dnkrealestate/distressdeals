@@ -20,7 +20,7 @@ export const FALLBACK_CONTENT: ContentPageData = {
     },
     {
       heading: 'How It Works',
-      body: "Submit your property details below. Our team reviews comparable transactions in your building or community, and your assigned agent gets back to you with a realistic value range — including how that range shifts depending on how quickly you'd want to sell. If you decide to list, that same agent manages the process end to end; if you don't, there's no cost and no further obligation.",
+      body: "Submit your property details below. Our team reviews comparable transactions in your building or community, and we get back to you with a realistic value range — including how that range shifts depending on how quickly you'd want to sell. If you decide to list, the same team manages the process end to end; if you don't, there's no cost and no further obligation.",
       cards: [],
     },
   ],

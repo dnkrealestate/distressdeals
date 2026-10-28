@@ -24,6 +24,7 @@ import { Map as MapIcon, Layers } from 'lucide-react'
 import { priceBuckets, sameRange } from '@/lib/currency'
 import RateLine from '@/components/currency/RateLine'
 import CurrencyIcon from '@/components/currency/CurrencyIcon'
+import ScrollRow from '@/components/shared/ScrollRow'
 
 const STATUSES: { value: Project['status'] | ''; label: string }[] = [
   { value: '',                   label: 'All' },
@@ -320,7 +321,7 @@ function ProjectsListClientInner({ bottom, initial }: { bottom?: React.ReactNode
       <div className={cn('z-30', pastSearch ? 'sticky top-16' : 'relative')}
         style={pastSearch ? { background: 'var(--surface)', borderBottom: '1px solid var(--border)', boxShadow: '0 8px 20px -14px rgba(15,23,42,0.25)' } : undefined}>
         {/* One row that slides sideways on phones (same as /for-sale); wraps on larger screens. Dropdown panels are portals, so the scroll doesn't clip them. */}
-        <div className={cn('wrap flex items-center gap-2 flex-nowrap overflow-x-auto overflow-y-hidden scrollbar-hide lg:flex-wrap lg:overflow-visible', pastSearch ? 'py-3' : 'pb-1')}>
+        <ScrollRow className="wrap" innerClassName={cn('gap-2 lg:flex-wrap', pastSearch ? 'py-3' : 'pb-1')} label="Filters">
           <FilterDropdown label={STATUSES.find(x => x.value === filters.status && x.value)?.label || 'Status'} icon={Layers} active={!!filters.status} widthClass="w-60">
             {close => (
               <div className="flex flex-col gap-1">
@@ -397,12 +398,12 @@ function ProjectsListClientInner({ bottom, initial }: { bottom?: React.ReactNode
               </button>
             ))}
           </div>
-        </div>
+        </ScrollRow>
       </div>
 
       {/* ── Status counts row (like the for-sale page's property-type counts) ── */}
       {!pastSearch && (
-        <div className="wrap pt-3 flex items-center gap-2 overflow-x-auto overflow-y-hidden scrollbar-hide">
+        <ScrollRow className="wrap pt-3" label="Project status">
           <StatusPill active={!filters.status} onClick={() => setFilter('status', '')}>
             All <span style={{ opacity: 0.7 }}>· {statusStatsTotal.toLocaleString()}</span>
           </StatusPill>
@@ -415,7 +416,7 @@ function ProjectsListClientInner({ bottom, initial }: { bottom?: React.ReactNode
               </StatusPill>
             )
           })}
-        </div>
+        </ScrollRow>
       )}
 
       {/* ── Results + sidebar ─────────────────────────────── */}

@@ -44,7 +44,7 @@ export default async function SellPropertyFastDubaiPage() {
       <section className="section">
         <div className="wrap" style={{ maxWidth: 640 }}>
           <h2 className="heading-lg mb-3 text-center">Tell Us About Your Property</h2>
-          <p className="muted mb-8 text-center">No cost, no obligation — just a starting conversation with your assigned agent.</p>
+          <p className="muted mb-8 text-center">No cost, no obligation — just a starting conversation with our team.</p>
           <ContactForm
             source="fast_sale_request"
             messagePlaceholder="Property location, type, and your ideal timeline to sell…"

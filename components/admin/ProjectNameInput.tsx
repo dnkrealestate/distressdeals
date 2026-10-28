@@ -8,8 +8,11 @@ import { projectAPI } from '@/lib/api'
 // (see lib/indexability.ts) — and fills in its developer and area when those are still empty.
 export interface NameSuggestion { title: string; developer?: string; area?: string; community?: string; emirate?: string; type?: string; units: number }
 
-export default function ProjectNameInput({ value, onChange, onPick, invalid, inputProps }: {
+// `compact` + `listLabel`: the same field inside another form (the listing editor's "Project Name").
+export default function ProjectNameInput({ value, onChange, onPick, invalid, inputProps, compact = false, listLabel = 'Existing projects — pick one to add another unit type to it' }: {
   value: string
+  compact?: boolean
+  listLabel?: string
   onChange: (v: string) => void
   onPick: (s: NameSuggestion) => void
   invalid?: boolean
@@ -42,7 +45,7 @@ export default function ProjectNameInput({ value, onChange, onPick, invalid, inp
     <div className="relative" ref={box}>
       <input
         {...inputProps}
-        className="input text-lg font-bold w-full" style={{ padding: '12px 14px', ...(invalid ? { borderColor: '#FB7185' } : {}) }}
+        className={compact ? 'input w-full' : 'input text-lg font-bold w-full'} style={{ ...(compact ? {} : { padding: '12px 14px' }), ...(invalid ? { borderColor: '#FB7185' } : {}) }}
         placeholder="e.g. Boulevard Point" autoComplete="off" value={value}
         onChange={e => { typed.current = true; onChange(e.target.value) }}
         onFocus={() => { if (list.length) setOpen(true) }}
@@ -56,7 +59,7 @@ export default function ProjectNameInput({ value, onChange, onPick, invalid, inp
       />
       {open && list.length > 0 && (
         <div className="absolute left-0 right-0 top-full mt-1 z-40 rounded-xl shadow-xl overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }} role="listbox">
-          <p className="px-3 pt-2.5 pb-1 text-[10px] font-bold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Existing projects — pick one to add another unit type to it</p>
+          <p className="px-3 pt-2.5 pb-1 text-[10px] font-bold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{listLabel}</p>
           {list.map((s, i) => (
             <button key={`${s.title}|${s.developer}`} type="button" role="option" aria-selected={i === active}
               onMouseDown={e => e.preventDefault()} onClick={() => pick(s)} onMouseEnter={() => setActive(i)}

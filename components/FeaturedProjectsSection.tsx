@@ -8,6 +8,7 @@ import { projectAPI } from '@/lib/api'
 import { UAE_EMIRATES } from '@/lib/constants'
 import ProjectCard from '@/components/buyer/ProjectCard'
 import type { Project } from '@/types'
+import ScrollRow from '@/components/shared/ScrollRow'
 
 const SLIDE_LIMIT = 10
 
@@ -119,14 +120,14 @@ export default function FeaturedProjectsSection() {
         </motion.div>
 
         {/* Emirate tabs — filter the slider below without leaving the page */}
-        <div className="flex gap-2 overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-hide mb-8 pb-1">
+        <ScrollRow className="mb-8" label="Emirate">
           <EmiratePill active={!emirate} onClick={() => setEmirate('')}>All Emirates</EmiratePill>
           {UAE_EMIRATES.map(e => (
             <EmiratePill key={e} active={emirate === e} onClick={() => setEmirate(emirate === e ? '' : e)}>
               {e}
             </EmiratePill>
           ))}
-        </div>
+        </ScrollRow>
 
         {loading ? (
           <div className="flex gap-4 sm:gap-6 overflow-hidden">
@@ -141,10 +142,11 @@ export default function FeaturedProjectsSection() {
             <div
               ref={trackRef}
               onScroll={updateScrollState}
-              className="flex gap-4 sm:gap-6 overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-hide snap-x snap-mandatory scroll-smooth flex-1 pb-2"
+              className="scroll-x flex gap-4 sm:gap-6 overflow-x-auto overflow-y-hidden overscroll-x-contain snap-x snap-mandatory scroll-smooth flex-1 px-2 -mx-2 pt-3 pb-6 -mt-3 -mb-4"
             >
+              {/* The padding above leaves room for the cards' hover lift and shadow, so they are not cut off at the top. */}
               {projects.map((project, i) => (
-                <div key={project._id} className="flex-shrink-0 snap-start w-[78vw] max-w-[280px] sm:w-[340px] sm:max-w-none lg:w-[380px]">
+                <div key={project._id} className="flex-shrink-0 snap-start w-[78vw] max-w-[280px] sm:w-[340px] sm:max-w-none lg:w-[380px]" style={{ scrollMarginLeft: 8 }}>
                   <ProjectCard project={project} layout="grid" delay={i * 0.06} />
                 </div>
               ))}

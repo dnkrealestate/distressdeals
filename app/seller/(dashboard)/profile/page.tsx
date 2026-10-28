@@ -47,7 +47,7 @@ export default function SellerProfilePage() {
 
       <div>
         <h2 className="font-semibold mb-1" style={{ color: 'var(--text)' }}>Properties &amp; projects I’m interested in</h2>
-        <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>What you’ve asked about as a buyer — your agent can see this too.</p>
+        <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>What you’ve asked about as a buyer — our team can see this too.</p>
         <MyInterests />
       </div>
 

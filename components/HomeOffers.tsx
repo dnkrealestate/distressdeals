@@ -7,6 +7,7 @@ import { liveOffer } from '@/lib/offer'
 import PropertyCard from '@/components/buyer/PropertyCard'
 import ProjectCard from '@/components/buyer/ProjectCard'
 import type { Property, Project } from '@/types'
+import ScrollRow from '@/components/shared/ScrollRow'
 
 // Home page: the listings and projects with a limited-time offer running right now, in one side-scrolling row.
 // Renders nothing at all when there are no live offers, so the page is unchanged on ordinary days.
@@ -40,13 +41,13 @@ export default function HomeOffers() {
           </div>
           <Link href="/for-sale?offer=true" className="btn-outline btn-sm gap-1.5">View all offers <ArrowRight size={13} /></Link>
         </div>
-        <div className="flex gap-5 overflow-x-auto overflow-y-hidden pb-4 mx-2 md:mx-3 px-4 snap-x" style={{ scrollbarWidth: 'thin' }}>
+        <ScrollRow variant="cards" innerClassName="gap-5" label="Property offers">
           {items.map(x => (
             <div key={`${x.kind}-${x.item._id}`} className="w-[300px] sm:w-[340px] flex-shrink-0 snap-start">
               {x.kind === 'project' ? <ProjectCard project={x.item} markAsProject /> : <PropertyCard property={x.item} />}
             </div>
           ))}
-        </div>
+        </ScrollRow>
       </div>
     </section>
   )

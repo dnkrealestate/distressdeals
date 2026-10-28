@@ -19,13 +19,13 @@ export const LEGAL_DEFAULTS: Record<string, LegalPageContent> = {
     updated: UPDATED,
     html: `<p>Distress Deals UAE ("we", "us", "our") operates distressdealsuae.com and the Distress Deals UAE mobile app (together, the "Platform"). This policy explains what personal information we collect, why we collect it, who we share it with, and the choices you have. By using the Platform, you agree to the collection and use of information as described here.</p>
 <h2>1. How the Platform Works</h2>
-<p>Distress Deals UAE is a centralized real estate platform. When you enquire about a property or a project, your enquiry goes to one dedicated agent from our own team, who looks after it from first message to handover. Your contact details are not passed to a list of outside brokers, and sellers see only a masked view of buyer interest — not your name, phone number or email.</p>
+<p>Distress Deals UAE is a centralized real estate platform. When you enquire about a property or a project, your enquiry goes to our own team, who look after it from first message to handover. Your contact details are not passed to a list of outside brokers, and sellers see only a masked view of buyer interest — not your name, phone number or email.</p>
 <h2>2. Information We Collect</h2>
 <p><strong>Account information.</strong> Your name, email address and phone number, a password if you set one (stored only in hashed form), and a profile photo if you add one. You can register with an email and password, or sign in with Google or Facebook — in which case we receive the basic profile details you authorize (name, email, profile picture).</p>
 <p><strong>Phone verification.</strong> Before certain actions — such as listing a property or using a seller account — we verify your mobile number with a one-time code sent by SMS. The code is sent and checked through Google Firebase Authentication, so your phone number is processed by Google for that purpose. We do not send verification codes by WhatsApp.</p>
 <p><strong>Email verification and password reset.</strong> We send a verification link or a one-time code to your email address to confirm it is yours and to let you reset a forgotten password.</p>
 <p><strong>Enquiries and requests.</strong> The properties and projects you ask about, the messages you write, your budget or requirements if you share them, viewing and meeting requests, mortgage enquiries (the figures you enter in the calculator), and the free valuation, fast-sale and contact forms.</p>
-<p><strong>Messages.</strong> The chat messages you exchange with your assigned agent on the Platform.</p>
+<p><strong>Messages.</strong> The chat messages you exchange with our team on the Platform.</p>
 <p><strong>Listing information (sellers).</strong> The property details, photos, videos and documents you provide, the property's address and map position, and your contact details. The exact address and your contact details are visible only to our team; the public listing shows the area or community.</p>
 <p><strong>Reviews and ratings.</strong> If you review an area, community, building, place or article, we publish your rating and comment with your name once our team has approved it.</p>
 <p><strong>Your activity on the Platform.</strong> Saved properties and projects, your comparison list, saved searches and alerts, and your notification preferences.</p>
@@ -35,7 +35,7 @@ export const LEGAL_DEFAULTS: Record<string, LegalPageContent> = {
 <h2>3. How We Use Your Information</h2>
 <ul>
 <li>To create and manage your account and to verify your phone number and email address.</li>
-<li>To route your enquiry to your assigned agent, respond to it, arrange viewings and meetings, and process listing, valuation and mortgage requests.</li>
+<li>To route your enquiry to our team, respond to it, arrange viewings and meetings, and process listing, valuation and mortgage requests.</li>
 <li>To review and publish property listings, and to moderate reviews before they appear.</li>
 <li>To send service messages — account, security, listing status, meeting reminders and replies to your enquiries — by email, in-app notification and, on the mobile app, push notification.</li>
 <li>To send property alerts and saved-search updates where you have switched them on. You can change these at any time in your notification settings.</li>
@@ -46,7 +46,7 @@ export const LEGAL_DEFAULTS: Record<string, LegalPageContent> = {
 <h2>4. Who We Share Information With</h2>
 <p>We do not sell your personal information. We share it only with:</p>
 <ul>
-<li><strong>Your assigned agent and our team</strong>, who need your enquiry and contact details to help you. Sellers see only a masked view of buyer interest.</li>
+<li><strong>Our team</strong>, who need your enquiry and contact details to help you. Sellers see only a masked view of buyer interest.</li>
 <li><strong>Google</strong> — Firebase Authentication (to send and check SMS verification codes), Firebase Cloud Messaging (to deliver push notifications to the mobile app), Google Sign-In if you choose it, and Google Maps, which loads in your browser on map pages.</li>
 <li><strong>Meta (Facebook)</strong>, if you choose to sign in with Facebook.</li>
 <li><strong>Hosting, database and storage providers</strong> that run the Platform on our behalf, including website hosting, a cloud database, and cloud storage and delivery for photos and documents.</li>
@@ -87,7 +87,7 @@ export const LEGAL_DEFAULTS: Record<string, LegalPageContent> = {
     updated: UPDATED,
     html: `<p>These Terms of Service ("Terms") govern your access to and use of distressdealsuae.com and the Distress Deals UAE mobile app (together, the "Platform"), operated by Distress Deals UAE ("we", "us"). By creating an account or otherwise using the Platform, you agree to these Terms.</p>
 <h2>1. What We Do</h2>
-<p>Distress Deals UAE is a centralized real estate platform for buying, selling and renting property in the UAE, with a focus on below-market ("distress") sales and new off-plan projects. When you express interest in a property or project, your enquiry is routed to one dedicated in-house agent who manages it from first message through to handover. We are not an open marketplace where multiple agents compete for the same buyer — every enquiry has a single point of contact on our side.</p>
+<p>Distress Deals UAE is a centralized real estate platform for buying, selling and renting property in the UAE, with a focus on below-market ("distress") sales and new off-plan projects. When you express interest in a property or project, your enquiry is handled by our in-house team from first message through to handover. We are not an open marketplace where multiple agents compete for the same buyer — every enquiry has a single point of contact on our side.</p>
 <h2>2. Accounts</h2>
 <ul>
 <li>You can register with an email address and password, or sign in with Google or Facebook. You must provide accurate, current information and keep it up to date.</li>
@@ -98,14 +98,14 @@ export const LEGAL_DEFAULTS: Record<string, LegalPageContent> = {
 <li>We may suspend or terminate an account that provides false information, violates these Terms, or is used fraudulently.</li>
 </ul>
 <h2>3. Buyers and Tenants</h2>
-<p>Submitting an enquiry connects you with your assigned agent, who will contact you by phone, email, WhatsApp or the Platform's chat to discuss the property or project. We do not charge buyers or tenants a fee to browse listings or submit enquiries. Prices, availability, payment plans, handover dates and specifications shown on the Platform are supplied by sellers or developers and, while we review listings before publishing, are not guaranteed and should be independently verified before you commit to a transaction.</p>
+<p>Submitting an enquiry connects you with our team, who will contact you by phone, email, WhatsApp or the Platform's chat to discuss the property or project. We do not charge buyers or tenants a fee to browse listings or submit enquiries. Prices, availability, payment plans, handover dates and specifications shown on the Platform are supplied by sellers or developers and, while we review listings before publishing, are not guaranteed and should be independently verified before you commit to a transaction.</p>
 <h2>4. Sellers and Landlords</h2>
 <ul>
 <li>You confirm that you are the legal owner of the property, or are authorized to list it, and that all information, photos and documents you provide are accurate and current.</li>
 <li>All listings are reviewed by our team before going live. Our team may complete or edit a listing — for example its title, description, location details and photos — and may request changes or decline a listing that does not meet our guidelines.</li>
 <li>Buyer contact details are not shared with sellers directly. You see a masked view of buyer interest, and our team manages buyer communication on your behalf, consistent with our centralized model.</li>
 <li>The public listing shows the property's area or community; the exact address and your contact details are visible only to our team.</li>
-<li>You may withdraw a listing at any time by contacting your assigned agent or through your seller dashboard.</li>
+<li>You may withdraw a listing at any time by contacting us or through your seller dashboard.</li>
 </ul>
 <h2>5. Reviews and Other Content You Submit</h2>
 <ul>
@@ -132,7 +132,7 @@ export const LEGAL_DEFAULTS: Record<string, LegalPageContent> = {
 </ul>
 <p>None of this is financial, legal or professional advice. Always seek independent advice before making a property decision.</p>
 <h2>8. Intermediary Role</h2>
-<p>Distress Deals UAE facilitates introductions between buyers, sellers, developers and our agents; we are not a party to any resulting sale, purchase or lease agreement unless expressly stated in a separate written agreement.</p>
+<p>Distress Deals UAE facilitates introductions between buyers, sellers, developers and our team; we are not a party to any resulting sale, purchase or lease agreement unless expressly stated in a separate written agreement.</p>
 <h2>9. Intellectual Property</h2>
 <p>All content on the Platform — branding, design, text and software — is owned by or licensed to Distress Deals UAE and may not be copied or reused without permission. Some photographs are used under open licences and are credited to their authors where shown.</p>
 <h2>10. Third-Party Services and Links</h2>

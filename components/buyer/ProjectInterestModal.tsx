@@ -14,8 +14,8 @@ import { trackLead } from '@/lib/leadTracking'
 import AccountStep, { type LeadAccountMeta } from '@/components/buyer/AccountStep'
 
 export default function ProjectInterestModal({
-  projectId, projectTitle, open, onClose,
-}: { projectId: string; projectTitle: string; open: boolean; onClose: () => void }) {
+  projectId, projectTitle, open, onClose, defaultMessage,
+}: { projectId: string; projectTitle: string; open: boolean; onClose: () => void; defaultMessage?: string }) {
   const { user } = useAuthStore()
   const [name, setName] = useState(user?.name || '')
   const [email, setEmail] = useState(user?.email || '')
@@ -26,6 +26,8 @@ export default function ProjectInterestModal({
   const [outcome, setOutcome] = useState<{ duplicate?: boolean } & LeadAccountMeta>({})
   // The enquiry form was opened — one of the strongest signals for the personalised feed.
   useEffect(() => { if (open && projectId) trackFeed({ type: 'enquiry_started', itemId: projectId, itemKind: 'project' }) }, [open, projectId])
+  // What the visitor already picked on the page (e.g. a launch's unit types and budget) starts the message.
+  useEffect(() => { if (open && defaultMessage) setMessage(defaultMessage) }, [open, defaultMessage])
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()

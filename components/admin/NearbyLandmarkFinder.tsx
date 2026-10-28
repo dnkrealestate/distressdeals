@@ -48,10 +48,10 @@ export default function NearbyLandmarkFinder({ lat, lng, added, onAdd }: {
   return (
     <div className="rounded-xl p-3.5 mb-3" style={{ background: 'var(--bg-alt)', border: '1px solid var(--border)' }}>
       <p className="text-xs font-semibold mb-2 flex items-center gap-1.5" style={{ color: 'var(--text)' }}>
-        <MapPin size={13} style={{ color: 'var(--teal)' }} /> Find nearby places from the project’s map pin
+        <MapPin size={13} style={{ color: 'var(--teal)' }} /> Find nearby places from the map pin
       </p>
       {!hasPin ? (
-        <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Set the project location on the map above first — then pick what to look for.</p>
+        <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Set the location on the map above first — then pick what to look for.</p>
       ) : (
         <>
           <div className="flex flex-wrap gap-1.5">
@@ -67,7 +67,7 @@ export default function NearbyLandmarkFinder({ lat, lng, added, onAdd }: {
           {kind && (
             <div className="mt-3 rounded-lg overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
               {loading ? (
-                <p className="p-3 text-xs flex items-center gap-2" style={{ color: 'var(--text-muted)' }}><Loader2 size={13} className="animate-spin" /> Searching near the project…</p>
+                <p className="p-3 text-xs flex items-center gap-2" style={{ color: 'var(--text-muted)' }}><Loader2 size={13} className="animate-spin" /> Searching near the pin…</p>
               ) : error ? (
                 <p className="p-3 text-xs" style={{ color: '#E11D48' }}>{error}</p>
               ) : results.length === 0 ? (

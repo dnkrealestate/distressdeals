@@ -130,3 +130,67 @@ export function buildAutoSeo(html: string, f: AutoSeoFacts, focusKeyword = ''): 
 
   return { focusKeyword: kw, metaTitle, metaDescription, keywords }
 }
+
+// ── The same automatic SEO for a single listing (the listing editor's Description step) ──
+// A listing has one price and is for sale or for rent, so the wording differs from a project's ("2 bedroom apartment
+// for rent in JVC", never "from AED …" or "handover").
+export interface ListingAutoSeoFacts {
+  title: string; type?: string; purpose: 'sale' | 'rent'; completion?: string
+  bedrooms?: number; area?: string; community?: string; emirate?: string
+  price?: number; developer?: string; projectName?: string; furnished?: boolean; view?: string
+}
+
+export function buildListingAutoSeo(html: string, f: ListingAutoSeoFacts, focusKeyword = ''): SeoFields {
+  const text = strip(html)
+  const type = (f.type || 'Property').toLowerCase()
+  const beds = f.bedrooms && f.bedrooms > 0 && type !== 'studio' ? `${f.bedrooms} bedroom ` : ''
+  const area = f.area || f.community || f.emirate || ''
+  const purpose = f.purpose === 'rent' ? 'for rent' : 'for sale'
+  const price = f.price ? `${compactPrice(f.price)}${f.purpose === 'rent' ? '/yr' : ''}` : ''
+
+  // Focus keyword: what someone searching for this home types — "2 bedroom apartment for rent in Dubai Marina".
+  const kw = focusKeyword.trim() || clean(`${beds}${type} ${purpose}${area ? ` in ${area}` : ''}`)
+
+  const titleCase = (s: string) => s.replace(/\b[a-z]/g, c => c.toUpperCase()).replace(/\b(For|In|At|By|Of)\b/g, w => w.toLowerCase())
+  const titleCandidates = [
+    price && `${titleCase(kw)} | ${price}`,
+    f.projectName && !has(kw, f.projectName) && `${titleCase(kw)} | ${f.projectName}`,
+    titleCase(kw),
+    clean(f.title),
+  ].filter(Boolean) as string[]
+  const metaTitle = titleCandidates.find(t => t.length <= TITLE_MAX) || fit(clean(f.title || kw), TITLE_MAX)
+
+  const opener = clean([
+    `${f.furnished ? 'Furnished ' : ''}${beds}${type} ${purpose}${area ? ` in ${area}` : ''}`,
+    f.projectName ? ` at ${f.projectName}` : '',
+    f.view ? `, ${f.view.toLowerCase()}` : '',
+    price ? `, ${price}` : '',
+    f.completion === 'off_plan' ? ', off-plan' : '',
+    '.',
+  ].join('')).replace(/^./, c => c.toUpperCase())
+  let meta = opener
+  for (const s of sentences(text)) {
+    if (meta.length >= META_MIN) break
+    if (has(meta, s.slice(0, 30))) continue
+    meta = `${meta} ${s}`
+  }
+  if (meta.length < META_MIN) meta = `${meta} Verified listing on Distress Deals UAE — enquire today.`
+  const metaDescription = fit(meta, META_MAX)
+
+  const base = [
+    area && `${pluralType(type)} ${purpose} in ${area}`,
+    beds && area && `${beds}${type} in ${area}`,
+    f.projectName && `${f.projectName} ${type} ${purpose}`,
+    f.community && f.community !== area && `${type} ${purpose} in ${f.community}`,
+    f.developer && `${f.developer} ${type}`,
+    f.purpose === 'sale' && area && `distress sale ${type} ${area}`,
+  ].filter(Boolean) as string[]
+  const phrases = topPhrases(text, [kw, f.title, area], 3)
+  const seen = new Set<string>([kw.toLowerCase()])
+  const keywords: string[] = []
+  for (const k of [...base.slice(0, 5), ...phrases, ...base.slice(5)]) {
+    const v = clean(k).slice(0, 60)
+    if (v && !seen.has(v.toLowerCase()) && keywords.length < 8) { seen.add(v.toLowerCase()); keywords.push(v) }
+  }
+  return { focusKeyword: kw, metaTitle, metaDescription, keywords }
+}

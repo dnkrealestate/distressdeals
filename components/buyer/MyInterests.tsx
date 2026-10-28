@@ -9,7 +9,7 @@ import type { Lead } from '@/types'
 
 // Plain-language progress for the person who asked — not the internal pipeline names.
 const STATUS_LABELS: Record<string, string> = {
-  new: 'Received', contacted: 'Agent in touch', qualified: 'In progress', touring: 'Viewing',
+  new: 'Received', contacted: 'We’re in touch', qualified: 'In progress', touring: 'Viewing',
   negotiating: 'Negotiating', deal_closed: 'Deal closed', deal_lost: 'Closed', cancelled: 'Cancelled',
 }
 const STATUS_BADGE: Record<string, string> = {

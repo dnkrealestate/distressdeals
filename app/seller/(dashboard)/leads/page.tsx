@@ -112,7 +112,7 @@ export default function SellerLeadsPage() {
                     onClick={e => messageAgent(e, lead)}
                     disabled={messaging === lead._id}
                     className="btn-ghost btn-sm p-2 flex-shrink-0"
-                    title="Message agent"
+                    title="Message us"
                   >
                     <MessageSquare size={14} />
                   </button>

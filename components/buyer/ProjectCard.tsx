@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { BadgeCheck, Info, MapPin, BedDouble, Bath, Home, Maximize2, Wallet, CalendarClock, MessageCircleHeart, ArrowRight, Bookmark, GitCompare } from 'lucide-react'
+import { BadgeCheck, Info, MapPin, BedDouble, Bath, Home, Maximize2, Wallet, CalendarClock, MessageCircleHeart, ArrowRight, Bookmark, GitCompare, Sparkles, BellRing, Activity } from 'lucide-react'
 import { formatPrice, isHandedOver } from '@/lib/utils'
 import InfoBadge, { VERIFIED_NOTE, OFF_PLAN_NOTE } from '@/components/shared/InfoBadge'
 import ImageSlider from '@/components/buyer/ImageSlider'
@@ -138,7 +138,55 @@ function CardActions({ project, onImage }: { project: Project; onImage?: boolean
 
 // "Our Deal Price" with the reference price struck through — only when there is a documented reference behind it.
 // Otherwise the normal starting price, and nothing is claimed.
+// A launch: announced before its units and prices (stage 'launch', or an older record saved without a price).
+export const isLaunchProject = (p: Pick<Project, 'stage' | 'priceFrom'>) => p.stage === 'launch' || !(Number(p.priceFrom) > 0)
+
+// The top of a launch card: what is (and isn't) known yet, and why it's worth registering now.
+function LaunchPanel() {
+  return (
+    <div className="rounded-xl px-3.5 py-3 mb-3" style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.12), rgba(203,1,1,0.06))', border: '1px solid rgba(245,158,11,0.30)' }}>
+      <p className="text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5" style={{ color: '#B45309' }}>
+        <Sparkles size={12} /> New launch
+      </p>
+      <p className="text-[0.95rem] font-bold leading-snug mt-0.5" style={{ color: 'var(--text)' }}>Prices &amp; floor plans on release</p>
+      <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Register now to get the launch prices first.</p>
+    </div>
+  )
+}
+
+// "Announced so far": the facts the developer has released, "To be announced" for the rest — never guessed.
+function LaunchFacts({ project }: { project: Project }) {
+  const handover = [project.handoverQuarter, project.handoverYear].filter(Boolean).join(' ')
+  const tba = <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>To be announced</span>
+  const facts = [
+    { icon: Home, label: 'Type', value: project.type ? project.type.replace(/_/g, ' ') : null },
+    { icon: CalendarClock, label: 'Handover', value: handover || null },
+    { icon: Wallet, label: 'Payment plan', value: project.paymentPlan || null },
+    { icon: Activity, label: 'Status', value: project.status ? project.status.replace(/_/g, ' ') : null },
+  ]
+  return (
+    <div className="mb-4">
+      <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>Announced so far</p>
+      <div className="grid grid-cols-2 gap-1.5">
+        {facts.map(({ icon: Icon, label, value }) => (
+          <div key={label} className="rounded-lg px-2.5 py-2 min-w-0" style={{ background: 'var(--bg-alt)' }}>
+            <p className="text-[10px] flex items-center gap-1" style={{ color: 'var(--text-muted)' }}><Icon size={11} style={{ color: 'var(--teal)' }} /> {label}</p>
+            <p className={`text-xs font-semibold truncate mt-0.5${value ? ' capitalize' : ''}`} style={{ color: 'var(--text)' }}>{value || tba}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function StartingPrice({ project, size }: { project: Project; size: string }) {
+  // A launch announcement: no units or prices yet.
+  if (isLaunchProject(project)) return (
+    <div>
+      <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#7E22CE' }}>Launching soon</p>
+      <p className="text-lg font-bold leading-tight" style={{ color: 'var(--text)' }}>Price on announcement</p>
+    </div>
+  )
   // A live offer with its own price: the offer price, with the normal starting price struck through.
   if (offerPrice(project, project.priceFrom)) return <OfferPriceTag item={project} normalPrice={project.priceFrom} size={size} normalLabel={dealClaim(project) && !dealClaim(project)!.unit ? 'Our Deal Price' : 'Starting Price'} />
   const claim = dealClaim(project)
@@ -180,6 +228,11 @@ function Badges({ project, markAsProject }: { project: Project; markAsProject?: 
           New Project
         </span>
       )}
+      {isLaunchProject(project) && (
+        <span className="badge text-[10px] font-bold inline-flex items-center gap-1" style={{ background: 'linear-gradient(135deg, #F59E0B, #EA580C)', color: '#fff', border: 'none', boxShadow: '0 4px 12px -4px rgba(234,88,12,0.6)' }}>
+          <Sparkles size={10} /> New Launch
+        </span>
+      )}
       {/* Solid white so it stays readable on any photo (the tinted status styles vanish on busy images). */}
       <span
         className="badge text-[10px] capitalize"
@@ -212,6 +265,7 @@ export default function ProjectCard({
   const enter = fadeIn ? { opacity: 0, y: 24 } : false
   // While an offer is live its own picture is the card image (it is not part of the gallery on the detail page).
   const offer = liveOffer(project)
+  const launch = isLaunchProject(project)
   const images = offer?.thumbnail ? [{ url: offer.thumbnail }] : project.images?.length ? project.images : (project.coverImage ? [{ url: project.coverImage }] : [])
 
   const openInterest = (e: React.MouseEvent) => {
@@ -294,9 +348,10 @@ export default function ProjectCard({
   }
 
   /* ── Grid card ────────────────────────────────────────────── */
+  // h-full all the way down: in a grid row or a slider every card is as tall as the tallest, buttons at the bottom.
   return (
-    <motion.div initial={enter} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay }}>
-      <Link href={`/projects/${project.slug}`}>
+    <motion.div className="h-full" initial={enter} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay }}>
+      <Link href={`/projects/${project.slug}`} className="block h-full">
         <div className={`prop-card group h-full overflow-hidden${offer ? ' offer-card' : ''}`}>
           {/* Fixed-size image — never stretches or reflows with content. */}
           <div className="h-52 relative flex items-center justify-center flex-shrink-0 overflow-hidden" style={{ background: 'var(--bg-alt)' }}>
@@ -308,6 +363,29 @@ export default function ProjectCard({
             <OfferRibbon item={project} />
           </div>
 
+          {launch ? (
+            // A launch: no price or units yet — what's announced, and a reason to register now.
+            <div className="flex flex-col flex-1 p-5">
+              <LaunchPanel />
+              <h3 className="font-semibold text-[0.95rem] mb-0.5 leading-snug line-clamp-2 transition-colors group-hover:text-[var(--teal)]" style={{ color: 'var(--text)' }}>
+                {project.title}
+              </h3>
+              <ByDeveloper project={project} />
+              <p className="flex items-center gap-1.5 text-sm mb-3 min-w-0" style={{ color: 'var(--text-mid)' }}>
+                <MapPin size={13} className="flex-shrink-0" style={{ color: 'var(--teal)' }} />
+                <span className="truncate">{[project.community, project.area].filter(Boolean).join(', ') || project.city}{project.emirate && project.emirate !== project.area ? `, ${project.emirate}` : ''}</span>
+              </p>
+              <LaunchFacts project={project} />
+              <div className="flex items-center gap-2 mt-auto">
+                <button onClick={openInterest} className="btn-primary btn-sm flex-[3] justify-center gap-1.5 whitespace-nowrap">
+                  <BellRing size={13} /> Register interest
+                </button>
+                <button onClick={openDetails} className="btn-outline btn-sm flex-[2] justify-center gap-1.5 whitespace-nowrap">
+                  Details
+                </button>
+              </div>
+            </div>
+          ) : (
           <div className="flex flex-col flex-1 p-5">
             <div className="mb-1.5"><StartingPrice project={project} size="text-xl" /></div>
             <h3 className="font-semibold text-[0.95rem] mb-0.5 leading-snug line-clamp-2 transition-colors group-hover:text-[var(--teal)]" style={{ color: 'var(--text)' }}>
@@ -328,6 +406,7 @@ export default function ProjectCard({
               </button>
             </div>
           </div>
+          )}
         </div>
       </Link>
       {interestModal}

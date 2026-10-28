@@ -17,6 +17,7 @@ import { formatPrice } from '@/lib/utils'
 import { offerPrice, liveOffer, offerTitle, offerEnds, offerSavingPct } from '@/lib/offer'
 import type { ProjectGroup, ProjectGroupUnit } from '@/types'
 import { exactPrice } from '@/lib/currency'
+import ScrollRow from '@/components/shared/ScrollRow'
 
 // The whole project on one page: every photo, launch price / payment plans / handover, live offers highlighted at the
 // top, then a unit explorer — filter by bedrooms, type or deals, sort, cards or a comparison table, price per sq ft,
@@ -142,13 +143,13 @@ export default function ProjectUnitsClient({ group: g, slug, areaHref }: { group
             {g.gallery.length > 1 && (
               <div className="mt-2 mb-5">
                 <p className="flex items-center gap-1.5 text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}><Images size={13} /> All {g.gallery.length} photos</p>
-                <div className="flex gap-2 overflow-x-auto pb-1 snap-x" style={{ scrollbarWidth: 'thin' }}>
+                <ScrollRow innerClassName="gap-2 snap-x" label="Photos">
                   {g.gallery.map((src, i) => (
                     <button key={src} type="button" onClick={() => setLightbox(i)} className="relative flex-shrink-0 w-28 h-20 sm:w-32 sm:h-24 rounded-lg overflow-hidden snap-start" aria-label={`Open photo ${i + 1}`}>
                       <Image src={src} alt={`${name} photo ${i + 1}`} fill className="object-cover hover:opacity-90" sizes="128px" loading="lazy" />
                     </button>
                   ))}
-                </div>
+                </ScrollRow>
               </div>
             )}
           </>

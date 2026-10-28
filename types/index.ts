@@ -126,6 +126,7 @@ export interface Property {
   developer?: string; projectName?: string; permitNumber?: string; permitQrImage?: string
   images: PropertyImage[]
   videos?: { platform: 'youtube' | 'vimeo' | 'dailymotion' | '3d_view'; url: string; title?: string }[]
+  landmarks?: { name: string; category: 'metro' | 'school' | 'mall' | 'landmark' | 'airport' | 'hospital'; lat: number; lng: number }[]
   floorPlan?: string; brochure?: string; virtualTour?: string
   seller: User; agent?: User
   // Set once the assigned agent has filled in title/description/area/photos —
@@ -146,6 +147,8 @@ export interface Lead {
   buyer?: User; assignedAgent?: User
   status: LeadStatus; source: string; budget?: { min: number; max: number }
   name?: string; email?: string; phone?: string
+  // Lead details only: every number this buyer has given (this enquiry, later ones, account, other enquiries), newest first
+  contactPhones?: { phone: string; sources: string[]; at?: string; latest?: boolean }[]
   requirements?: string; priority: 'low' | 'medium' | 'high'
   // The limited-time offer that was running when the enquiry came in (a snapshot — it stays even after the offer ends).
   offer?: { title?: string; discountPercent?: number; fromDeveloper?: boolean; price?: number; normalPrice?: number; endsAt?: string; paymentPlan?: string; dldWaiver?: string; gifts?: string[]; note?: string }
@@ -266,6 +269,8 @@ export interface Project {
   priceFrom: number; priceTo?: number; type?: string; bedrooms: string; bathrooms?: string; sizeRange?: string
   handoverQuarter?: string; handoverYear?: number; paymentPlan?: string; permitNumber?: string; permitQrImage?: string
   status: 'upcoming' | 'under_construction' | 'ready' | 'sold_out'
+  // 'launch' = announced before any unit details (no price / beds / sizes yet); 'units' (default) = one unit type
+  stage?: 'launch' | 'units'
   // Feature tags (automatic + admin overrides) — see backend utils/listingTags
   tags?: string[]; tagsAdded?: string[]; tagsRemoved?: string[]
   isFeatured: boolean; views: number; createdAt: string
@@ -332,7 +337,8 @@ export interface DeveloperImport {
 }
 
 export interface DeveloperWithStats extends Developer {
-  projectCount: number; minPriceFrom: number; areas: string[]
+  // projectCount = projects (unit types of one project counted once); unitCount = unit-type records
+  projectCount: number; unitCount?: number; minPriceFrom: number; areas: string[]
 }
 
 export interface MortgageInquiry {

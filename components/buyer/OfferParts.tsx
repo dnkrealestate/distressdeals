@@ -43,6 +43,8 @@ export function OfferGifts({ item, className = '', max = 3, giftsOnly = false }:
 // The normal price is never replaced: it stays where it is, under its own label, and is only crossed out while a
 // priced offer is live — with the offer price on its own line beneath it.
 export function PriceInForce({ item, normalPrice, className = 'text-3xl font-bold grad-text', suffix, center = false }: { item: WithOffer; normalPrice: number; className?: string; suffix?: React.ReactNode; center?: boolean }) {
+  // A launch announced before its prices: say so instead of "AED 0".
+  if (!(normalPrice > 0)) return <p className={`text-xl font-bold ${center ? 'text-center' : ''}`} style={{ color: 'var(--text)' }}>Price on announcement</p>
   const price = offerPrice(item, normalPrice)
   if (!price) return <p className={className}>{formatPrice(normalPrice)}{suffix}</p>
   return (

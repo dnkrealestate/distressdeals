@@ -36,7 +36,7 @@ export const FALLBACK_CONTENT: ContentPageData = {
     },
     {
       heading: 'How We Check Every Apartment',
-      body: 'Before an apartment goes live on Distress Deals UAE our team confirms the owner’s right to sell, checks the details against the title deed, and compares the price with recent sales so you can see the discount for yourself. When you enquire, one dedicated agent from our team handles everything — viewings, the offer, the Form F (MOU), clearances and the transfer at the Land Department trustee. There are no third-party brokers and no bidding war between agents.',
+      body: 'Before an apartment goes live on Distress Deals UAE our team confirms the owner’s right to sell, checks the details against the title deed, and compares the price with recent sales so you can see the discount for yourself. When you enquire, our team handles everything — viewings, the offer, the Form F (MOU), clearances and the transfer at the Land Department trustee. There are no third-party brokers and no bidding war between agents.',
     },
   ],
   ctaTitle: 'Browse Verified Apartments for Sale',

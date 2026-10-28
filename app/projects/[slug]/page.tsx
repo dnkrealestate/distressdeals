@@ -26,6 +26,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 
   const title = project.metaTitle?.trim() || `${project.title} by ${project.developer}`
   const description = project.metaDescription?.trim()
+    || (!(project.priceFrom > 0) ? `New launch by ${project.developer} in ${project.area}, ${project.emirate || 'Dubai'} — unit types and prices on announcement. Register your interest.` : null)
     || `Starting from ${project.priceFrom.toLocaleString()} AED in ${project.area}, Dubai. ${project.bedrooms ? `${project.bedrooms} · ` : ''}Handover ${project.handoverQuarter || ''} ${project.handoverYear || ''}.`.trim()
   const images = shareImages(project.coverImage)
 

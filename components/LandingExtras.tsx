@@ -49,7 +49,7 @@ export default async function LandingExtras({ listingTitle, listingParams, viewA
           <div className="rounded-2xl p-6" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
             <p className="eyebrow mb-2 flex items-center gap-1.5"><Home size={13} /> For buyers</p>
             <h2 className="text-lg font-bold mb-2" style={{ color: 'var(--text)' }}>Looking for a below-market property?</h2>
-            <p className="text-sm mb-4" style={{ color: 'var(--text-mid)' }}>Every listing is checked by our team before it goes live, and one dedicated agent handles your enquiry from first message to transfer — no third-party brokers.</p>
+            <p className="text-sm mb-4" style={{ color: 'var(--text-mid)' }}>Every listing is checked by our team before it goes live, and our own team handles your enquiry from first message to transfer — no third-party brokers.</p>
             <div className="flex flex-wrap gap-2">
               <Link href="/for-sale" className="btn-primary btn-sm gap-1.5">Property for sale <ArrowRight size={13} /></Link>
               <Link href="/projects" className="btn-ghost btn-sm">Off-plan projects</Link>

@@ -12,6 +12,7 @@ import { formatDate, formatPrice } from '@/lib/utils'
 import { EXPLORE_SECTIONS, sectionHref } from '@/lib/explore'
 import type { BlogPost, NewsItem, AreaContentWithStats, CommunityContentWithStats, BuildingContent, PlaceSectionSummary, Developer } from '@/types'
 import Price from '@/components/currency/Price'
+import ScrollRow from '@/components/shared/ScrollRow'
 
 // The Insights hub: news, blog, area / community / building guides and UAE Explore in one server-rendered page, so
 // every section (and every link in it) is in the HTML search engines read. Rebuilt at most every 5 minutes.
@@ -183,12 +184,12 @@ export default async function InsightsPage() {
 
       {/* Jump links — stay in view while scrolling */}
       <nav aria-label="Insights sections" className="sticky top-16 z-30 border-y" style={{ background: 'var(--bg)', borderColor: 'var(--border)' }}>
-        <div className="wrap flex gap-2 overflow-x-auto scrollbar-hide py-2.5">
+        <ScrollRow className="wrap" innerClassName="gap-2 py-2.5">
           {nav.map(n => (
             <a key={n.href} href={n.href} className="flex-shrink-0 px-3.5 h-8 inline-flex items-center rounded-full text-xs font-semibold whitespace-nowrap"
               style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-mid)' }}>{n.label}</a>
           ))}
-        </div>
+        </ScrollRow>
       </nav>
 
       <div className="wrap pt-10 pb-6 space-y-16">

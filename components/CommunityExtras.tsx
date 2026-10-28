@@ -27,7 +27,7 @@ export function DistressSection({ name, listed }: { name: string; listed: number
             </p>
             <p>
               {listed > 0
-                ? <>We currently have {listed} verified listing{listed === 1 ? '' : 's'} in {name}. Every one is checked by our team before it goes live, and each enquiry is handled by one dedicated agent from first message to transfer.</>
+                ? <>We currently have {listed} verified listing{listed === 1 ? '' : 's'} in {name}. Every one is checked by our team before it goes live, and each enquiry is handled by our own team from first message to transfer.</>
                 : <>We have no live listings tagged to {name} right now. New distress sales appear first to buyers who have registered their search, so it is worth setting an alert.</>}
               {' '}Before you buy any discounted unit, compare it with recent sales in the same building, check the title deed and any
               outstanding mortgage or service charges, and confirm the seller&apos;s reason for the price — our{' '}

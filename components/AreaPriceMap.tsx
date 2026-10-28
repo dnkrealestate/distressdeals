@@ -5,6 +5,7 @@ import { ArrowLeft, ChartColumnIncreasing, ChevronDown, TrendingUp, Wallet, Tren
 import { PropertyTypeDropdown } from '@/components/shared/PropertyTypePicker'
 import { areaPricesAPI } from '@/lib/api'
 import { loadGoogleMaps, baseMapOptions, useMapTheme, DUBAI_CENTER, GOOGLE_MAPS_API_KEY } from '@/lib/googleMaps'
+import ScrollRow from '@/components/shared/ScrollRow'
 
 // "Compare prices by area" — the UAE's real area boundaries (Dubai's official communities and the districts of the
 // other emirates, from OpenStreetMap) coloured from light (cheaper) to dark (pricier). Areas without prices yet are
@@ -226,15 +227,15 @@ export default function AreaPriceMap({ defaultPurpose = 'buy', title = 'Compare 
         </div>
 
         {/* Emirates */}
-        <div className="mt-4 flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+        <ScrollRow className="mt-4" label="Emirate">
           {EMIRATES.map(e => (
-            <button key={e} onClick={() => { setEmirate(e); setSelected(null) }}
+            <button key={e} type="button" aria-pressed={emirate === e} onClick={() => { setEmirate(e); setSelected(null) }}
               className="flex-shrink-0 px-3.5 h-9 rounded-full text-xs font-semibold transition-colors whitespace-nowrap"
               style={emirate === e ? { background: 'var(--grad)', color: '#fff' } : { background: 'var(--surface)', color: 'var(--text-mid)', border: '1px solid var(--border)' }}>
               {e}
             </button>
           ))}
-        </div>
+        </ScrollRow>
 
         <div className="relative mt-3 rounded-3xl overflow-hidden" style={{ border: '1px solid var(--border)', background: 'var(--bg-alt)' }}>
           {/* Filters — a strip above the map on phones, floating top-right on the map from tablet up */}

@@ -22,7 +22,7 @@ const NOTIFICATION_FIELDS: { key: string; label: string; desc: string }[] = [
   { key: 'newProperties',    label: 'New Property Matches', desc: 'Get notified when new listings match your criteria' },
   { key: 'leadUpdates',      label: 'Lead Status Updates',   desc: 'Updates on your property enquiries' },
   { key: 'meetingReminders', label: 'Meeting Reminders',     desc: 'Reminders for scheduled property viewings' },
-  { key: 'messages',         label: 'Messages',              desc: 'New messages from your agent' },
+  { key: 'messages',         label: 'Messages',              desc: 'New messages from our team' },
   { key: 'email',            label: 'Email Notifications',  desc: 'Receive notifications via email' },
   { key: 'push',             label: 'Push Notifications',   desc: 'Receive browser/app push notifications' },
   { key: 'sms',              label: 'SMS Notifications',    desc: 'Receive notifications via text message' },
@@ -204,7 +204,7 @@ export default function BuyerProfilePage() {
       {tab === 'My Interests' && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card p-6">
           <h3 className="font-semibold mb-1" style={{ color: 'var(--text)' }}>Properties &amp; projects you’re interested in</h3>
-          <p className="text-xs mb-5" style={{ color: 'var(--text-muted)' }}>Your agent can see this list, so they can suggest what fits.</p>
+          <p className="text-xs mb-5" style={{ color: 'var(--text-muted)' }}>Our team can see this list, so we can suggest what fits.</p>
           <MyInterests />
         </motion.div>
       )}

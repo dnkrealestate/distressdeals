@@ -21,7 +21,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.distressdealsu
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: { default: 'Distress Sale Dubai | Distressed Property Deals UAE', template: '%s | Distress Deals UAE' },
-  description: "Dubai's centralized real estate platform. Every listing verified, one dedicated agent from first message to keys-in-hand — buy, sell, or rent with confidence.",
+  description: "Dubai's centralized real estate platform. Every listing verified, one dedicated team from first message to keys-in-hand — buy, sell, or rent with confidence.",
   // Google Search Console site-ownership verification (renders <meta name="google-site-verification">).
   verification: { google: 'KrXeALfeYBTVJyLMYrcTeL2aTOpRbWPWuhkg_-JR79k' },
   // No `keywords` — Google has ignored this tag since 2009, and it does nothing but hand competitors your
@@ -49,7 +49,7 @@ const organizationJsonLd = {
   url: SITE_URL,
   logo: `${SITE_URL}/logo.webp`,
   image: `${SITE_URL}/logo.webp`,
-  description: "Dubai's centralized real estate platform — every listing verified, one dedicated in-house agent from first message to keys-in-hand.",
+  description: "Dubai's centralized real estate platform — every listing verified, one in-house team from first message to keys-in-hand.",
   areaServed: { '@type': 'City', name: 'Dubai' },
   // Only details the site itself shows: the public number (footer, Contact page). No street address is published, so
   // none is claimed here.

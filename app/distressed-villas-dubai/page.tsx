@@ -16,7 +16,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.distressdealsu
 export async function generateMetadata(): Promise<Metadata> {
   return resolveSeo(PAGE_KEY, {
     title: 'Distress Sale of Villas in Dubai | Below-Market Villas',
-    description: 'Distress sale villas across Dubai — Arabian Ranches, Dubai Hills, Emirates Hills, Palm Jumeirah and more. Verified below-market villas, one dedicated agent.',
+    description: 'Distress sale villas across Dubai — Arabian Ranches, Dubai Hills, Emirates Hills, Palm Jumeirah and more. Verified below-market villas, one dedicated team.',
     path: `/${PAGE_KEY}`,
   })
 }

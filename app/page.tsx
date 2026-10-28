@@ -20,7 +20,7 @@ const websiteJsonLd = {
 export async function generateMetadata(): Promise<Metadata> {
   return resolveSeo('home', {
     title: 'Distress Sale Dubai | Distressed Property Deals UAE',
-    description: "Dubai's centralized real estate platform. Every listing verified, one dedicated agent from first message to keys-in-hand — buy, sell, or rent with confidence.",
+    description: "Dubai's centralized real estate platform. Every listing verified, one dedicated team from first message to keys-in-hand — buy, sell, or rent with confidence.",
     path: '/',
     keywords: [
       'distress sale Dubai', 'distressed property Dubai', 'distress deals UAE', 'below market value property Dubai', 'property for sale in Dubai',

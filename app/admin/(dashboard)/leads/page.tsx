@@ -11,7 +11,7 @@ import {
   TrendingUp, Shuffle, ChevronLeft, ChevronRight, LayoutList, KanbanSquare,
   X, Send, Clock, User as UserIcon, Home, Wallet, Loader2,
   Phone, Mail, MessageCircle, MessageSquare, BedDouble, Bath, Maximize, ExternalLink, ShieldCheck,
-  Trash2, AlertTriangle, Check, ListTodo, Plus, CalendarClock, Sparkles, Building2, Landmark,
+  Trash2, AlertTriangle, Check, ListTodo, Plus, CalendarClock, Building2, Landmark,
 } from 'lucide-react'
 import { leadAPI, agentAPI, chatAPI, taskAPI } from '@/lib/api'
 import { formatDate, formatDateTime, formatPrice, cn } from '@/lib/utils'
@@ -131,14 +131,36 @@ function LeadDeleteControl({
 
 // ══════════════════════════ Lead detail drawer ══════════════════════════
 
-function ContactCard({ label, name, email, phone }: { label: string; name?: string; email?: string; phone?: string }) {
+// `phones`: every number the buyer has given (newest first) — listed with where it came from, each callable.
+function ContactCard({ label, name, email, phone, phones }: { label: string; name?: string; email?: string; phone?: string; phones?: Lead['contactPhones'] }) {
+  const many = (phones?.length || 0) > 1
+  // The main buttons use the newest number the buyer gave.
+  if (phones?.length) phone = phones[0].phone
   const waNumber = phone?.replace(/[^\d]/g, '')
   return (
     <div className="card p-4">
       <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>{label}</p>
       <p className="text-sm font-semibold mb-0.5" style={{ color: 'var(--text)' }}>{name || '—'}</p>
       {email && <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{email}</p>}
-      {phone && <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{phone}</p>}
+      {phone && !many && <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{phone}</p>}
+      {many && (
+        <div className="mt-2 space-y-1.5">
+          <p className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Phone numbers · {phones!.length}</p>
+          {phones!.map(p => (
+            <div key={p.phone} className="flex items-center gap-2 rounded-lg px-2.5 py-1.5" style={{ background: p.latest ? 'rgba(203,1,1,0.06)' : 'var(--bg-alt)', border: p.latest ? '1px solid rgba(203,1,1,0.2)' : '1px solid transparent' }}>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold flex items-center gap-1.5" style={{ color: 'var(--text)' }}>
+                  {p.phone}
+                  {p.latest && <span className="text-[9px] font-bold uppercase rounded px-1.5 py-0.5 text-white" style={{ background: 'var(--teal)' }}>Latest</span>}
+                </p>
+                <p className="text-[10px] truncate" style={{ color: 'var(--text-muted)' }}>{p.sources.join(' · ')}{p.at ? ` · ${formatDate(p.at)}` : ''}</p>
+              </div>
+              <a href={`tel:${p.phone}`} className="btn-ghost btn-sm p-1.5" title={`Call ${p.phone}`}><Phone size={12} /></a>
+              <a href={`https://wa.me/${p.phone.replace(/[^\d]/g, '')}`} target="_blank" rel="noopener noreferrer" className="btn-ghost btn-sm p-1.5" title={`WhatsApp ${p.phone}`} style={{ color: 'var(--green)' }}><MessageCircle size={12} /></a>
+            </div>
+          ))}
+        </div>
+      )}
       {(email || phone) && (
         <div className="flex items-center gap-1.5 mt-3">
           {phone && (
@@ -177,8 +199,6 @@ function LeadDetailDrawer({
   const [messaging, setMessaging] = useState(false)
   const [showDeleteReason, setShowDeleteReason] = useState(false)
   const [deleteReasonSubmitting, setDeleteReasonSubmitting] = useState(false)
-  const [aiSummary, setAiSummary] = useState('')
-  const [aiLoading, setAiLoading] = useState(false)
   const [tasks, setTasks] = useState<TaskT[]>([])
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const [newTaskDue, setNewTaskDue] = useState('')
@@ -237,19 +257,7 @@ function LeadDetailDrawer({
     leadAPI.getOne(leadId).then(r => { if (r.data.success) setLead(r.data.data) }).catch(() => toast.error('Failed to load lead')).finally(() => setLoading(false))
   }, [leadId])
 
-  useEffect(() => { load(); setAiSummary('') }, [load])
-
-  const generateAiSummary = async () => {
-    setAiLoading(true)
-    try {
-      const res = await leadAPI.aiSummary(leadId)
-      if (res.data.success) setAiSummary(res.data.data.summary)
-    } catch (err: any) {
-      toast.error(err?.error || 'Failed to generate AI brief')
-    } finally {
-      setAiLoading(false)
-    }
-  }
+  useEffect(() => { load() }, [load])
 
   const submitNote = async () => {
     if (!note.trim()) return
@@ -340,26 +348,6 @@ function LeadDetailDrawer({
                   <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Enquiry submitted {formatDateTime(lead.createdAt)}</p>
                 </div>
                 <span className="badge" style={{ borderColor: stage?.color, color: stage?.color, background: `${stage?.color}14` }}>{stage?.label}</span>
-              </div>
-
-              {/* AI Brief — quick orientation for whoever's picking up this lead */}
-              <div className="card p-4" style={{ background: 'rgba(168,85,247,0.05)', borderColor: 'rgba(168,85,247,0.20)' }}>
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <p className="text-xs font-semibold flex items-center gap-1.5" style={{ color: '#A855F7' }}>
-                    <Sparkles size={12} /> AI Brief
-                  </p>
-                  <button onClick={generateAiSummary} disabled={aiLoading} className="btn-ghost btn-sm gap-1.5 text-xs" style={{ color: '#A855F7' }}>
-                    {aiLoading ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
-                    {aiSummary ? 'Regenerate' : 'Generate'}
-                  </button>
-                </div>
-                {aiSummary ? (
-                  <p className="text-xs leading-relaxed mt-1.5" style={{ color: 'var(--text-mid)' }}>{aiSummary}</p>
-                ) : (
-                  <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
-                    Get a quick AI-generated summary of this lead's stage, budget, and what to do next.
-                  </p>
-                )}
               </div>
 
               {/* Property / Project — detailed view */}
@@ -475,7 +463,7 @@ function LeadDetailDrawer({
                   <Phone size={12} /> Communication
                 </p>
                 <div className={cn('grid gap-3', lead.leadType === 'project' ? 'grid-cols-1' : 'grid-cols-2')}>
-                  <ContactCard label="Buyer" name={lead.buyer?.name || lead.name} email={lead.email || lead.buyer?.email} phone={lead.phone || lead.buyer?.phone} />
+                  <ContactCard label="Buyer" name={lead.buyer?.name || lead.name} email={lead.email || lead.buyer?.email} phone={lead.phone || lead.buyer?.phone} phones={lead.contactPhones} />
                   {lead.leadType !== 'project' && (
                     <div className="card p-4 flex flex-col">
                       <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Seller</p>

@@ -26,6 +26,7 @@ import PropertyCard from '@/components/buyer/PropertyCard'
 import RecentlyViewedCard from '@/components/buyer/RecentlyViewedCard'
 import AdSlot from '@/components/shared/AdSlot'
 import DistanceCalculator from '@/components/shared/DistanceCalculator'
+import LandmarkDistances from '@/components/shared/LandmarkDistances'
 import MoreOptions from '@/components/shared/MoreOptions'
 import RealEstateLinks from '@/components/shared/RealEstateLinks'
 import InfoBadge, { OFF_PLAN_NOTE } from '@/components/shared/InfoBadge'
@@ -45,6 +46,7 @@ import toast from 'react-hot-toast'
 import CurrencyNote from '@/components/currency/CurrencyNote'
 import { exactPrice } from '@/lib/currency'
 import PriceDetailsCard from '@/components/buyer/PriceDetailsCard'
+import ScrollRow from '@/components/shared/ScrollRow'
 
 const TEAL = 'var(--teal)'
 
@@ -537,9 +539,11 @@ export default function PropertyDetailClient({ property, areaHref }: { property:
                         </Link>
                       </div>
                       <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)', height: 320 }}>
-                        <LocationMap lat={coords.lat} lng={coords.lng} />
+                        <LocationMap lat={coords.lat} lng={coords.lng} zoom={(property.landmarks?.length || 0) > 0 ? 14 : undefined} landmarks={(property.landmarks || []).map(l => ({ lat: l.lat, lng: l.lng, title: l.name }))} />
                       </div>
                       <div className="mt-5"><DistanceCalculator lat={coords.lat} lng={coords.lng} /></div>
+                      {/* Nearby landmarks our team added, with the distance from this property. */}
+                      {(property.landmarks?.length || 0) > 0 && <div className="mt-5"><LandmarkDistances landmarks={property.landmarks!} coords={coords} /></div>}
                       <a
                         href={`https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`}
                         target="_blank" rel="noopener noreferrer"
@@ -713,15 +717,15 @@ export default function PropertyDetailClient({ property, areaHref }: { property:
 
               <div className="divider my-5" />
 
-              {/* The agent mediates every enquiry — buyers never see the
+              {/* Our team handles every enquiry — buyers never see the
                   seller's contact details directly (centralized model). */}
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-sm font-bold text-white" style={{ background: 'var(--grad)' }}>
-                  {agent?.name?.[0] || 'A'}
+                  D
                 </div>
                 <div>
-                  <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>{agent?.name || 'Our Agent Team'}</p>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Your dedicated agent for this listing</p>
+                  <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>Distress Deals UAE team</p>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Handles every enquiry for this listing</p>
                 </div>
               </div>
             </div>
@@ -875,14 +879,14 @@ export default function PropertyDetailClient({ property, areaHref }: { property:
                 View All
               </Link>
             </div>
-            <div className="flex gap-5 overflow-x-auto overflow-y-hidden scrollbar-hide -mx-2 px-2 pt-3 pb-6 -mt-3 -mb-3" style={{ scrollSnapType: 'x mandatory' }}>
+            <ScrollRow variant="cards" innerClassName="gap-5" label="Recommended for you">
               {forYou.map((p, i) => (
                 <motion.div key={p._id} initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} transition={{ delay:i*0.05 }}
-                  className="flex-shrink-0" style={{ width: 300, scrollSnapAlign: 'start' }}>
+                  className="flex-shrink-0" style={{ width: 300, scrollSnapAlign: 'start', scrollMarginLeft: 8 }}>
                   <PropertyCard property={p} />
                 </motion.div>
               ))}
-            </div>
+            </ScrollRow>
           </div>
         )}
       </div>

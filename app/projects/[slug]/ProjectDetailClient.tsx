@@ -6,19 +6,20 @@ import Link from 'next/link'
 import Image from 'next/image'
 import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
-import {
+import { Sparkles, BellRing,
   ArrowLeft, MapPin, CalendarClock, Wallet, BedDouble, Bath, Home, ShieldCheck, Phone, Building2, MessageCircleHeart, MessageCircle, Share2,
-  BadgeCheck, Info, ChevronDown, ChevronUp, HeartPulse, TrainFront, GraduationCap, ShoppingBag, Landmark as LandmarkIcon, Plane, Search, Loader2, Navigation, Maximize2, Tag, Clock, X, Map as MapIcon,
+  BadgeCheck, Info, ChevronDown, ChevronUp, Search, Loader2, Navigation, Maximize2, Tag, Clock, X, Map as MapIcon,
 } from 'lucide-react'
 import Navbar from '@/components/layouts/Navbar'
 import Footer from '@/components/layouts/Footer'
 import ProjectInterestModal from '@/components/buyer/ProjectInterestModal'
+import LaunchOverview from './LaunchOverview'
 import { projectAPI } from '@/lib/api'
 import { COMPANY_PHONE_DISPLAY, telHref, whatsappHref } from '@/lib/contact'
 import { formatPrice, cn, timeAgo, isHandedOver } from '@/lib/utils'
 import { AMENITY_META } from '@/lib/amenities'
-import { haversineKm, formatDistanceKm } from '@/lib/distance'
 import DistanceCalculator from '@/components/shared/DistanceCalculator'
+import LandmarkDistances from '@/components/shared/LandmarkDistances'
 import MoreOptions from '@/components/shared/MoreOptions'
 import RealEstateLinks from '@/components/shared/RealEstateLinks'
 import type { Project } from '@/types'
@@ -36,6 +37,7 @@ import { addRecentlyViewed } from '@/lib/recentlyViewed'
 import toast from 'react-hot-toast'
 import CurrencyNote from '@/components/currency/CurrencyNote'
 import PriceDetailsCard from '@/components/buyer/PriceDetailsCard'
+import ScrollRow from '@/components/shared/ScrollRow'
 
 // Custom-styled Google map, loaded client-side only (the Maps script needs `window`).
 const LocationMap = dynamic(() => import('@/components/shared/LocationMap'), {
@@ -53,12 +55,6 @@ function landDepartmentFor(emirate?: string): string {
   return LAND_DEPARTMENT[emirate] || `${emirate} Land Department`
 }
 
-const LANDMARK_ICON: Record<string, any> = {
-  metro: TrainFront, school: GraduationCap, mall: ShoppingBag, landmark: LandmarkIcon, airport: Plane, hospital: HeartPulse,
-}
-const LANDMARK_LABEL: Record<string, string> = {
-  metro: 'Metro Stations', school: 'Schools', mall: 'Malls', landmark: 'Landmarks', airport: 'Airports', hospital: 'Hospitals',
-}
 
 // Tabs are built from whatever floor-plan entries the admin added — no
 // hardcoded "Ground/First/Second" floor list, and switching tabs is plain
@@ -122,10 +118,6 @@ function NearbyDistances({ project }: { project: Project }) {
   const coords = project.coordinates
   const landmarks = project.landmarks || []
 
-  const grouped = landmarks.reduce((acc, lm) => {
-    (acc[lm.category] ||= []).push(lm)
-    return acc
-  }, {} as Record<string, typeof landmarks>)
 
 
   if (!coords && landmarks.length === 0) return null
@@ -147,32 +139,7 @@ function NearbyDistances({ project }: { project: Project }) {
       {coords && <DistanceCalculator lat={coords.lat} lng={coords.lng} />}
 
       {/* Pre-set landmarks, grouped by category */}
-      {Object.keys(grouped).length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          {Object.entries(grouped).map(([category, items]) => {
-            const Icon = LANDMARK_ICON[category] || LandmarkIcon
-            const withDistance = items
-              .map(lm => ({ ...lm, km: coords ? haversineKm(coords.lat, coords.lng, lm.lat, lm.lng) : null }))
-              .sort((a, b) => (a.km ?? 0) - (b.km ?? 0))
-            return (
-              <div key={category} className="rounded-xl p-4" style={{ background: 'var(--bg-alt)' }}>
-                <div className="flex items-center gap-2 mb-3">
-                  <Icon size={14} style={{ color: 'var(--teal)' }} />
-                  <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-mid)' }}>{LANDMARK_LABEL[category] || category}</p>
-                </div>
-                <div className="space-y-2">
-                  {withDistance.map(lm => (
-                    <div key={lm.name} className="flex items-center justify-between gap-3 text-sm">
-                      <span className="truncate" style={{ color: 'var(--text-mid)' }}>{lm.name}</span>
-                      {lm.km !== null && <span className="font-semibold flex-shrink-0" style={{ color: 'var(--text)' }}>{formatDistanceKm(lm.km)}</span>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
+      <LandmarkDistances landmarks={landmarks} coords={coords} />
     </>
   )
 }
@@ -203,14 +170,14 @@ function AmenitiesSection({ amenities }: { amenities: Record<string, boolean> })
 
   return (
     <>
-      <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
+      <ScrollRow>
         {visible.map(k => chip(k, true))}
         {hiddenCount > 0 && (
           <button onClick={() => setShowAll(true)} className="btn-outline btn-sm flex-shrink-0 whitespace-nowrap">
             +{hiddenCount} More
           </button>
         )}
-      </div>
+      </ScrollRow>
 
       <AnimatePresence>
         {showAll && (
@@ -266,7 +233,11 @@ export default function ProjectDetailClient({ project, areaHref }: { project: Pr
   // While a priced offer is live, the offer price is the price shown, with the normal price struck through.
   const onOffer = !!offerPrice(project, project.priceFrom)
   // The Distress Deals price keeps its label and figure — while a priced offer runs it is only crossed out.
-  const dealLabel = projectClaim && !projectClaim.unit ? 'Our Deal Price' : onOffer ? 'Distress Deals Price' : 'Starting Price'
+  // A launch: announced before its units and prices (stage 'launch', or an older record saved without a price).
+  const launch = project.stage === 'launch' || !(project.priceFrom > 0)
+  // What the visitor picked in the launch form (unit types, budget) — starts their enquiry message.
+  const [launchMessage, setLaunchMessage] = useState<string | undefined>()
+  const dealLabel = launch ? 'Launching soon' : projectClaim && !projectClaim.unit ? 'Our Deal Price' : onOffer ? 'Distress Deals Price' : 'Starting Price'
   const [interestOpen, setInterestOpen] = useState(false)
   const [allUnits, setAllUnits] = useState(false)
 
@@ -355,8 +326,15 @@ export default function ProjectDetailClient({ project, areaHref }: { project: Pr
                 className={cn('relative group overflow-hidden', gallery.length >= 3 && 'md:row-span-2')} style={{ background: 'var(--bg-alt)' }}>
                 <Image src={gallery[0]} alt={project.title} fill priority sizes="(max-width:768px)100vw,66vw"
                   className="object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
-                <span className="badge absolute top-4 left-4 text-xs capitalize" style={{ background: 'rgba(255,255,255,0.94)', color: '#0F172A', border: 'none' }}>
-                  {project.status.replace('_', ' ')}
+                <span className="absolute top-4 left-4 flex items-center gap-1.5">
+                  {launch && (
+                    <span className="badge text-xs font-bold inline-flex items-center gap-1" style={{ background: 'linear-gradient(135deg, #F59E0B, #EA580C)', color: '#fff', border: 'none', boxShadow: '0 4px 12px -4px rgba(234,88,12,0.6)' }}>
+                      <Sparkles size={12} /> New Launch
+                    </span>
+                  )}
+                  <span className="badge text-xs capitalize" style={{ background: 'rgba(255,255,255,0.94)', color: '#0F172A', border: 'none' }}>
+                    {project.status.replace('_', ' ')}
+                  </span>
                 </span>
                 {(project.developerLogo || project.developer) && (
                   // With a logo the chip is one fixed size (88×36, 108×42 on desktop) for every developer; a name-only
@@ -427,7 +405,10 @@ export default function ProjectDetailClient({ project, areaHref }: { project: Pr
               )}
             </div>
 
-            {/* Price | key details — two columns (stacked on phones), same card as the property page. */}
+            {/* A launch: what's announced + the lead form. Otherwise: price | key details — two columns (stacked on phones). */}
+            {launch ? (
+              <LaunchOverview project={project} onRegister={m => { setLaunchMessage(m); setInterestOpen(true) }} />
+            ) : (
             <div className="mb-5">
               <PriceDetailsCard
                 label={dealLabel}
@@ -437,7 +418,8 @@ export default function ProjectDetailClient({ project, areaHref }: { project: Pr
                   {project.priceTo && <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>up to {formatPrice(project.priceTo)}</p>}
                   <OpportunityBadges opportunity={project.opportunity} kind="project" className="mt-2" />
                   <MarketDisclaimer opportunity={project.opportunity} className="mt-1.5" />
-                  <CurrencyNote aed={project.priceFrom} className="mt-2" />
+                  {!launch && <CurrencyNote aed={project.priceFrom} className="mt-2" />}
+                  {launch && <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>Unit types and prices are not announced yet — register your interest and we will send them first.</p>}
                 </>}
                 details={[
                   { icon: Home, label: 'Type', value: project.type ? project.type.replace(/_/g, ' ') : undefined },
@@ -449,6 +431,7 @@ export default function ProjectDetailClient({ project, areaHref }: { project: Pr
                 ]}
               />
             </div>
+            )}
 
             {/* Limited-time offer — straight after the price, at the top of the page. Renders nothing without a live offer. */}
             <OfferBanner item={project} normalPrice={project.priceFrom} className="mb-5" />
@@ -672,8 +655,9 @@ export default function ProjectDetailClient({ project, areaHref }: { project: Pr
                   <OpportunityBadges opportunity={project.opportunity} kind="project" className="mt-2 justify-center" />
                   <MarketDisclaimer opportunity={project.opportunity} className="mt-1.5" />
                 </div>
+                {launch && <p className="text-xs text-center -mt-3 mb-4" style={{ color: 'var(--text-muted)' }}>Get the price list and floor plans as soon as they are released.</p>}
                 <button onClick={() => setInterestOpen(true)} className="btn-primary w-full py-4 text-base mb-3">
-                  <MessageCircleHeart size={16} /> I'm Interested
+                  {launch ? <><BellRing size={16} /> Register interest</> : <><MessageCircleHeart size={16} /> I'm Interested</>}
                 </button>
                 <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="btn-outline w-full py-3.5 mb-3 gap-2">
                   <MessageCircle size={16} style={{ color: 'var(--green)' }} /> WhatsApp Us
@@ -719,7 +703,7 @@ export default function ProjectDetailClient({ project, areaHref }: { project: Pr
             <div className="wrap flex items-center gap-3 py-3">
               <div className="hidden sm:block flex-1 min-w-0">
                 <p className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>{project.title}</p>
-                <p className="text-sm font-bold grad-text">{formatPrice(offerPrice(project, project.priceFrom) || project.priceFrom)}</p>
+                <p className="text-sm font-bold grad-text">{launch ? 'Price on announcement' : formatPrice(offerPrice(project, project.priceFrom) || project.priceFrom)}</p>
               </div>
               <a href={telHref} className="btn-outline p-3 flex-shrink-0" aria-label={`Call ${COMPANY_PHONE_DISPLAY}`} title={`Call ${COMPANY_PHONE_DISPLAY}`}>
                 <Phone size={17} style={{ color: 'var(--teal)' }} />
@@ -731,8 +715,8 @@ export default function ProjectDetailClient({ project, areaHref }: { project: Pr
                 <Share2 size={17} style={{ color: 'var(--text-mid)' }} />
               </button>
               <button onClick={() => setInterestOpen(true)} className="btn-primary flex-1 sm:flex-initial py-3 px-6">
-                <MessageCircleHeart size={15} />
-                I'm Interested
+                {launch ? <BellRing size={15} /> : <MessageCircleHeart size={15} />}
+                {launch ? 'Register interest' : "I'm Interested"}
               </button>
             </div>
           </motion.div>
@@ -746,6 +730,7 @@ export default function ProjectDetailClient({ project, areaHref }: { project: Pr
         projectTitle={project.title}
         open={interestOpen}
         onClose={() => setInterestOpen(false)}
+        defaultMessage={launch ? (launchMessage || `I'd like the launch prices and floor plans for ${project.title}.`) : undefined}
       />
     </div>
   )

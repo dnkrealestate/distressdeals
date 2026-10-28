@@ -7,7 +7,7 @@ import { useDropzone } from 'react-dropzone'
 import {
   Loader2, Send, Tag, KeyRound, Home, Building2, Trees, Layers, Castle,
   Store, Briefcase, Warehouse, MoreHorizontal, BedDouble, MapPin, Crosshair,
-   Sparkles, Camera, UploadCloud, X,
+  Sparkles, Camera, UploadCloud, X, Bath, Sun, Car,
 } from 'lucide-react'
 import DirhamIcon from '@/components/shared/DirhamIcon'
 import { propertyAPI } from '@/lib/api'
@@ -64,6 +64,18 @@ const BEDROOMS = [
   { value: '4', label: '4' }, { value: '5', label: '5' }, { value: '6', label: '6' },
   { value: '7', label: '7' }, { value: '8', label: '8+' },
 ]
+const BATHROOMS = [
+  { value: '1', label: '1' }, { value: '2', label: '2' }, { value: '3', label: '3' },
+  { value: '4', label: '4' }, { value: '5', label: '5' }, { value: '6', label: '6+' },
+]
+const COUNT_1_TO_5 = [
+  { value: '1', label: '1' }, { value: '2', label: '2' }, { value: '3', label: '3' }, { value: '4', label: '4' }, { value: '5', label: '5+' },
+]
+const YES_NO = [{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }]
+// Units inside a building — asked for the building's floors AND which floor the property is on. Every other type
+// (villa, townhouse, …) is asked only how many floors it has.
+const IN_BUILDING_TYPES = ['apartment', 'penthouse', 'office']
+
 const FURNISHING = [
   { value: 'unfurnished', label: 'Unfurnished' },
   { value: 'semi_furnished', label: 'Semi-furnished' },
@@ -179,6 +191,20 @@ export default function SellerListingForm({ property, onSuccess }: { property?: 
   const [availableFromError, setAvailableFromError] = useState(false)
   const rentNeedsDate = listingType === 'rent' && rentalStatus !== 'available_now' && !availableFrom
   const [bedroomsError, setBedroomsError] = useState(false)
+  const am = property?.amenities
+  const [bathrooms, setBathrooms] = useState(am?.bathrooms ? String(Math.min(am.bathrooms, 6)) : '')
+  const [hasBalcony, setHasBalcony] = useState(am ? (am.balconies ? 'yes' : (isEdit ? 'no' : '')) : '')
+  const [balconies, setBalconies] = useState(am?.balconies ? String(Math.min(am.balconies, 5)) : '')
+  const [hasParking, setHasParking] = useState(am ? (am.parkingSpaces ? 'yes' : (isEdit ? 'no' : '')) : '')
+  const [parkingSpaces, setParkingSpaces] = useState(am?.parkingSpaces ? String(Math.min(am.parkingSpaces, 5)) : '')
+  const [totalFloors, setTotalFloors] = useState(am?.totalFloors ? String(am.totalFloors) : '')
+  const [floorNo, setFloorNo] = useState(am?.floor !== undefined && am?.floor !== null ? String(am.floor) : '')
+  // Which questions are still unanswered on step 1 (shown under each one).
+  const [detailErrors, setDetailErrors] = useState<Set<string>>(new Set())
+  const clearErr = (k: string) => setDetailErrors(e => { if (!e.has(k)) return e; const n = new Set(e); n.delete(k); return n })
+  // The exact spot on the map is required — it is what our team checks the listing against and what buyers see.
+  const [pinError, setPinError] = useState(false)
+  const hasPin = () => { const v = getValues(); return Number.isFinite(Number(v.lat)) && Number.isFinite(Number(v.lng)) && !!Number(v.lat) && !!Number(v.lng) }
   const [missingFields, setMissingFields] = useState<{ key: string; label: string; step: number }[]>([])
   const [amenities, setAmenities] = useState<Record<string, boolean>>(property?.features || {})
 
@@ -194,7 +220,7 @@ export default function SellerListingForm({ property, onSuccess }: { property?: 
   )
   const [locationVersion, setLocationVersion] = useState(0)
 
-  const { register, handleSubmit, setValue, getValues, watch, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, setValue, getValues, watch, trigger, formState: { errors } } = useForm<FormValues>({
     defaultValues: property ? {
       price: property.price, floorArea: property.amenities?.floorArea || undefined,
       city: property.location?.city || 'Dubai', district: property.location?.district,
@@ -223,6 +249,7 @@ export default function SellerListingForm({ property, onSuccess }: { property?: 
     setValue('address', r.road || r.label, { shouldDirty: true, shouldValidate: true })
     setValue('lat', r.lat, { shouldDirty: true })
     setValue('lng', r.lng, { shouldDirty: true })
+    setPinError(false)
     if (emirate) setValue('city', emirate, { shouldDirty: true })
     setLocatedIn(`${emirate || 'Dubai'} / ${area}`)
     setLocationVersion(v => v + 1)
@@ -231,6 +258,7 @@ export default function SellerListingForm({ property, onSuccess }: { property?: 
   const onMapPick = async (lat: number, lng: number) => {
     setValue('lat', lat, { shouldDirty: true })
     setValue('lng', lng, { shouldDirty: true })
+    setPinError(false)
     setLocationVersion(v => v + 1)
     try {
       const r = await reverseGeocode(lat, lng)
@@ -298,6 +326,12 @@ export default function SellerListingForm({ property, onSuccess }: { property?: 
       setAvailableFromError(true)
       missing.push({ key: 'availableFrom', label: 'Available-from date', step: 1 })
     }
+    if (!hasPin()) {
+      setPinError(true)
+      missing.push({ key: 'pin', label: 'Exact location on the map', step: 2 })
+    }
+    // Step-1 answers (bathrooms, balconies, parking, floors) — not react-hook-form fields.
+    void stepMissing(1).then(m1 => { const extra = m1.filter(m => !missing.some(x => x.key === m.key)); if (extra.length) { setDetailErrors(new Set(extra.map(m => m.key))); setMissingFields(cur => [...extra, ...cur.filter(c => !extra.some(e => e.key === c.key))]) } })
     missing.sort((a, b) => a.step - b.step)
     setMissingFields(missing)
     if (missing.length > 0) {
@@ -307,6 +341,8 @@ export default function SellerListingForm({ property, onSuccess }: { property?: 
   }
 
   const onSubmit = async (data: FormValues) => {
+    const missAll = [...(await stepMissing(1)), ...(await stepMissing(2))]
+    if (missAll.length) { setStep(missAll[0].step); showMissing(missAll); return }
     if (category === 'residential' && !bedrooms) {
       setBedroomsError(true)
       setMissingFields([{ key: 'bedrooms', label: 'Bedrooms', step: 1 }])
@@ -321,8 +357,16 @@ export default function SellerListingForm({ property, onSuccess }: { property?: 
       toast.error('Please complete: Available-from date')
       return
     }
+    if (!hasPin()) {
+      setPinError(true)
+      setMissingFields([{ key: 'pin', label: 'Exact location on the map', step: 2 }])
+      setStep(2)
+      toast.error('Please set the exact location on the map')
+      return
+    }
     setBedroomsError(false)
     setAvailableFromError(false)
+    setPinError(false)
     setMissingFields([])
     setSubmitting(true)
     const payload = {
@@ -334,6 +378,11 @@ export default function SellerListingForm({ property, onSuccess }: { property?: 
         ...(rentalStatus !== 'available_now' && availableFrom && { availableFrom }),
       }),
       ...(category === 'residential' && { bedrooms: Number(bedrooms) }),
+      ...(asksBathrooms && bathrooms && { bathrooms: Number(bathrooms) }),
+      ...(asksBalcony && { balconies: hasBalcony === 'yes' ? Number(balconies) || 1 : 0 }),
+      ...(asksParking && { parkingSpaces: hasParking === 'yes' ? Number(parkingSpaces) || 1 : 0 }),
+      ...(asksFloors && Number(totalFloors) > 0 && { totalFloors: Number(totalFloors) }),
+      ...(asksFloors && inBuilding && floorNo !== '' && { floor: Number(floorNo) }),
       ...(data.floorArea !== undefined && data.floorArea !== null && data.floorArea !== ('' as any) && { floorArea: Number(data.floorArea) }),
       features: amenities,
       location: {
@@ -378,12 +427,69 @@ export default function SellerListingForm({ property, onSuccess }: { property?: 
     }
   }
 
-  const goNext = () => setStep(s => Math.min(s + 1, 4))
+  // Which home details apply to this type.
+  const isPlot = category === 'plot' || type === 'plot'
+  const inBuilding = IN_BUILDING_TYPES.includes(type)
+  const asksBalcony = category === 'residential'
+  const asksBathrooms = !isPlot
+  const asksParking = !isPlot
+  const asksFloors = !isPlot
+
+  // What's still missing on one step — every required answer there.
+  const stepMissing = async (n: number): Promise<{ key: string; label: string; step: number }[]> => {
+    const miss: { key: string; label: string; step: number }[] = []
+    if (n === 1) {
+      if (category === 'residential' && !bedrooms) miss.push({ key: 'bedrooms', label: 'Bedrooms', step: 1 })
+      if (asksBathrooms && !bathrooms) miss.push({ key: 'bathrooms', label: 'Bathrooms', step: 1 })
+      if (asksBalcony && !hasBalcony) miss.push({ key: 'hasBalcony', label: 'Balconies available?', step: 1 })
+      if (asksBalcony && hasBalcony === 'yes' && !balconies) miss.push({ key: 'balconies', label: 'Number of balconies', step: 1 })
+      if (asksParking && !hasParking) miss.push({ key: 'hasParking', label: 'Parking available?', step: 1 })
+      if (asksParking && hasParking === 'yes' && !parkingSpaces) miss.push({ key: 'parkingSpaces', label: 'Number of parking slots', step: 1 })
+      if (asksFloors && !(Number(totalFloors) > 0)) miss.push({ key: 'totalFloors', label: inBuilding ? 'Total floors in the building' : 'Number of floors', step: 1 })
+      if (asksFloors && inBuilding && floorNo === '') miss.push({ key: 'floorNo', label: 'Which floor the property is on', step: 1 })
+      if (asksFloors && inBuilding && floorNo !== '' && Number(totalFloors) > 0 && Number(floorNo) > Number(totalFloors)) miss.push({ key: 'floorNo', label: 'Property floor can’t be above the building’s top floor', step: 1 })
+      if (rentNeedsDate) miss.push({ key: 'availableFrom', label: 'Available-from date', step: 1 })
+    }
+    if (n === 2) {
+      if (!hasPin()) miss.push({ key: 'pin', label: 'Exact location on the map', step: 2 })
+      const ok = await trigger(['city', 'address'])
+      if (!ok) { const v = getValues(); if (!v.city) miss.push({ key: 'city', label: 'City', step: 2 }); if (!v.address) miss.push({ key: 'address', label: FIELD_META.address.label, step: 2 }) }
+    }
+    if (n === 3) {
+      if (!(await trigger(['price']))) miss.push({ key: 'price', label: 'Price', step: 3 })
+    }
+    return miss
+  }
+  const showMissing = (miss: { key: string; label: string; step: number }[]) => {
+    setDetailErrors(new Set(miss.map(m => m.key)))
+    if (miss.some(m => m.key === 'bedrooms')) setBedroomsError(true)
+    if (miss.some(m => m.key === 'availableFrom')) setAvailableFromError(true)
+    if (miss.some(m => m.key === 'pin')) setPinError(true)
+    setMissingFields(miss)
+    toast.error(`Please complete: ${miss.map(m => m.label).join(', ')}`)
+  }
+  // Next only moves on once everything required on this step is filled in.
+  const goNext = async () => {
+    const miss = await stepMissing(step)
+    if (miss.length) { showMissing(miss); return }
+    setMissingFields([]); setDetailErrors(new Set())
+    setStep(s => Math.min(s + 1, 4))
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
   const goPrev = () => setStep(s => Math.max(s - 1, 1))
+  // The step bar: back any time; forward only through completed steps.
+  const jumpTo = async (target: number) => {
+    if (target <= step) { setStep(target); return }
+    for (let n = step; n < target; n++) {
+      const miss = await stepMissing(n)
+      if (miss.length) { setStep(n); showMissing(miss); return }
+    }
+    setMissingFields([]); setStep(target)
+  }
 
   return (
     <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="max-w-2xl">
-      <StepIndicator step={step} onJump={setStep} labels={['Basics', 'Location', 'Details', 'Photos']} />
+      <StepIndicator step={step} onJump={jumpTo} labels={['Basics', 'Location', 'Details', 'Photos']} />
 
       {missingFields.length > 0 && (
         <div className="rounded-xl p-4 mb-5 text-sm" style={{ background: 'rgba(244,63,94,0.06)', border: '1px solid rgba(244,63,94,0.25)' }}>
@@ -448,6 +554,75 @@ export default function SellerListingForm({ property, onSuccess }: { property?: 
           </div>
         )}
 
+        {!isPlot && (
+          <div className="card p-6 space-y-5">
+            {asksBathrooms && (
+              <div>
+                <SectionTitle icon={Bath}>Bathrooms *</SectionTitle>
+                <div className="mt-3"><TabGroup options={BATHROOMS} value={bathrooms} onChange={v => { setBathrooms(v); clearErr('bathrooms') }} /></div>
+                {detailErrors.has('bathrooms') && <p className="text-xs mt-2" style={{ color: '#FB7185' }}>Please select the number of bathrooms</p>}
+              </div>
+            )}
+
+            {asksBalcony && (
+              <div>
+                <SectionTitle icon={Sun}>Balconies available? *</SectionTitle>
+                <div className="mt-3"><TabGroup options={YES_NO} value={hasBalcony} onChange={v => { setHasBalcony(v); clearErr('hasBalcony'); if (v === 'no') { setBalconies(''); clearErr('balconies') } }} /></div>
+                {detailErrors.has('hasBalcony') && <p className="text-xs mt-2" style={{ color: '#FB7185' }}>Please choose Yes or No</p>}
+                {hasBalcony === 'yes' && (
+                  <div className="mt-3">
+                    <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>How many balconies?</p>
+                    <TabGroup options={COUNT_1_TO_5} value={balconies} onChange={v => { setBalconies(v); clearErr('balconies') }} />
+                    {detailErrors.has('balconies') && <p className="text-xs mt-2" style={{ color: '#FB7185' }}>Please select how many</p>}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {asksParking && (
+              <div>
+                <SectionTitle icon={Car}>Parking available? *</SectionTitle>
+                <div className="mt-3"><TabGroup options={YES_NO} value={hasParking} onChange={v => { setHasParking(v); clearErr('hasParking'); if (v === 'no') { setParkingSpaces(''); clearErr('parkingSpaces') } }} /></div>
+                {detailErrors.has('hasParking') && <p className="text-xs mt-2" style={{ color: '#FB7185' }}>Please choose Yes or No</p>}
+                {hasParking === 'yes' && (
+                  <div className="mt-3">
+                    <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>How many parking slots?</p>
+                    <TabGroup options={COUNT_1_TO_5} value={parkingSpaces} onChange={v => { setParkingSpaces(v); clearErr('parkingSpaces') }} />
+                    {detailErrors.has('parkingSpaces') && <p className="text-xs mt-2" style={{ color: '#FB7185' }}>Please select how many</p>}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {asksFloors && (
+              <div>
+                <SectionTitle icon={Layers}>{inBuilding ? 'Floors *' : 'Number of floors *'}</SectionTitle>
+                <div className={`grid gap-4 mt-3 ${inBuilding ? 'grid-cols-2' : 'grid-cols-1 max-w-[240px]'}`}>
+                  <Field label={inBuilding ? 'Total floors in the building' : 'How many floors does it have?'}>
+                    <input className="input" type="number" min={1} inputMode="numeric" placeholder={inBuilding ? 'e.g. 32' : 'e.g. 2'}
+                      value={totalFloors} onChange={e => { setTotalFloors(e.target.value); clearErr('totalFloors') }}
+                      style={detailErrors.has('totalFloors') ? { borderColor: '#FB7185' } : undefined} />
+                  </Field>
+                  {inBuilding && (
+                    <Field label="Your property is on floor">
+                      <input className="input" type="number" min={0} inputMode="numeric" placeholder="e.g. 14 (0 = ground)"
+                        value={floorNo} onChange={e => { setFloorNo(e.target.value); clearErr('floorNo') }}
+                        style={detailErrors.has('floorNo') ? { borderColor: '#FB7185' } : undefined} />
+                    </Field>
+                  )}
+                </div>
+                {(detailErrors.has('totalFloors') || detailErrors.has('floorNo')) && (
+                  <p className="text-xs mt-2" style={{ color: '#FB7185' }}>
+                    {inBuilding && floorNo !== '' && Number(totalFloors) > 0 && Number(floorNo) > Number(totalFloors)
+                      ? 'The property’s floor can’t be above the building’s top floor'
+                      : inBuilding ? 'Please enter the building’s floors and your floor' : 'Please enter the number of floors'}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="flex justify-end">
           <button type="button" onClick={goNext} className="btn-primary">Next</button>
         </div>
@@ -477,17 +652,20 @@ export default function SellerListingForm({ property, onSuccess }: { property?: 
               <p className="text-xs -mt-2" style={{ color: 'var(--text-muted)' }}>Located in: <strong style={{ color: 'var(--text-mid)' }}>{locatedIn}</strong></p>
             )}
 
-            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)', height: 260 }}>
+            <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${pinError ? '#FB7185' : 'var(--border)'}`, height: 260 }}>
               <LocationPickerMap lat={getValues('lat')} lng={getValues('lng')} onPick={onMapPick} />
             </div>
-            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Tip: click anywhere on the map, or drag the pin, to fine-tune the exact spot.</p>
+            {pinError
+              ? <p className="text-xs" style={{ color: '#FB7185' }}>Required — search for the building above, or click the map / drag the pin to the exact spot.</p>
+              : <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Required: the pin must be on the exact property. Click anywhere on the map, or drag the pin, to fine-tune it.</p>}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Field label="City *">
                 <input key={`city-${locationVersion}`} className="input" {...register('city', { required: true })} />
               </Field>
-              <Field label="District (optional)">
-                <input className="input" placeholder="e.g. Al Barsha" {...register('district')} />
+              <Field label="Area">
+                <input key={`area-${locationVersion}`} className="input" placeholder="e.g. Al Barsha" {...register('area')} />
+                <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>Filled in from the map pin — correct it if needed.</p>
               </Field>
             </div>
 

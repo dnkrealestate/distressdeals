@@ -139,7 +139,7 @@ export default async function CommunityDetailPage({ params, searchParams }: { pa
     } : { q: '', a: '' },
     projects.length ? {
       q: `Are there off-plan projects in ${community.name}?`,
-      a: `Yes — ${projects.length} project${projects.length === 1 ? '' : 's'}${devs.length ? ` by ${list(devs)}` : ''}, starting from ${formatPrice(Math.min(...projects.map(p => p.priceFrom).filter(Boolean)))}.`,
+      a: `Yes — ${projects.length} project${projects.length === 1 ? '' : 's'}${devs.length ? ` by ${list(devs)}` : ''}${projects.some(p => p.priceFrom > 0) ? `, starting from ${formatPrice(Math.min(...projects.map(p => p.priceFrom).filter(Boolean)))}` : ''}.`,
     } : { q: '', a: '' },
     nearPlaces.length ? {
       q: `What is there to do near ${community.name}?`,

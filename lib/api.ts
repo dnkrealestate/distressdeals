@@ -222,6 +222,9 @@ export const notifAPI = {
   markRead: (id: string) => api.patch(`/notifications/${id}/read`),
   markAllRead: () => api.patch('/notifications/read-all'),
   getCount: () => api.get('/notifications/unread-count'),
+  remove: (id: string) => api.delete(`/notifications/${id}`),
+  // Clears the list — everything, or only the notifications already read.
+  clear: (onlyRead = false) => api.delete('/notifications', { params: onlyRead ? { read: true } : undefined }),
 }
 
 // ── Blog ────────────────────────────────────────────

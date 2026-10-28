@@ -28,7 +28,7 @@ export const FALLBACK_CONTENT: ContentPageData = {
     },
     {
       heading: 'Auction vs. a Negotiated Distress Sale',
-      body: "A negotiated distress sale — the kind we specialize in — gives you most of the same pricing upside as an auction, with none of the compressed timeline or as-is risk. You get a proper viewing period, an independent inspection if you want one, verified title and service-charge status before you commit, and a single dedicated agent managing the negotiation and paperwork on your behalf. The trade-off is that a negotiated sale can take a little longer to close than an auction's fixed timeline — for most buyers, that extra time is a fair price for the reduced risk.",
+      body: "A negotiated distress sale — the kind we specialize in — gives you most of the same pricing upside as an auction, with none of the compressed timeline or as-is risk. You get a proper viewing period, an independent inspection if you want one, verified title and service-charge status before you commit, and our team managing the negotiation and paperwork on your behalf. The trade-off is that a negotiated sale can take a little longer to close than an auction's fixed timeline — for most buyers, that extra time is a fair price for the reduced risk.",
       cards: [],
     },
   ],
@@ -44,5 +44,5 @@ export const FAQS: Faq[] = [
   { q: 'Is an auction better than a negotiated distress sale?', a: 'Not always. An auction can be fast, but you often have little time to inspect the property or check its history, and competition can push the price up. A negotiated distress sale gives you time to compare prices and check the paperwork.' },
   { q: 'Can I view a property before an auction?', a: 'Sometimes, but viewing windows are often short and some properties are sold without a viewing. Read the auction terms carefully before you register to bid.' },
   { q: 'What costs come with buying at auction?', a: 'Expect the usual Land Department transfer and registration costs, plus any fees set by the auction organiser. Check the full cost before you bid.' },
-  { q: 'Where can I find below-market property without bidding?', a: 'On our distress sale listings — verified properties priced below market by owners who need a quick sale, where you negotiate directly through one dedicated agent.' },
+  { q: 'Where can I find below-market property without bidding?', a: 'On our distress sale listings — verified properties priced below market by owners who need a quick sale, where you negotiate directly through our own team.' },
 ]
