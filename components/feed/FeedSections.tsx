@@ -9,6 +9,7 @@ import PropertyCard from '@/components/buyer/PropertyCard'
 import ProjectCard from '@/components/buyer/ProjectCard'
 import FeedTracked from './FeedTracked'
 import ScrollRow from '@/components/shared/ScrollRow'
+import { projectMainPhoto } from '@/lib/projectPhotos'
 
 // Above the For Sale feed: "Continue Browsing" (once something was opened), "Recommended for You" and "Because you
 // viewed …" (only once the visitor has done enough for them to mean something — the server decides). Renders nothing
@@ -31,7 +32,7 @@ function ContinueBrowsing({ items }: { items: Card[] }) {
         {items.map((c, i) => {
           const p = c.item
           const href = c.kind === 'project' ? `/projects/${p.slug}` : `/buyer/properties/${p.slug || p._id}`
-          const image = c.kind === 'project' ? (p.coverImage || p.images?.[0]?.url) : (p.images?.find((x: any) => x.isPrimary)?.url || p.images?.[0]?.url)
+          const image = c.kind === 'project' ? projectMainPhoto(p) : (p.images?.find((x: any) => x.isPrimary)?.url || p.images?.[0]?.url)
           const area = c.kind === 'project' ? p.area : p.location?.area
           const price = c.kind === 'project' ? p.priceFrom : p.price
           return (

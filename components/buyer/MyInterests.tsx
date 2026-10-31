@@ -6,6 +6,7 @@ import { Building2, Calendar, HardHat, MapPin, Search, User } from 'lucide-react
 import { leadAPI } from '@/lib/api'
 import { formatPrice, formatDateTime, rentSuffix, cn } from '@/lib/utils'
 import type { Lead } from '@/types'
+import { projectMainPhoto } from '@/lib/projectPhotos'
 
 // Plain-language progress for the person who asked — not the internal pipeline names.
 const STATUS_LABELS: Record<string, string> = {
@@ -50,7 +51,7 @@ export default function MyInterests({ compact = false }: { compact?: boolean }) 
         const p: any = lead.property
         const pr: any = lead.project
         const href = isProject ? `/projects/${pr.slug}` : p?.slug ? `/buyer/properties/${p.slug}` : '#'
-        const image = isProject ? pr.coverImage : p?.images?.[0]?.url
+        const image = isProject ? projectMainPhoto(pr) : p?.images?.[0]?.url
         const title = isProject ? pr.title : p?.title || 'Property no longer listed'
         const area = isProject ? pr.area : p?.location?.area
         return (

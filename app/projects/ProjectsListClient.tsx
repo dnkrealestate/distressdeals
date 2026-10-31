@@ -321,7 +321,7 @@ function ProjectsListClientInner({ bottom, initial }: { bottom?: React.ReactNode
       <div className={cn('z-30', pastSearch ? 'sticky top-16' : 'relative')}
         style={pastSearch ? { background: 'var(--surface)', borderBottom: '1px solid var(--border)', boxShadow: '0 8px 20px -14px rgba(15,23,42,0.25)' } : undefined}>
         {/* One row that slides sideways on phones (same as /for-sale); wraps on larger screens. Dropdown panels are portals, so the scroll doesn't clip them. */}
-        <ScrollRow className="wrap" innerClassName={cn('gap-2 lg:flex-wrap', pastSearch ? 'py-3' : 'pb-1')} label="Filters">
+        <ScrollRow className={cn('wrap', pastSearch ? 'pt-3 pb-3.5' : 'pb-1')} innerClassName="gap-2 lg:flex-wrap" label="Filters">
           <FilterDropdown label={STATUSES.find(x => x.value === filters.status && x.value)?.label || 'Status'} icon={Layers} active={!!filters.status} widthClass="w-60">
             {close => (
               <div className="flex flex-col gap-1">

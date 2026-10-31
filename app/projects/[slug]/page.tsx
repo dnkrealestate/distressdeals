@@ -7,6 +7,7 @@ import type { Project } from '@/types'
 import { shareImages, fitTitle, fitDescription } from '@/lib/seo'
 import { projectKeywords } from '@/lib/listingSeo'
 import { areaPageHref } from '@/lib/areaLink'
+import { projectMainPhoto, projectPhotos } from '@/lib/projectPhotos'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -28,7 +29,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   const description = project.metaDescription?.trim()
     || (!(project.priceFrom > 0) ? `New launch by ${project.developer} in ${project.area}, ${project.emirate || 'Dubai'} — unit types and prices on announcement. Register your interest.` : null)
     || `Starting from ${project.priceFrom.toLocaleString()} AED in ${project.area}, Dubai. ${project.bedrooms ? `${project.bedrooms} · ` : ''}Handover ${project.handoverQuarter || ''} ${project.handoverYear || ''}.`.trim()
-  const images = shareImages(project.coverImage)
+  const images = shareImages(projectMainPhoto(project))
 
   return {
     title: fitTitle(title),
@@ -53,7 +54,7 @@ export default async function ProjectDetailPage({ params }: { params: { slug: st
     name: project.title,
     keywords: projectKeywords(project).join(', '),
     description: project.description.replace(/<[^>]*>/g, '').slice(0, 300),
-    image: project.coverImage ? [project.coverImage, ...project.images.map(i => i.url)] : project.images.map(i => i.url),
+    image: projectPhotos(project),
     address: { '@type': 'PostalAddress', addressLocality: project.area, addressRegion: project.emirate, addressCountry: 'AE' },
   }
 

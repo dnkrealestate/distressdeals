@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { AnimatePresence, motion } from 'framer-motion'
 import { GitCompare, X, Building2 } from 'lucide-react'
 import { useProjectCompareStore, MAX_PROJECT_COMPARE } from '@/store/projectCompareStore'
+import { projectMainPhoto } from '@/lib/projectPhotos'
 
 // Floating tray on the listing pages once a project is picked for comparison — shows the picks and opens the table.
 export default function ProjectCompareBar() {
@@ -19,7 +20,7 @@ export default function ProjectCompareBar() {
         >
           <div className="flex -space-x-2">
             {projects.map(p => {
-              const img = p.coverImage || p.images?.[0]?.url
+              const img = projectMainPhoto(p)
               return (
                 <div key={p._id} className="relative w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 group/thumb" style={{ border: '2px solid var(--surface)', background: 'var(--bg-alt)' }} title={p.title}>
                   {img ? <Image src={img} alt={p.title} fill sizes="40px" className="object-cover" />

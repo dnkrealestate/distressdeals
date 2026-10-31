@@ -18,6 +18,7 @@ import { DEFAULT_SHARE_IMAGE, fitTitle, fitDescription } from '@/lib/seo'
 import Price from '@/components/currency/Price'
 import { projectForCard } from '@/lib/cardData'
 import { groupPrimaries } from '@/lib/indexability'
+import { projectMainPhoto } from '@/lib/projectPhotos'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -84,7 +85,7 @@ export default async function DeveloperDetailPage({ params, searchParams }: { pa
   const page = pageFrom(searchParams)
   // `projects` = a broad sample (FAQs, banner photos); `listPage` = the 40 on this page.
   const [projects, listPage] = await Promise.all([getDeveloperProjects(dev.name), getProjectPage(dev.name, page)])
-  const banner = Array.from(new Set(projects.map(p => p.coverImage || p.images?.[0]?.url).filter(Boolean) as string[])).slice(0, 5)
+  const banner = Array.from(new Set(projects.map(p => projectMainPhoto(p)).filter(Boolean) as string[])).slice(0, 5)
 
   const breadcrumbJsonLd = {
     '@context': 'https://schema.org',

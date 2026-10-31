@@ -38,6 +38,7 @@ import toast from 'react-hot-toast'
 import CurrencyNote from '@/components/currency/CurrencyNote'
 import PriceDetailsCard from '@/components/buyer/PriceDetailsCard'
 import ScrollRow from '@/components/shared/ScrollRow'
+import { projectMainPhoto, projectPhotos } from '@/lib/projectPhotos'
 
 // Custom-styled Google map, loaded client-side only (the Maps script needs `window`).
 const LocationMap = dynamic(() => import('@/components/shared/LocationMap'), {
@@ -259,7 +260,7 @@ export default function ProjectDetailClient({ project, areaHref }: { project: Pr
   // Photo viewer — null when closed, otherwise the photo it opens on.
   const [viewerAt, setViewerAt] = useState<number | null>(null)
   const [showStickyBar, setShowStickyBar] = useState(false)
-  const gallery = [project.coverImage, ...project.images.map(i => i.url)].filter((v, i, arr): v is string => !!v && arr.indexOf(v) === i)
+  const gallery = projectPhotos(project)
 
   // Mobile-friendly sticky lead-gen bar — appears once the buyer scrolls
   // past the sidebar's own CTA card, same trigger as the Property detail page.
@@ -274,7 +275,7 @@ export default function ProjectDetailClient({ project, areaHref }: { project: Pr
     projectAPI.trackView(project._id).catch(() => {})
     addRecentlyViewed({
       kind: 'project', slug: project.slug, title: project.title,
-      image: project.coverImage || project.images?.[0]?.url, price: project.priceFrom, area: project.area, listingType: 'sale',
+      image: projectMainPhoto(project), price: project.priceFrom, area: project.area, listingType: 'sale',
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project._id])

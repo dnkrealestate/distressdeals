@@ -179,8 +179,8 @@ function ProjectForm({ project, template, startStage, draftKey, onClose, onSaved
   const [step, setStep] = useState<number>(1)
   const [uploadTab, setUploadTab] = useState<'images' | 'floorplans' | 'masterplan' | 'videos'>('images')
 
-  const [coverImage, setCoverImage] = useState(src?.coverImage || '')
-  const [uploadingCover, setUploadingCover] = useState(false)
+  // One set of photos: the first is the main photo (lists, cards, top of the project page). Older projects' separate
+  // covers are lined up with their galleries by backend seeds/fixProjectCovers.ts.
   const [gallery, setGallery] = useState<string[]>(src?.images?.map(i => i.url) || [])
   const [uploadingGallery, setUploadingGallery] = useState(false)
   const [descriptionHtml, setDescriptionHtml] = useState(src?.description || '')
@@ -354,7 +354,7 @@ function ProjectForm({ project, template, startStage, draftKey, onClose, onSaved
   const draft = useFormDraft({
     key: draftKey || `project:${project?._id || 'new'}`,
     values: {
-      ...watch(), coverImage, gallery, descriptionHtml, seo, permitQrImage, amenities, floorPlans,
+      ...watch(), gallery, descriptionHtml, seo, permitQrImage, amenities, floorPlans,
       masterPlanImage, masterPlanDescription, landmarks, videos, tagsAdded, tagsRemoved,
     },
     onRestore: d => {
@@ -363,7 +363,7 @@ function ProjectForm({ project, template, startStage, draftKey, onClose, onSaved
       setTagsAdded(ta || []); setTagsRemoved(tr || [])
       setDraftDeveloper(fields.developer || '')
       reset(fields)
-      setCoverImage(c || ''); setGallery(g || []); if (typeof dh === 'string') setDescriptionHtml(dh); if (so) setSeo(so)
+      setGallery(g?.length ? g : c ? [c] : []); if (typeof dh === 'string') setDescriptionHtml(dh); if (so) setSeo(so)
       setPermitQrImage(q || ''); setAmenities(am || {}); setFloorPlans(fp || []); setMasterPlanImage(mi || '')
       setMasterPlanDescription(md || ''); setLandmarks(lm || []); setVideos(v || [])
       if (fields.area) setLocatedIn(`${fields.emirate || 'Dubai'} / ${fields.area}`)
@@ -446,27 +446,6 @@ function ProjectForm({ project, template, startStage, draftKey, onClose, onSaved
     )
   }
 
-  const onDropCover = useCallback(async (accepted: File[]) => {
-    const file = accepted[0]
-    if (!file) return
-    setUploadingCover(true)
-    try {
-      const fd = new FormData(); fd.append('image', file)
-      const res = await uploadAPI.image(fd)
-      if (res.data.success) setCoverImage(res.data.data.url)
-      else toast.error('Upload failed')
-    } catch (err: any) {
-      toast.error(err?.error || 'Failed to upload image')
-    } finally {
-      setUploadingCover(false)
-    }
-  }, [])
-  const coverDropzone = useDropzone({
-    onDrop: onDropCover,
-    accept: { 'image/jpeg': [], 'image/png': [], 'image/webp': [], 'image/gif': [], 'image/avif': [] },
-    maxSize: 10 * 1024 * 1024, multiple: false,
-  })
-
   const onDropGallery = useCallback(async (accepted: File[]) => {
     if (accepted.length === 0) return
     setUploadingGallery(true)
@@ -503,7 +482,7 @@ function ProjectForm({ project, template, startStage, draftKey, onClose, onSaved
   const onSubmit = async (data: any) => {
     // A launch announcement needs a photo and a description (it has no units or price to show yet).
     if (isLaunch) {
-      if (!coverImage && !gallery.length) { setStep(3); setUploadTab('images'); toast.error('Add at least one photo for the launch announcement'); return }
+      if (!gallery.length) { setStep(3); setUploadTab('images'); toast.error('Add at least one photo for the launch announcement'); return }
       if (!descriptionHtml.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').trim()) { setStep(4); toast.error('Add a description for the launch announcement'); return }
     }
     setSubmitting(true)
@@ -511,7 +490,7 @@ function ProjectForm({ project, template, startStage, draftKey, onClose, onSaved
       stage,
       title: data.title, developer: data.developer,
       description: descriptionHtml,
-      coverImage, images: gallery.map(url => ({ url })),
+      coverImage: gallery[0] || '', images: gallery.map(url => ({ url })),
       area: data.area, community: data.community || undefined, city: data.city, emirate: data.emirate,
       priceFrom: Number(data.priceFrom), priceTo: data.priceTo !== '' ? Number(data.priceTo) : undefined,
       type: data.type || undefined,
@@ -1053,30 +1032,7 @@ function ProjectForm({ project, template, startStage, draftKey, onClose, onSaved
 
               {uploadTab === 'images' && (
                 <div className="space-y-5">
-                  <Field label="Cover Image">
-                    {coverImage ? (
-                      <div className="relative rounded-xl overflow-hidden max-w-sm" style={{ background: 'var(--bg-alt)' }}>
-                        <img src={coverImage} alt="" className="w-full h-40 object-cover" />
-                        <button type="button" onClick={() => setCoverImage('')}
-                          className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-white" style={{ background: 'rgba(0,0,0,0.6)' }}>
-                          <X size={13} />
-                        </button>
-                      </div>
-                    ) : (
-                      <div {...coverDropzone.getRootProps()} className="rounded-xl p-6 text-center cursor-pointer transition-colors max-w-sm"
-                        style={{ border: `2px dashed ${coverDropzone.isDragActive ? 'var(--teal)' : 'var(--border)'}`, background: coverDropzone.isDragActive ? 'rgba(203,1,1,0.05)' : 'var(--bg-alt)' }}>
-                        <input {...coverDropzone.getInputProps()} />
-                        {uploadingCover ? <Loader2 size={18} className="animate-spin mx-auto" style={{ color: 'var(--teal)' }} /> : (
-                          <>
-                            <UploadCloud size={18} style={{ color: 'var(--teal)', margin: '0 auto 6px' }} />
-                            <p className="text-xs" style={{ color: 'var(--text)' }}>Drag & drop, or click</p>
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </Field>
-
-                  <Field label="Gallery Images">
+                  <Field label="Photos">
                     <div {...galleryDropzone.getRootProps()} className="rounded-xl p-5 text-center cursor-pointer transition-colors"
                       style={{ border: `2px dashed ${galleryDropzone.isDragActive ? 'var(--teal)' : 'var(--border)'}`, background: galleryDropzone.isDragActive ? 'rgba(203,1,1,0.05)' : 'var(--bg-alt)' }}>
                       <input {...galleryDropzone.getInputProps()} />
@@ -1084,13 +1040,14 @@ function ProjectForm({ project, template, startStage, draftKey, onClose, onSaved
                         <>
                           <UploadCloud size={18} style={{ color: 'var(--teal)', margin: '0 auto 6px' }} />
                           <p className="text-xs" style={{ color: 'var(--text)' }}>Drag & drop images, or click to browse — multiple allowed</p>
+                          <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>The first photo is the main photo — shown on every list and card and at the top of the project page.</p>
                         </>
                       )}
                     </div>
                     {gallery.length > 0 && (
                       <>
                         <p className="text-[11px] mt-3" style={{ color: 'var(--text-muted)' }}>
-                          Drag the photos (or use the arrows) to set the order they appear in on the project page.
+                          Drag the photos (or use the arrows) to set their order. Photo 1 is the main photo.
                         </p>
                         <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-2">
                           {gallery.map((url, i) => (
@@ -1111,8 +1068,8 @@ function ProjectForm({ project, template, startStage, draftKey, onClose, onSaved
                               }}
                             >
                               <img src={url} alt="" className="w-full h-full object-cover pointer-events-none" />
-                              <span className="absolute top-1 left-1 min-w-5 h-5 px-1.5 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{ background: 'rgba(0,0,0,0.6)' }}>
-                                {i + 1}
+                              <span className="absolute top-1 left-1 min-w-5 h-5 px-1.5 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{ background: i === 0 ? 'var(--teal)' : 'rgba(0,0,0,0.6)' }}>
+                                {i === 0 ? 'Main photo' : i + 1}
                               </span>
                               <button type="button" onClick={() => removeGalleryImage(i)} title="Remove"
                                 className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center text-white" style={{ background: 'rgba(0,0,0,0.6)' }}>
@@ -1305,7 +1262,7 @@ function ProjectForm({ project, template, startStage, draftKey, onClose, onSaved
 
             <div className="flex items-center justify-between">
               <button type="button" onClick={goPrev} className="btn-ghost">Previous</button>
-              <button type="submit" disabled={submitting || uploadingCover} className="btn-primary">
+              <button type="submit" disabled={submitting || uploadingGallery} className="btn-primary">
                 {submitting ? 'Saving…' : project ? 'Save Changes' : 'Create'}
               </button>
             </div>

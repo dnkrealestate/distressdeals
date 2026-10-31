@@ -18,6 +18,7 @@ import { offerPrice, liveOffer, offerTitle, offerEnds, offerSavingPct } from '@/
 import type { ProjectGroup, ProjectGroupUnit } from '@/types'
 import { exactPrice } from '@/lib/currency'
 import ScrollRow from '@/components/shared/ScrollRow'
+import { projectMainPhoto } from '@/lib/projectPhotos'
 
 // The whole project on one page: every photo, launch price / payment plans / handover, live offers highlighted at the
 // top, then a unit explorer — filter by bedrooms, type or deals, sort, cards or a comparison table, price per sq ft,
@@ -270,7 +271,7 @@ export default function ProjectUnitsClient({ group: g, slug, areaHref }: { group
                 return (
                   <div key={u.slug} className="rounded-xl overflow-hidden flex flex-col" style={{ border: `${claim ? 2 : 1}px solid ${claim ? '#10B981' : liveOffer(u) ? 'rgba(203,1,1,0.35)' : 'var(--border)'}`, background: claim ? 'rgba(16,185,129,0.04)' : 'var(--surface)', boxShadow: claim ? '0 4px 18px rgba(16,185,129,0.15)' : undefined }}>
                     <Link href={`/projects/${u.slug}`} className="relative h-36 block" style={{ background: 'var(--bg-alt)' }}>
-                      {(plan || u.coverImage) && <Image src={plan || u.coverImage!} alt={`${name} ${bedsLabel(bedsOf(u))} ${typeLabel(u.type)}${plan ? ' floor plan' : ''}`} fill className={plan ? 'object-contain p-2' : 'object-cover'} sizes="(max-width:640px)100vw,33vw" />}
+                      {(plan || projectMainPhoto(u)) && <Image src={plan || projectMainPhoto(u)!} alt={`${name} ${bedsLabel(bedsOf(u))} ${typeLabel(u.type)}${plan ? ' floor plan' : ''}`} fill className={plan ? 'object-contain p-2' : 'object-cover'} sizes="(max-width:640px)100vw,33vw" />}
                       <span className="absolute top-2 left-2 flex flex-wrap gap-1">
                         {liveOffer(u) && <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full text-white" style={{ background: '#CB0101' }}><Sparkles size={10} /> {offerTitle(liveOffer(u)!, 'Offer')}</span>}
                         {claim && <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full text-white" style={{ background: '#047857' }}><Flame size={10} /> {Math.round(claim.pct * 10) / 10}% Below Market</span>}

@@ -9,6 +9,7 @@ import { AMENITY_META } from '@/lib/amenities'
 import { formatPrice } from '@/lib/utils'
 import { withSqft, withUnit } from '@/components/buyer/ProjectCard'
 import type { Project } from '@/types'
+import { projectMainPhoto } from '@/lib/projectPhotos'
 
 const cap = (s?: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '')
 
@@ -133,7 +134,7 @@ export default function ProjectComparePage() {
 }
 
 function Header({ project: p, onRemove }: { project: Project; onRemove: () => void }) {
-  const img = p.coverImage || p.images?.[0]?.url
+  const img = projectMainPhoto(p)
   return (
     <div className="relative">
       <button onClick={onRemove} aria-label="Remove" className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full flex items-center justify-center"
