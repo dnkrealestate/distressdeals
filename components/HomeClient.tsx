@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getImageProps } from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
+import SiteTour from '@/components/guide/SiteTour'
 import {
   ArrowRight,
   Building2, Anchor, TreePalm, Briefcase, Waves, Home, Trees,
@@ -249,6 +250,7 @@ export default function HomeClient({ content, popularSearches, guides }: {
   return (
     <div className="page overflow-x-hidden">
       <Navbar />
+      <SiteTour />
 
       {/* ─── HERO ──────────────────────────────────────────── */}
       <section
@@ -369,7 +371,7 @@ export default function HomeClient({ content, popularSearches, guides }: {
           </div>
 
           {/* ─── SEARCH ────────────────────────────────────────── */}
-          <div className="relative z-20 pb-8 max-w-4xl mx-auto">
+          <div className="relative z-20 pb-8 max-w-4xl mx-auto" data-tour="search">
             <SearchBar compact onMapClick={() => { trackCta('hero_map_search'); router.push('/map-search') }} />
           </div>
 
@@ -468,6 +470,7 @@ export default function HomeClient({ content, popularSearches, guides }: {
           >
             <Link
               href="/sell"
+              data-tour="sell"
               onClick={() => trackCta('sell_banner')}
               className="group relative flex items-center gap-5 rounded-2xl md:rounded-3xl p-6 md:p-8 overflow-hidden transition-transform duration-300 hover:-translate-y-0.5"
               style={{ background: 'var(--grad)' }}

@@ -45,6 +45,7 @@ export default function MobileBottomNav() {
 
   return (
     <nav
+      data-tour="nav"
       className="xl:hidden fixed bottom-0 inset-x-0 z-40 flex items-stretch"
       style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)', paddingBottom: 'env(safe-area-inset-bottom)' }}
     >

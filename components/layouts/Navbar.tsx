@@ -286,7 +286,7 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
           </div>
 
           {/* ── Desktop nav ──────────────────────────── */}
-          <div className="hidden xl:flex items-center gap-1.5">
+          <div className="hidden xl:flex items-center gap-1.5" data-tour="nav">
             {NAV.map(n => n.highlight ? (
               <Link
                 key={n.href}
@@ -427,7 +427,7 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
                 </div>
               </>
             ) : (
-              <div className="hidden xl:flex items-center gap-2">
+              <div className="hidden xl:flex items-center gap-2" data-tour="account">
                 <Link href="/auth/login"    className="btn-ghost btn-sm">Sign In</Link>
                 <Link href="/auth/register" className="btn-primary btn-sm">Get Started</Link>
               </div>
@@ -438,6 +438,7 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
               onClick={() => setMenu(o => !o)}
               aria-label={menu ? 'Close menu' : 'Open menu'}
               aria-expanded={menu}
+              data-tour="account"
               className="xl:hidden btn-ghost p-2 rounded-lg"
             >
               {menu ? <X size={18} /> : <Menu size={18} />}

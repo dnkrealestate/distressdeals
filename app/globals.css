@@ -480,6 +480,13 @@ body {
 .hero-orb-b { animation: orbDriftB 32s ease-in-out infinite; will-change: transform; }
 @media (prefers-reduced-motion: reduce) { .hero-orb-a, .hero-orb-b { animation: none; } }
 
+/* First-visit guide (components/guide/SiteTour.tsx): pulsing ring around the spotlight and the invite icon. */
+.tour-ring { border: 2px solid #fff; }
+.tour-ring::after { content: ""; position: absolute; inset: -2px; border-radius: inherit; border: 2px solid #FD7147; animation: tourPulse 1.6s ease-out infinite; }
+.tour-ping { border: 2px solid #FD7147; animation: tourPulse 1.8s ease-out infinite; }
+@keyframes tourPulse { from { opacity: .9; transform: scale(1); } to { opacity: 0; transform: scale(1.15); } }
+@media (prefers-reduced-motion: reduce) { .tour-ring::after, .tour-ping { animation: none; opacity: 0; } }
+
 @keyframes shimmer {
   0%   { background-position: -200% 0; }
   100% { background-position:  200% 0; }
