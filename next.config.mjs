@@ -26,10 +26,24 @@ const nextConfig = {
     },
   },
   // One address for the whole site: the bare domain sends visitors and Google to www (301), so links and crawl
-  // credit are never split between two hosts.
+  // credit are never split between two hosts. /.well-known/ is the exception: Android App Links verification
+  // (public/.well-known/assetlinks.json) must be answered on each host directly — Google rejects a redirect there.
   async redirects() {
     return [
-      { source: '/:path*', has: [{ type: 'host', value: 'distressdealsuae.com' }], destination: 'https://www.distressdealsuae.com/:path*', permanent: true },
+      { source: '/:path((?!\\.well-known/).*)', has: [{ type: 'host', value: 'distressdealsuae.com' }], destination: 'https://www.distressdealsuae.com/:path', permanent: true },
+      // Old addresses Google still requests (Search Console "Not found (404)") that have a genuine replacement — only
+      // the same place under its current address, never an unrelated page.
+      { source: '/areas/dubai-hills', destination: '/areas/dubai-hills-estate', permanent: true },
+      // The single "Damac Islands" project record was replaced by one record per cluster (Bora Bora, Maldives, Fiji…);
+      // the community page lists them all.
+      { source: '/projects/damac-islands-mufjrzbc/:rest(units)?', destination: '/communities/damac-islands', permanent: true },
+    ]
+  },
+  // Build files (CSS / JS) are fetched by Google to draw pages but are not pages: say so, so they stop showing up in
+  // Search Console's "Crawled – currently not indexed" list. Rendering is unaffected — noindex only governs the index.
+  async headers() {
+    return [
+      { source: '/_next/static/:path*', headers: [{ key: 'X-Robots-Tag', value: 'noindex' }] },
     ]
   },
   async rewrites() {

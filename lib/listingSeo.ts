@@ -1,4 +1,5 @@
 import { isHandedOver } from '@/lib/utils'
+import { TAG_LABELS, tagHeadline } from '@/lib/listingTags'
 import type { Project, Property } from '@/types'
 
 // Search phrases for projects and listings, built only from what the record says (type, bedrooms, area, developer).
@@ -60,4 +61,24 @@ export function propertyKeywords(p: Property): string[] {
 export const TYPE_PAGE_LABELS: Record<string, string> = {
   apartment: 'Apartments', villa: 'Villas', townhouse: 'Townhouses', penthouse: 'Penthouses', studio: 'Studios', plot: 'Plots',
   office: 'Offices', retail: 'Retail Spaces', warehouse: 'Warehouses', commercial: 'Commercial Properties', commercial_villa: 'Commercial Villas',
+}
+
+// BreadcrumbList JSON-LD for the Buy / Rent list (/for-sale, /for-rent) and its own pages (?type=villa, ?tag=luxury) —
+// the same trail as the breadcrumb on the page. Filtered searches (?area=…) stop at the list itself.
+export function listBreadcrumbJsonLd(kind: 'sale' | 'rent', sp?: Record<string, string | undefined>) {
+  const SITE = 'https://www.distressdealsuae.com'
+  const base = `/for-${kind}`
+  const items: { name: string; path: string }[] = [{ name: 'Home', path: '' }, { name: `Properties for ${kind === 'rent' ? 'Rent' : 'Sale'}`, path: base }]
+  const tag = sp?.tag && TAG_LABELS[sp.tag] ? sp.tag : ''
+  if (tag) {
+    const h = tagHeadline(tag, kind)
+    items.push({ name: h.charAt(0).toUpperCase() + h.slice(1), path: `${base}?tag=${tag}` })
+  } else if (sp?.type && TYPE_PAGE_LABELS[sp.type]) {
+    items.push({ name: `${TYPE_PAGE_LABELS[sp.type]} for ${kind === 'rent' ? 'Rent' : 'Sale'}`, path: `${base}?type=${sp.type}` })
+  }
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: items.map((it, i) => ({ '@type': 'ListItem', position: i + 1, name: it.name, item: `${SITE}${it.path}` })),
+  }
 }

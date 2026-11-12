@@ -75,6 +75,31 @@ export async function resolveSeo(pageKey: string, defaults: SeoDefaults): Promis
 
 /** Page N (N ≥ 2) of a paginated list is a page of its own: its own canonical (…?page=N — never page 1) and
  *  "– Page N" in the title, placed before a trailing "| Distress Deals…" brand when the title already carries one. */
+// Tracking tags added by ads / shares — the same page, so they never count as a filter (its canonical covers them).
+const TRACKING_PARAM = /^(utm_|gclid$|gbraid$|wbraid$|fbclid$|msclkid$|ttclid$|ref$)/i
+
+// A list page narrowed by a filter that has no page of its own (/for-sale?area=…&type=villa, /projects?developer=…)
+// isn't a search landing page: the area / developer / type pages already cover those searches, and its cards are only
+// drawn in the browser. It stays crawlable and its links are followed, but it asks not to be indexed ("Crawled –
+// currently not indexed" otherwise). No canonical then — noindex plus a canonical pointing at another page are mixed
+// signals. `isOwnPage` says which params make a real page of their own (type, tag, page…).
+export function filterVariant(meta: Metadata, sp: Record<string, string | undefined> | undefined, isOwnPage: (key: string, value: string) => boolean): Metadata {
+  const filtered = Object.entries(sp || {}).some(([k, v]) => v && !TRACKING_PARAM.test(k) && !isOwnPage(k, v))
+  if (!filtered) return meta
+  const out: Metadata = { ...meta, robots: { index: false, follow: true } }
+  delete out.alternates
+  if (meta.openGraph) { out.openGraph = { ...meta.openGraph }; delete out.openGraph.url }
+  return out
+}
+
+// An area / community guide pages two lists on its own (?page= listings, ?pp= new projects). Each page of either list
+// is a page of its own — its own canonical and title — never pointed at page 1, which shows different results.
+export function guidePage(path: string, title: string, page: number, pp: number) {
+  const q = [page > 1 && `page=${page}`, pp > 1 && `pp=${pp}`].filter(Boolean).join('&')
+  const suffix = [page > 1 && `Page ${page}`, pp > 1 && `Projects page ${pp}`].filter(Boolean).join(', ')
+  return { canonical: `${path}${q ? `?${q}` : ''}`, title: suffix ? `${title} – ${suffix}` : title }
+}
+
 export function withPage(meta: Metadata, page: number): Metadata {
   if (page <= 1) return meta
   const addPage = (t: string) => (/\s\|\s[^|]*distress deals[^|]*$/i.test(t) ? t.replace(/(\s\|\s[^|]*)$/, ` – Page ${page}$1`) : `${t} – Page ${page}`)

@@ -9,6 +9,7 @@ import { liveOffer, offerPrice } from '@/lib/offer'
 import { areaPageHref } from '@/lib/areaLink'
 import type { ProjectGroup } from '@/types'
 import ProjectUnitsClient from './ProjectUnitsClient'
+import { missingOrThrow } from '@/lib/notFoundOnly'
 
 // "Unit types & prices" — the whole project on one page when it was entered once per unit type: every photo, the
 // launch price, payment plans and handover, offers, then every unit with its details, filters and a comparison table.
@@ -18,7 +19,7 @@ export const revalidate = 60
 const SITE = 'https://www.distressdealsuae.com'
 
 const getGroup = cache(async (slug: string): Promise<ProjectGroup | null> => {
-  try { const r = await projectAPI.getGroup(slug); return r.data.success ? r.data.data : null } catch { return null }
+  try { const r = await projectAPI.getGroup(slug); return r.data.success ? r.data.data : null } catch (err) { return missingOrThrow(err) }
 })
 
 const bedsText = (b?: string) => (!b ? '' : /studio/i.test(b) ? 'studio' : /\d/.test(b) ? `${b.match(/\d+/)![0]} bedroom` : b.toLowerCase())

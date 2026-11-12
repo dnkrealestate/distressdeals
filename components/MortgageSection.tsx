@@ -2,8 +2,7 @@
 import PhoneInput from '@/components/shared/PhoneInput'
 import { checkPhone } from '@/lib/phone'
 
-import { useState, useMemo, useEffect, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Calculator, Wallet, X, Loader2, CheckCircle2 } from 'lucide-react'
 import { mortgageAPI, homepageAPI } from '@/lib/api'
@@ -101,16 +100,9 @@ function PreApprovalForm({ inputs, monthlyPayment, onClose }: {
   )
 }
 
+// The ?mortgagePrice= deep link is read in an effect (window.location), not with useSearchParams — that hook made
+// Next.js leave the whole calculator out of the server HTML on /mortgage, so search engines saw an almost empty page.
 export default function MortgageSection() {
-  return (
-    <Suspense fallback={null}>
-      <MortgageSectionInner />
-    </Suspense>
-  )
-}
-
-function MortgageSectionInner() {
-  const searchParams = useSearchParams()
   const [propertyPrice, setPropertyPrice] = useState(2_000_000)
   const [downPaymentPct, setDownPaymentPct] = useState(20)
   const [interestRate, setInterestRate] = useState(4.5)
@@ -121,7 +113,7 @@ function MortgageSectionInner() {
   // (?mortgagePrice=...#mortgage-calculator) — pre-fill and scroll to this
   // section instead of leaving it at the generic default price.
   useEffect(() => {
-    const price = Number(searchParams.get('mortgagePrice'))
+    const price = Number(new URLSearchParams(window.location.search).get('mortgagePrice'))
     if (price > 0) {
       setPropertyPrice(price)
       document.getElementById('mortgage-calculator')?.scrollIntoView({ behavior: 'smooth', block: 'start' })

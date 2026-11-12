@@ -33,7 +33,7 @@ import type { MapPin } from '@/lib/mapPins'
 import type { MapBounds } from '@/lib/googleMaps'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
-import { tagHeadline } from '@/lib/listingTags'
+import { tagHeadline, TAG_LABELS } from '@/lib/listingTags'
 import { feedAPI } from '@/lib/api'
 import { trackFeed, feedVisitorId, setFeedVariants } from '@/lib/feed'
 import FeedTracked from '@/components/feed/FeedTracked'
@@ -326,7 +326,8 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
   const feedReqKey = useRef<string | null>(null)
   const feedPending = useRef(false)
   const [sectionIds, setSectionIds] = useState<Set<string>>(new Set())
-  const [loading,    setLoading]    = useState(seedCount === 0)
+  // The server already checked: an empty list shows its "no listings" message at once, not a loading skeleton.
+  const [loading,    setLoading]    = useState(seedCount === 0 && !initial)
   const [view,       setView]       = useState<'grid'|'list'|'map'>('list')
 
   // The List toggle button is hidden below the `sm` breakpoint (see
@@ -689,6 +690,10 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
   const visibleTypeDefs = TYPES.filter(t => t.v && countForType(typeStats, t.v) > 0)
 
   const isRent = forcedListingType === 'rent' || filters.listingType === 'rent'
+  // Third breadcrumb on a page of its own (?tag=luxury, ?type=villa) — the same names as its BreadcrumbList.
+  const crumb = !forcedListingType ? ''
+    : filters.tag && TAG_LABELS[filters.tag] ? (h => h.charAt(0).toUpperCase() + h.slice(1))(tagHeadline(filters.tag, isRent ? 'rent' : 'sale'))
+    : TYPE_HEADING[filters.type || ''] ? `${TYPE_HEADING[filters.type || '']} for ${isRent ? 'Rent' : 'Sale'}` : ''
 
   return (
     <div className="page">
@@ -697,24 +702,31 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
 
       {/* ── Breadcrumb + heading — sit above the search box, PropertyFinder-style ── */}
       <div className="wrap pt-8">
+        {/* The same trail as the BreadcrumbList data on /for-sale and /for-rent (lib/listingSeo listBreadcrumbJsonLd). */}
         <nav className="flex items-center gap-1.5 text-xs mb-3" style={{ color: 'var(--text-muted)' }} aria-label="Breadcrumb">
           <Link href="/" className="transition-colors hover:text-[var(--teal)]">Home</Link>
           <ChevronRight size={11} />
-          <Link href={filters.listingType === 'rent' ? '/for-rent' : '/for-sale'} className="transition-colors hover:text-[var(--teal)]">
-            {filters.listingType === 'rent' ? 'Rent' : 'Buy'}
-          </Link>
-          <ChevronRight size={11} />
-          <span style={{ color: 'var(--text)' }}>Properties for {filters.listingType === 'rent' ? 'Rent' : 'Sale'}</span>
+          {crumb ? (
+            <>
+              <Link href={isRent ? '/for-rent' : '/for-sale'} className="transition-colors hover:text-[var(--teal)]">Properties for {isRent ? 'Rent' : 'Sale'}</Link>
+              <ChevronRight size={11} />
+              <span style={{ color: 'var(--text)' }}>{crumb}</span>
+            </>
+          ) : (
+            <span style={{ color: 'var(--text)' }}>Properties for {isRent ? 'Rent' : 'Sale'}</span>
+          )}
         </nav>
 
         <h1 className="heading-md mb-1">
           {/* A property-type page (/for-sale?type=villa) is its own page — its heading matches its title. */}
-          {forcedListingType && !filters.tag && TYPE_HEADING[filters.type || ''] ? (
+          {forcedListingType && filters.tag && TAG_LABELS[filters.tag] ? (
+            <>{crumb}</>
+          ) : forcedListingType && !filters.tag && TYPE_HEADING[filters.type || ''] ? (
             <>{TYPE_HEADING[filters.type || '']} for <span className="grad-text">{forcedListingType === 'rent' ? 'Rent' : 'Sale'}</span> in Dubai &amp; UAE</>
           ) : forcedListingType === 'sale' ? (
-            <>Distressed Property for <span className="grad-text">Sale</span> in Dubai</>
+            <>Properties for <span className="grad-text">Sale</span> in Dubai &amp; the UAE</>
           ) : forcedListingType === 'rent' ? (
-            <>Property for <span className="grad-text">Rent</span> in Dubai</>
+            <>Properties for <span className="grad-text">Rent</span> in Dubai &amp; the UAE</>
           ) : (
             <>Properties for <span className="grad-text">{filters.listingType === 'rent' ? 'Rent' : 'Sale'}</span></>
           )}
@@ -731,6 +743,14 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
           <p className="inline-flex items-center gap-2 text-sm font-semibold rounded-full pl-3.5 pr-1.5 py-1 mb-2 mr-2" style={{ background: 'rgba(203,1,1,0.08)', color: 'var(--teal)', border: '1px solid rgba(203,1,1,0.25)' }}>
             Limited-time offers only
             <button onClick={() => setFilter('offer' as any, '')} aria-label="Show all listings" className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-[rgba(203,1,1,0.12)]"><X size={12} /></button>
+          </p>
+        )}
+        {/* What the page offers, in words — on the Buy / Rent pages themselves (not on a filtered search). */}
+        {forcedListingType && !filters.tag && !filters.type && (
+          <p className="text-sm max-w-3xl mb-2" style={{ color: 'var(--text-mid)' }}>
+            {forcedListingType === 'sale'
+              ? 'Apartments, villas, townhouses and penthouses for sale across Dubai, Abu Dhabi, Sharjah and the Northern Emirates — resale homes listed by their owners and checked by our team, alongside new off-plan projects from the developers, each with its real asking price.'
+              : 'Apartments, villas and townhouses for rent across Dubai and the UAE, listed by their owners and checked by our team before they go live — each with its real yearly rent.'}
           </p>
         )}
         <p className="muted">

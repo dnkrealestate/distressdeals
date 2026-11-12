@@ -20,6 +20,7 @@ import { HOME_ICON_MAP } from '@/lib/homeIcons'
 import type { BuildingContent, Place } from '@/types'
 import { shareImages, fitTitle, fitDescription } from '@/lib/seo'
 import Price from '@/components/currency/Price'
+import { missingOrThrow } from '@/lib/notFoundOnly'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -30,8 +31,8 @@ const getBuilding = cache(async (slug: string): Promise<BuildingContent | null> 
   try {
     const res = await buildingContentAPI.getBySlug(slug)
     return res.data.success ? res.data.data : null
-  } catch {
-    return null
+  } catch (err) {
+    return missingOrThrow(err)
   }
 })
 

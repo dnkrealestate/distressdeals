@@ -1,6 +1,7 @@
+import { cache } from 'react'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { resolveSeo } from '@/lib/seo'
+import { resolveSeo, filterVariant } from '@/lib/seo'
 import ProjectsListClient, { type InitialProjects } from './ProjectsListClient'
 import { quickLinksAPI, projectAPI } from '@/lib/api'
 import { getContentPage } from '@/lib/contentPages'
@@ -14,7 +15,16 @@ type SP = Record<string, string | undefined>
 const PER_PAGE = 40   // same as the list (ProjectsListClient `limit`)
 const pageOf = (sp?: SP) => Math.max(1, Math.floor(Number(sp?.page) || 1))
 
+// Any filter besides ?tag= / ?page= (?area=, ?developer=… — the area and developer pages cover those) is
+// noindex, follow (lib/seo filterVariant).
 export async function generateMetadata({ searchParams }: { searchParams?: SP }): Promise<Metadata> {
+  const [base, initial] = await Promise.all([baseMetadata(searchParams), initialFor(searchParams)])
+  const meta = filterVariant(base, searchParams, (k, v) => k === 'page' || (k === 'tag' && !!TAG_LABELS[v]))
+  // A page of its own with no projects right now: still shown, but not indexed until it has some ("soft 404").
+  return initial && initial.total === 0 && !meta.robots ? { ...meta, robots: { index: false, follow: true } } : meta
+}
+
+async function baseMetadata(searchParams?: SP): Promise<Metadata> {
   const seo = await resolveSeo('projects', {
     title: 'Off-Plan Projects Dubai | Prices & Payment Plans',
     description: "Explore Dubai's newest off-plan developments — payment plans, handover dates, and prices from leading developers.",
@@ -54,12 +64,15 @@ async function initialPage(sp?: SP): Promise<InitialProjects | undefined> {
   if (!d) return undefined
   return { projects: (d.data || []).map(projectForCard), total: d.total || 0, totalPages: d.totalPages || 1 }
 }
+// One fetch per request, shared by generateMetadata and the page.
+const initialCached = cache((key: string) => initialPage(JSON.parse(key) as SP))
+const initialFor = (sp?: SP) => initialCached(JSON.stringify(sp || {}))
 
 export default async function ProjectsPage({ searchParams }: { searchParams?: SP }) {
   const [quickLinks, guide, initial] = await Promise.all([
     quickLinksAPI.get('projects').then(r => r.data.success ? r.data.data : null).catch(() => null),
     getContentPage('guide-new-projects', GUIDE_NEW_PROJECTS),
-    initialPage(searchParams),
+    initialFor(searchParams),
   ])
   // A page past the end of the list (?page=999) is a real 404, not an empty 200 ("soft 404").
   if (initial && pageOf(searchParams) > 1 && pageOf(searchParams) > initial.totalPages) notFound()

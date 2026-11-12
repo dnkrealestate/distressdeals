@@ -5,6 +5,7 @@ import { newsAPI } from '@/lib/api'
 import NewsDetailClient from './NewsDetailClient'
 import type { NewsItem } from '@/types'
 import { shareImages, fitTitle, fitDescription } from '@/lib/seo'
+import { missingOrThrow } from '@/lib/notFoundOnly'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -13,8 +14,8 @@ const getItem = cache(async (slug: string): Promise<NewsItem | null> => {
   try {
     const res = await newsAPI.getOne(slug)
     return res.data.success ? res.data.data : null
-  } catch {
-    return null
+  } catch (err) {
+    return missingOrThrow(err)
   }
 })
 

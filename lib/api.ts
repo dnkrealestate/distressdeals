@@ -52,7 +52,11 @@ api.interceptors.response.use(
     if (err.response?.status === 403 && err.response?.data?.error === 'Account suspended' && typeof window !== 'undefined') {
       forceSignOut('Your account has been suspended. Please contact us for help.')
     }
-    return Promise.reject(err.response?.data || err)
+    const data = err.response?.data
+    // The HTTP status rides along (hidden, so the error's shape is unchanged) — pages need it to tell "doesn't exist"
+    // (404) from a failed request (lib/notFoundOnly).
+    if (data && typeof data === 'object' && err.response?.status) Object.defineProperty(data, 'httpStatus', { value: err.response.status })
+    return Promise.reject(data || err)
   }
 )
 

@@ -19,6 +19,7 @@ import Price from '@/components/currency/Price'
 import { projectForCard } from '@/lib/cardData'
 import { groupPrimaries } from '@/lib/indexability'
 import { projectMainPhoto } from '@/lib/projectPhotos'
+import { missingOrThrow } from '@/lib/notFoundOnly'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -29,8 +30,8 @@ const getDeveloper = cache(async (slug: string): Promise<DeveloperWithStats | nu
   try {
     const res = await developerAPI.getBySlug(slug)
     return res.data.success ? res.data.data : null
-  } catch {
-    return null
+  } catch (err) {
+    return missingOrThrow(err)
   }
 })
 
@@ -53,9 +54,11 @@ const getProjectPage = cache(async (developer: string, page: number): Promise<{ 
     const d = res.data.success ? res.data.data : null
     return { data: d?.data || [], total: d?.total || 0, totalPages: d?.totalPages || 1 }
   } catch {
-    return { data: [], total: 0, totalPages: 1 }
+    return PAGE_FAILED
   }
 })
+// Stand-in for a failed request — never turned into a 404 below.
+const PAGE_FAILED = { data: [] as Project[], total: 0, totalPages: 1 }
 
 export async function generateMetadata({ params, searchParams }: { params: { slug: string }; searchParams?: { page?: string } }): Promise<Metadata> {
   const dev = await getDeveloper(params.slug)
@@ -85,6 +88,8 @@ export default async function DeveloperDetailPage({ params, searchParams }: { pa
   const page = pageFrom(searchParams)
   // `projects` = a broad sample (FAQs, banner photos); `listPage` = the 40 on this page.
   const [projects, listPage] = await Promise.all([getDeveloperProjects(dev.name), getProjectPage(dev.name, page)])
+  // A page past the end of the list (?page=999) is a real 404, not an empty page ("soft 404").
+  if (listPage !== PAGE_FAILED && page > 1 && page > listPage.totalPages) notFound()
   const banner = Array.from(new Set(projects.map(p => projectMainPhoto(p)).filter(Boolean) as string[])).slice(0, 5)
 
   const breadcrumbJsonLd = {

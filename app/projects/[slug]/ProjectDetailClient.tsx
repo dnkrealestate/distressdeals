@@ -287,7 +287,7 @@ export default function ProjectDetailClient({ project, areaHref }: { project: Pr
 
   const share = async () => {
     projectAPI.trackShare(project._id).catch(() => {})
-    const shareUrl = typeof window !== 'undefined' ? window.location.href : `https://distressdealsuae.com/projects/${project.slug}`
+    const shareUrl = typeof window !== 'undefined' ? window.location.href : `https://www.distressdealsuae.com/projects/${project.slug}`
     if (typeof navigator !== 'undefined' && navigator.share) {
       try { await navigator.share({ title: project.title, url: shareUrl }) } catch { /* user cancelled — not an error */ }
       return

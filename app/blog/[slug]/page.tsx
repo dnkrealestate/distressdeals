@@ -5,6 +5,7 @@ import { blogAPI } from '@/lib/api'
 import BlogDetailClient from './BlogDetailClient'
 import type { BlogPost } from '@/types'
 import { shareImages, fitTitle, fitDescription } from '@/lib/seo'
+import { missingOrThrow } from '@/lib/notFoundOnly'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -16,8 +17,8 @@ const getPost = cache(async (slug: string): Promise<BlogPost | null> => {
   try {
     const res = await blogAPI.getOne(slug)
     return res.data.success ? res.data.data : null
-  } catch {
-    return null
+  } catch (err) {
+    return missingOrThrow(err)
   }
 })
 

@@ -15,12 +15,13 @@ import { propertyAPI, areaContentAPI, projectAPI } from '@/lib/api'
 import { formatPrice } from '@/lib/utils'
 import { HOME_ICON_MAP } from '@/lib/homeIcons'
 import type { AreaStats, AreaContentWithStats, Property, Project } from '@/types'
-import { shareImages, fitTitle, fitDescription } from '@/lib/seo'
+import { shareImages, fitTitle, fitDescription, guidePage } from '@/lib/seo'
 import FaqSection, { type Faq } from '@/components/shared/FaqSection'
 import RealEstateLinks from '@/components/shared/RealEstateLinks'
 import AreaNearby from '@/components/areas/AreaNearby'
 import Price from '@/components/currency/Price'
 import { projectForCard } from '@/lib/cardData'
+import { missingOrThrow } from '@/lib/notFoundOnly'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -31,8 +32,8 @@ const getArea = cache(async (slug: string): Promise<AreaStats | null> => {
   try {
     const res = await propertyAPI.getAreaBySlug(slug)
     return res.data.success ? res.data.data : null
-  } catch {
-    return null
+  } catch (err) {
+    return missingOrThrow(err)
   }
 })
 
@@ -91,12 +92,13 @@ export async function generateMetadata({ params, searchParams }: { params: { slu
     ? [content.focusKeyword || `${area.area} properties`, ...content.seoKeywords]
     : [`properties for sale in ${area.area}`, `apartments for sale in ${area.area}`, `apartments for rent in ${area.area}`, `${area.area} property prices`, `off-plan projects in ${area.area}`, `${area.area} ${emirate} real estate`]
 
+  const paged = guidePage(`/areas/${area.slug}`, title, num(searchParams?.page), num(searchParams?.pp))
   return {
-    title: fitTitle(title),
+    title: fitTitle(paged.title),
     description: fitDescription(description),
     keywords,
     robots: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 },
-    alternates: { canonical: `/areas/${area.slug}${num(searchParams?.page) > 1 ? `?page=${num(searchParams?.page)}` : ''}` },
+    alternates: { canonical: paged.canonical },
     openGraph: { title, description, type: 'website', url: `/areas/${area.slug}`, images: shareImages(content?.heroImage) },
     twitter: { card: 'summary_large_image', title, description },
   }
@@ -112,6 +114,9 @@ export default async function AreaDetailPage({ params, searchParams }: { params:
     getAreaListings(area.area, page),
     getAreaProjects(area.area, pPage),
   ])
+  // A page past the end of either list is a real 404, not an empty page — only when the list answered (EMPTY is the
+  // stand-in for a failed request, which must never become a 404).
+  if ((listingPage !== EMPTY && page > 1 && page > listingPage.totalPages) || (projectPage !== EMPTY && pPage > 1 && pPage > projectPage.totalPages)) notFound()
   const listings = listingPage.data
   const emirate = content?.emirate || area.emirate || 'Dubai'
   const projectTotal = projectPage.total || area.projectCount || 0

@@ -8,6 +8,7 @@ import { shareImages, fitTitle, fitDescription } from '@/lib/seo'
 import { propertyKeywords } from '@/lib/listingSeo'
 import { areaPageHref } from '@/lib/areaLink'
 import { displayTitle } from '@/lib/utils'
+import { missingOrThrow } from '@/lib/notFoundOnly'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -16,8 +17,8 @@ const getProperty = cache(async (slug: string): Promise<Property | null> => {
   try {
     const res = await propertyAPI.getOne(slug)
     return res.data.success ? res.data.data : null
-  } catch {
-    return null
+  } catch (err) {
+    return missingOrThrow(err)
   }
 })
 

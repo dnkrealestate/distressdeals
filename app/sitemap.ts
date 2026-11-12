@@ -13,9 +13,6 @@ export const revalidate = 3600
 // live data so new listings/posts/projects show up without a manual edit.
 const STATIC_ROUTES = [
   '', '/for-sale', '/for-rent', '/projects', '/insights', '/blog', '/news', '/sell',
-  // Property-type pages — each its own indexable page with its own title (see app/for-sale/page.tsx)
-  '/for-sale?type=apartment', '/for-sale?type=villa', '/for-sale?type=townhouse', '/for-sale?type=penthouse',
-  '/for-rent?type=apartment', '/for-rent?type=villa', '/for-rent?type=townhouse',
   '/about', '/areas', '/communities', '/buildings', '/explore',
   '/explore/attractions', '/explore/food', '/explore/malls', '/explore/markets', '/explore/hotels', '/explore/activities', '/mortgage', '/developers',
   '/contact',
@@ -24,6 +21,13 @@ const STATIC_ROUTES = [
   '/sell-property-fast-dubai', '/free-property-valuation-dubai',
   // Legal / account pages (privacy, terms, cookies, delete-account) stay reachable from the footer but are left out
   // here — the sitemap lists the pages worth a crawl, so Google spends its visits on listings, projects and guides.
+]
+
+// Property-type pages — each its own indexable page with its own title (see app/for-sale/page.tsx). Listed only while
+// they have something on them: an empty one is noindex (and a "soft 404" if it were indexed).
+const TYPE_PAGES: ['sale' | 'rent', string][] = [
+  ['sale', 'apartment'], ['sale', 'villa'], ['sale', 'townhouse'], ['sale', 'penthouse'],
+  ['rent', 'apartment'], ['rent', 'villa'], ['rent', 'townhouse'],
 ]
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -35,6 +39,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     changeFrequency: path === '' ? 'daily' : 'weekly',
     priority: path === '' ? 1 : 0.6,
   }))
+
+  // The same count the page itself checks (listings, plus new projects on the Buy side); kept when the count fails.
+  const typeTotals = await Promise.all(TYPE_PAGES.map(([kind, type]) => propertyAPI.getOpportunityPlan({ listingType: kind, type, page: 1, perPage: 1, ...(kind === 'sale' ? { projects: JSON.stringify({ type }) } : {}) })
+    .then(r => (r.data.data?.properties?.total || 0) + (kind === 'sale' ? r.data.data?.projects?.total || 0 : 0)).catch(() => 1)))
+  TYPE_PAGES.forEach(([kind, type], i) => {
+    if (typeTotals[i] > 0) entries.push({ url: `${SITE_URL}/for-${kind}?type=${type}`, changeFrequency: 'weekly', priority: 0.6 })
+  })
 
   // Each fetch is isolated — one failing source (e.g. the API being briefly
   // down) shouldn't take the whole sitemap down with it.

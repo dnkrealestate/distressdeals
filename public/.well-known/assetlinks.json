@@ -1,0 +1,16 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.distressdealsuae.app",
+      "sha256_cert_fingerprints": [
+        "4E:48:9B:B3:DC:48:ED:31:74:0C:C3:80:3E:15:A0:EF:C2:8C:F4:59:41:7E:B6:C5:21:78:B3:3B:67:D5:05:70",
+        "B3:25:BA:FC:2E:5E:93:7E:E0:BA:20:07:FF:CA:9F:DD:8F:A0:1A:13:9B:07:8A:60:70:D9:67:A6:F0:E3:67:04",
+        "7D:A1:A2:05:A8:14:8C:B5:DC:AC:22:E0:73:81:41:BD:32:2F:C4:A7:36:A8:BD:C4:0A:7D:AA:5E:1D:DA:09:30"
+      ]
+    }
+  }
+]

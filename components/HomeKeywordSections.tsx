@@ -12,7 +12,6 @@ const listedIn = (a: HomeArea) => {
   const n = (a.count || 0) + (a.projectCount || 0)
   return n ? `${n} listed` : ''
 }
-const enc = encodeURIComponent
 const chip = { background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-mid)' } as const
 
 // Community links: a different search phrase each time rather than one repeated 48 times. Every phrase is something
@@ -64,13 +63,14 @@ export default function HomeKeywordSections({ areas, communities, developers }: 
                     </h3>
                     {listedIn(a) && <span className="text-[11px] font-semibold rounded-full px-2 py-0.5 flex-shrink-0" style={{ background: 'var(--bg-alt)', color: 'var(--text-muted)' }}>{listedIn(a)}</span>}
                   </div>
-                  {/* py-1 gives each small link a 24px-tall tap target (WCAG 2.2 target size). */}
-                  <p className="flex flex-wrap gap-x-3 text-xs" style={{ color: 'var(--text-muted)' }}>
-                    <Link href={`/for-sale?area=${enc(a.area)}&type=apartment`} className="inline-block py-1 hover:underline">Apartments for sale</Link>
-                    <Link href={`/for-sale?area=${enc(a.area)}&type=villa`} className="inline-block py-1 hover:underline">Villas for sale</Link>
-                    <Link href={`/for-rent?area=${enc(a.area)}`} className="inline-block py-1 hover:underline">Property for rent</Link>
-                    <Link href={`/projects?area=${enc(a.area)}`} className="inline-block py-1 hover:underline">Off-plan projects</Link>
-                  </p>
+                  {/* py-1 gives each small link a 24px-tall tap target (WCAG 2.2 target size). Only sections that have
+                      something in them: links to fixed area + type searches led Google to empty pages ("soft 404"). */}
+                  {((a.count || 0) > 0 || (a.projectCount || 0) > 0) && (
+                    <p className="flex flex-wrap gap-x-3 text-xs" style={{ color: 'var(--text-muted)' }}>
+                      {(a.count || 0) > 0 && <Link href={`/areas/${a.slug}#listings`} className="inline-block py-1 hover:underline">Properties for sale &amp; rent in {a.area}</Link>}
+                      {(a.projectCount || 0) > 0 && <Link href={`/areas/${a.slug}#projects`} className="inline-block py-1 hover:underline">Off-plan projects in {a.area}</Link>}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>

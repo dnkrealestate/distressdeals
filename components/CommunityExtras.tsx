@@ -38,8 +38,9 @@ export function DistressSection({ name, listed }: { name: string; listed: number
             <div className="rounded-xl p-4" style={{ background: 'var(--bg-alt)' }}>
               <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--text-muted)' }}>Buying in {name}</p>
               <ul className="text-sm space-y-1.5">
-                <li><Link href={`/for-sale?community=${enc(name)}`} className="hover:underline" style={{ color: 'var(--text)' }}>Property for sale in {name}</Link></li>
-                <li><Link href={`/for-rent?community=${enc(name)}`} className="hover:underline" style={{ color: 'var(--text)' }}>Property for rent in {name}</Link></li>
+                {/* Only with listings to show — an empty search page is what Google calls a "soft 404". */}
+                {listed > 0 && <li><Link href={`/for-sale?community=${enc(name)}`} className="hover:underline" style={{ color: 'var(--text)' }}>Property for sale in {name}</Link></li>}
+                {listed > 0 && <li><Link href={`/for-rent?community=${enc(name)}`} className="hover:underline" style={{ color: 'var(--text)' }}>Property for rent in {name}</Link></li>}
                 <li><Link href="/distress-sale-dubai" className="hover:underline" style={{ color: 'var(--text)' }}>How to buy a distress sale safely</Link></li>
               </ul>
             </div>
@@ -106,8 +107,8 @@ export function DailyLifeSection({ name, around }: { name: string; around: Aroun
 }
 
 // Links to the closest community guides, the area guide and the distress-sale guide.
-export function NearbyCommunitiesSection({ name, area, nearby }: { name: string; area?: string; nearby: NearbyCommunity[] }) {
-  if (!nearby.length && !area) return null
+export function NearbyCommunitiesSection({ name, area, areaHref, nearby }: { name: string; area?: string; areaHref?: string | null; nearby: NearbyCommunity[] }) {
+  if (!nearby.length && !(area && areaHref)) return null
   return (
     <section className="pb-14" aria-labelledby="nearby-communities">
       <div className="wrap">
@@ -121,8 +122,8 @@ export function NearbyCommunitiesSection({ name, area, nearby }: { name: string;
               Property in {c.name}{c.distanceKm != null ? <span style={{ color: 'var(--text-muted)' }}> · {km(c.distanceKm)}</span> : null}
             </Link>
           ))}
-          {area && area !== name && (
-            <Link href={`/areas/${area.toLowerCase().trim().replace(/\s+/g, '-')}`} className="px-3.5 py-2 rounded-xl text-sm font-medium" style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-mid)' }}>
+          {area && areaHref && area !== name && (
+            <Link href={areaHref} className="px-3.5 py-2 rounded-xl text-sm font-medium" style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-mid)' }}>
               {area} area guide
             </Link>
           )}

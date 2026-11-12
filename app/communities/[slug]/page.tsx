@@ -18,9 +18,11 @@ import { DistressSection, DailyLifeSection, NearbyCommunitiesSection, type Aroun
 import LinkPagination from '@/components/shared/LinkPagination'
 import { HOME_ICON_MAP } from '@/lib/homeIcons'
 import type { CommunityContentWithStats, Property, Project, Place } from '@/types'
-import { shareImages, fitTitle, fitDescription } from '@/lib/seo'
+import { shareImages, fitTitle, fitDescription, guidePage } from '@/lib/seo'
 import Price from '@/components/currency/Price'
 import { projectForCard } from '@/lib/cardData'
+import { missingOrThrow } from '@/lib/notFoundOnly'
+import { areaPageHref } from '@/lib/areaLink'
 
 // Edited in the admin — serve the latest version (rebuilt at most every 60 s).
 export const revalidate = 60
@@ -31,8 +33,8 @@ const getCommunity = cache(async (slug: string): Promise<CommunityContentWithSta
   try {
     const res = await communityContentAPI.getBySlug(slug)
     return res.data.success ? res.data.data : null
-  } catch {
-    return null
+  } catch (err) {
+    return missingOrThrow(err)
   }
 })
 
@@ -76,11 +78,12 @@ export async function generateMetadata({ params, searchParams }: { params: { slu
   const description = community.metaDescription || community.overview?.slice(0, 155) || `${community.count} verified listing${community.count === 1 ? '' : 's'} in ${community.name}.`
   const keywords = [community.focusKeyword, ...(community.seoKeywords || [])].filter(Boolean) as string[]
 
+  const paged = guidePage(`/communities/${community.slug}`, title, num(searchParams?.page), num(searchParams?.pp))
   return {
-    title: fitTitle(title),
+    title: fitTitle(paged.title),
     description: fitDescription(description),
     ...(keywords.length ? { keywords } : {}),
-    alternates: { canonical: `/communities/${community.slug}${num(searchParams?.page) > 1 ? `?page=${num(searchParams?.page)}` : ''}` },
+    alternates: { canonical: paged.canonical },
     openGraph: { title, description, type: 'website', url: `/communities/${community.slug}`, images: shareImages(community.heroImage) },
     twitter: { card: 'summary_large_image', title, description },
   }
@@ -92,15 +95,19 @@ export default async function CommunityDetailPage({ params, searchParams }: { pa
 
   const page = num(searchParams?.page), pPage = num(searchParams?.pp)
   const [listingPage, projectPage] = await Promise.all([getCommunityListings(community.name, page), getCommunityProjects(community.name, pPage)])
+  // A page past the end of either list is a real 404 — only when the list answered (EMPTY = the request failed).
+  if ((listingPage !== EMPTY && page > 1 && page > listingPage.totalPages) || (projectPage !== EMPTY && pPage > 1 && pPage > projectPage.totalPages)) notFound()
   const listings = listingPage.data, projects = projectPage.data
   // Things to do around the community (UAE Explore) — only when it has a map position.
   const pin = community.coordinates?.lat != null ? community.coordinates : null
   const empty: Around = { schools: [], hospitals: [], shopping: [], cafes: [], airports: [] }
-  const [nearPlaces, around, allCommunities] = await Promise.all([
+  // The area's page only when one exists — a guessed /areas/<name> address was a 404 for areas without a guide.
+  const [nearPlaces, around, allCommunities, areaHref] = await Promise.all([
     pin ? placeAPI.getNear(pin.lat, pin.lng, 8).then(r => (r.data.data.places || []) as Place[]).catch(() => [] as Place[]) : Promise.resolve([] as Place[]),
     // Schools, hospitals, shops, cafés and airports around the pin (OpenStreetMap + UAE Explore data).
     pin ? placeAPI.getAround(pin.lat, pin.lng).then(r => ({ ...empty, ...(r.data.data || {}) }) as Around).catch(() => empty) : Promise.resolve(empty),
     getAllCommunities(),
+    areaPageHref(community.area),
   ])
   // The 5 closest other communities with a guide (by map position; same area when there is no pin).
   const kmTo = (c: { lat: number; lng: number }) => pin ? Math.hypot((c.lat - pin.lat) * 111.32, (c.lng - pin.lng) * 111.32 * Math.cos((pin.lat * Math.PI) / 180)) : 0
@@ -209,7 +216,7 @@ export default async function CommunityDetailPage({ params, searchParams }: { pa
         <div className="wrap relative z-10">
           <p className="text-xs mb-4" style={{ color: community.heroImage ? 'rgba(255,255,255,0.75)' : 'var(--text-muted)' }}>
             <Link href="/communities" className="hover:underline">Communities</Link>
-            {community.area && <> / <Link href={`/areas/${community.area.toLowerCase().trim().replace(/\s+/g, '-')}`} className="hover:underline">{community.area}</Link></>}
+            {community.area && <> / {areaHref ? <Link href={areaHref} className="hover:underline">{community.area}</Link> : community.area}</>}
             {' '}/ {community.name}
           </p>
           <h1 className="heading-xl mb-3 flex items-center gap-3" style={community.heroImage ? { color: '#fff' } : undefined}>
@@ -323,7 +330,7 @@ export default async function CommunityDetailPage({ params, searchParams }: { pa
 
       <DailyLifeSection name={community.name} around={around} />
 
-      <NearbyCommunitiesSection name={community.name} area={community.area} nearby={nearby} />
+      <NearbyCommunitiesSection name={community.name} area={community.area} areaHref={areaHref} nearby={nearby} />
 
       <ReviewsSection type="community" slug={community.slug} name={community.name} />
 

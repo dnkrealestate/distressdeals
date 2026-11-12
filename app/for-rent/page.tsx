@@ -6,17 +6,22 @@ import { tagHeadline, TAG_LABELS } from '@/lib/listingTags'
 import MoreSearches from '@/components/listing/MoreSearches'
 import GuideSection from '@/components/listing/GuideSection'
 import AreaPriceMap from '@/components/AreaPriceMap'
-import { resolveSeo, withPage } from '@/lib/seo'
+import { resolveSeo, withPage, filterVariant } from '@/lib/seo'
 import { listingSeed } from '@/lib/listingSeed'
 import { notFound } from 'next/navigation'
-import { TYPE_PAGE_LABELS } from '@/lib/listingSeo'
+import { TYPE_PAGE_LABELS, listBreadcrumbJsonLd } from '@/lib/listingSeo'
 import PropertiesListClient from '../buyer/properties/PropertiesListClient'
 
 const TYPE_PAGE = TYPE_PAGE_LABELS
 
 // Page 2, 3… (?page=N) get their own canonical and "– Page N" title (lib/seo withPage).
-export async function generateMetadata({ searchParams }: { searchParams?: { tag?: string; type?: string; page?: string } }): Promise<Metadata> {
-  return withPage(await baseMetadata(searchParams), Math.max(1, Math.floor(Number(searchParams?.page) || 1)))
+// Any other filter (?area=, ?beds=, ?type=… with ?area=) is noindex, follow (lib/seo filterVariant).
+export async function generateMetadata({ searchParams }: { searchParams?: Record<string, string | undefined> }): Promise<Metadata> {
+  const [base, seed] = await Promise.all([baseMetadata(searchParams), listingSeed('rent', searchParams)])
+  const meta = filterVariant(withPage(base, Math.max(1, Math.floor(Number(searchParams?.page) || 1))), searchParams, (k, v) => k === 'page' || (k === 'tag' && !!TAG_LABELS[v]) || (k === 'type' && !!TYPE_PAGE[v] && !searchParams?.tag))
+  // A page of its own with nothing on it right now: still shown (200, with the "no listings" message), but not
+  // indexed until it has listings — an empty page in Google's index is a "soft 404".
+  return seed && seed.total + seed.projectTotal === 0 && !meta.robots ? { ...meta, robots: { index: false, follow: true } } : meta
 }
 
 async function baseMetadata(searchParams?: { tag?: string; type?: string }): Promise<Metadata> {
@@ -50,10 +55,14 @@ export default async function ForRentPage({ searchParams }: { searchParams?: Rec
   if (initial && initial.page > 1 && initial.page > initial.totalPages) notFound()
 
   return (
-    <PropertiesListClient
-      forcedListingType="rent"
-      initial={initial}
-      bottom={<><AreaPriceMap defaultPurpose="rent" title="Compare rents by area" subtitle="See what a year’s rent gets you across different areas." /><MoreSearches data={quickLinks} /><GuideSection content={guide} /></>}
-    />
+    <>
+      {/* eslint-disable-next-line react/no-danger */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(listBreadcrumbJsonLd('rent', searchParams)) }} />
+      <PropertiesListClient
+        forcedListingType="rent"
+        initial={initial}
+        bottom={<><AreaPriceMap defaultPurpose="rent" title="Compare rents by area" subtitle="See what a year’s rent gets you across different areas." /><MoreSearches data={quickLinks} /><GuideSection content={guide} /></>}
+      />
+    </>
   )
 }

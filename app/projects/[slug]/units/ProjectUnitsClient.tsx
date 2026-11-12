@@ -88,6 +88,13 @@ export default function ProjectUnitsClient({ group: g, slug, areaHref }: { group
   const showDeals = (d: 'offer' | 'below') => { setDeals(d); document.getElementById('units')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
   // Our own map, focused on this project (the same link as the project page's "View on map").
   const mapHref = `/map-search?only=project:${p.slug}`
+  // The opening of the description, cut at a sentence end (a real word before the full stop, so not "sq." or "ft."),
+  // else at a word.
+  const aboutText = String(p.description || '').replace(/<\/(p|h\d|li|div)>|<br\s*\/?>/gi, ' ').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim()
+  const aboutCut = aboutText.slice(0, 420)
+  const aboutEnd = [...aboutCut.matchAll(/[a-z]{3,}[.!?](?=\s+[A-Z0-9])/g)].map(m => m.index! + m[0].length).filter(i => i > 200).pop()
+  const aboutExcerpt = aboutText.length <= 420 ? aboutText
+    : aboutEnd ? aboutCut.slice(0, aboutEnd) : `${aboutCut.slice(0, aboutCut.lastIndexOf(' '))}…`
   const sizes = g.units.map(sizeOf).filter(Boolean)
   const facts = [
     { icon: Tag, label: 'Launch price', value: g.launchPrice ? `From ${formatPrice(g.launchPrice)}` : 'On request' },
@@ -348,8 +355,10 @@ export default function ProjectUnitsClient({ group: g, slug, areaHref }: { group
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div className="card p-6 lg:col-span-2">
             <h2 className="font-semibold mb-3" style={{ color: 'var(--text)' }}>About {name}</h2>
-            {p.description
-              ? <div className="prose-content text-sm leading-relaxed line-clamp-[12]" style={{ color: 'var(--text-mid)' }} dangerouslySetInnerHTML={{ __html: p.description }} />
+            {/* A short summary, not the whole write-up: the full description lives on the project page linked below —
+                repeating it here made this page a near-copy of that one, which Google then left out of its index. */}
+            {aboutExcerpt
+              ? <p className="text-sm leading-relaxed" style={{ color: 'var(--text-mid)' }}>{aboutExcerpt}</p>
               : <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Details coming soon.</p>}
             <div className="flex flex-wrap gap-x-5 gap-y-2 mt-3">
               <Link href={`/projects/${g.canonicalSlug}`} className="inline-flex items-center gap-1 text-sm font-semibold" style={{ color: 'var(--teal)' }}><Building2 size={14} /> Full project page &amp; nearby places</Link>
