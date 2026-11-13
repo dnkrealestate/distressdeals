@@ -13,6 +13,8 @@ import { THEME_BOOT_SCRIPT } from '@/store/themeStore'
 import { DEFAULT_SHARE_IMAGE } from '@/lib/seo'
 import RateBubble from '@/components/currency/RateBubble'
 import { COMPANY_PHONE } from '@/lib/contact'
+import AppBanner from '@/components/AppBanner'
+import { APP_BANNER_BOOT_SCRIPT } from '@/lib/appBanner'
 
 // Canonical www — the actual live domain (non-www 301s to this), so metadataBase (and therefore every relative
 // `alternates.canonical` across the app) must resolve here too, not to a URL that immediately redirects away.
@@ -74,10 +76,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Pick light/dark before the first paint (device setting, or the visitor's own choice). */}
         {/* eslint-disable-next-line react/no-danger */}
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+        {/* Android phones: show the "Get our app" bar from the first paint, so it never shifts the page. */}
+        {/* eslint-disable-next-line react/no-danger */}
+        <script dangerouslySetInnerHTML={{ __html: APP_BANNER_BOOT_SCRIPT }} />
         {/* eslint-disable-next-line react/no-danger */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
       </head>
       <body>
+        <AppBanner />
         <GoogleTagNoScript />
         <GoogleTagHead />
         <Providers>

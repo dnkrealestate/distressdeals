@@ -267,6 +267,8 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
             : 'border-b border-transparent'
         )}
         style={{
+          // Below the "Get our app" bar while it shows on Android (0 otherwise — components/AppBanner.tsx).
+          top:          'var(--app-banner-h, 0px)',
           background:   elevated ? 'var(--surface)'   : 'transparent',
           borderColor:  elevated ? 'var(--border)'    : 'transparent',
         }}
@@ -468,8 +470,8 @@ export default function Navbar({ transparent = false }: { transparent?: boolean 
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-x-0 top-16 z-40 xl:hidden shadow-lg overflow-y-auto"
-            style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', maxHeight: 'calc(100vh - 4rem)' }}
+            className="fixed inset-x-0 below-nav z-40 xl:hidden shadow-lg overflow-y-auto"
+            style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', maxHeight: 'calc(100vh - 4rem - var(--app-banner-h, 0px))' }}
           >
             <div className="wrap py-5">
               {NAV.filter(n => !n.highlight).map(n => (

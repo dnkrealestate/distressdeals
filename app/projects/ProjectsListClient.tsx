@@ -318,7 +318,7 @@ function ProjectsListClientInner({ bottom, initial }: { bottom?: React.ReactNode
       </div>
 
       {/* ── Filter bar: every filter as a dropdown; sticks to the top once the search box scrolls away ── */}
-      <div className={cn('z-30', pastSearch ? 'sticky top-16' : 'relative')}
+      <div className={cn('z-30', pastSearch ? 'sticky below-nav' : 'relative')}
         style={pastSearch ? { background: 'var(--surface)', borderBottom: '1px solid var(--border)', boxShadow: '0 8px 20px -14px rgba(15,23,42,0.25)' } : undefined}>
         {/* One row that slides sideways on phones (same as /for-sale); wraps on larger screens. Dropdown panels are portals, so the scroll doesn't clip them. */}
         <ScrollRow className={cn('wrap', pastSearch ? 'pt-3 pb-3.5' : 'pb-1')} innerClassName="gap-2 lg:flex-wrap" label="Filters">

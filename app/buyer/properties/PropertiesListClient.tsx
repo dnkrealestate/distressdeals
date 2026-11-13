@@ -779,7 +779,7 @@ function PropertiesListClientInner({ forcedListingType, initialProperties, initi
       <motion.div
         initial={{ y: -12, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.18 }}
-        className="sticky top-16 z-30" style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}
+        className="sticky below-nav z-30" style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}
       >
         <div className="wrap py-3 flex items-center gap-3 flex-nowrap">
           <div className="flex-1 min-w-0">

@@ -589,3 +589,44 @@ body {
   box-shadow: 0 10px 30px -12px rgba(203, 1, 1, 0.35), 0 0 0 1px rgba(245, 158, 11, 0.08);
 }
 .offer-card:hover { box-shadow: 0 16px 38px -12px rgba(203, 1, 1, 0.45), 0 0 0 1px rgba(245, 158, 11, 0.16); }
+
+/* ── "Get our Android app" bar (components/AppBanner.tsx, lib/appBanner.ts) ──
+   Hidden unless the before-paint script marks html[data-app-banner="show"] (Android phones only). While shown,
+   --app-banner-h pushes the page, the fixed navbar and the sticky bars below it down by the bar's height. */
+:root { --app-banner-h: 0px; }
+html[data-app-banner="show"] { --app-banner-h: 56px; }
+html[data-app-banner="show"] body { padding-top: var(--app-banner-h); }
+.app-banner { display: none; }
+html[data-app-banner="show"] .app-banner {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 60;
+  height: var(--app-banner-h); padding: 0 12px 0 6px;
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface); color: var(--text);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+}
+.app-banner-close {
+  flex-shrink: 0; width: 28px; height: 28px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--text-muted); transition: background-color .15s;
+}
+.app-banner-close:hover, .app-banner-close:focus-visible { background: var(--bg-alt); }
+.app-banner-icon {
+  flex-shrink: 0; width: 36px; height: 36px; border-radius: 9px;
+  box-shadow: 0 2px 8px rgba(203, 1, 1, 0.18), 0 0 0 1px rgba(15, 23, 42, 0.06);
+}
+.app-banner-text { flex: 1; min-width: 0; line-height: 1.2; }
+.app-banner-title { font-size: 13px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.app-banner-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.app-banner-cta {
+  flex-shrink: 0; height: 32px; padding: 0 16px; border-radius: 999px;
+  display: inline-flex; align-items: center;
+  background: var(--grad); color: #fff; font-size: 13px; font-weight: 700; letter-spacing: .01em;
+  box-shadow: 0 4px 12px rgba(203, 1, 1, 0.28);
+}
+.app-banner-cta:active { transform: scale(.97); }
+html[data-app-banner="show"] .app-banner { animation: appBannerIn .35s ease-out both; }
+@keyframes appBannerIn { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { html[data-app-banner="show"] .app-banner { animation: none; } }
+/* Elements pinned below the navbar move down with it while the bar shows. */
+.below-nav { top: calc(4rem + var(--app-banner-h)); }

@@ -183,7 +183,7 @@ export default async function InsightsPage() {
       </section>
 
       {/* Jump links — stay in view while scrolling */}
-      <nav aria-label="Insights sections" className="sticky top-16 z-30 border-y" style={{ background: 'var(--bg)', borderColor: 'var(--border)' }}>
+      <nav aria-label="Insights sections" className="sticky below-nav z-30 border-y" style={{ background: 'var(--bg)', borderColor: 'var(--border)' }}>
         <ScrollRow className="wrap" innerClassName="gap-2 py-2.5">
           {nav.map(n => (
             <a key={n.href} href={n.href} className="flex-shrink-0 px-3.5 h-8 inline-flex items-center rounded-full text-xs font-semibold whitespace-nowrap"
